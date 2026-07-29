@@ -21,4 +21,13 @@ class Room(ObjectParent, DefaultRoom):
     properties and methods available on all Objects.
     """
 
-    pass
+    def at_object_creation(self):
+        """Called only once, when the room object is first created."""
+        super().at_object_creation()
+        
+        # Initialize the 5 parameters as unplaced "None" tags directly onto the base room
+        self.tags.add("None", category="coord_x")
+        self.tags.add("None", category="coord_y")
+        self.tags.add("None", category="coord_z")
+        self.tags.add("None", category="coord_p")
+        self.tags.add("None", category="coord_b")
