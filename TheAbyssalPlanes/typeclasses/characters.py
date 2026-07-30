@@ -23,4 +23,12 @@ class Character(ObjectParent, DefaultCharacter):
 
     """
 
-    pass
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.db.visarial_state = "physical"
+
+    def set_state(self, state):
+        if state not in ("physical", "perceiving", "manifested"):
+            return False
+        self.db.visarial_state = state
+        return True

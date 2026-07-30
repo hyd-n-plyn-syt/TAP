@@ -22,6 +22,68 @@ class ObjectParent:
 
     """
 
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.db.visarial_nature = "dual_natured"
+        self.db.visarial_desc = ""
+
+    def get_display_name(self, looker=None, **kwargs):
+        name = super().get_display_name(looker, **kwargs)
+        nature = self.attributes.get("visarial_nature", default="dual_natured")
+        if nature == "physical":
+            return f"|w(|xphysical|w)|n {name}"
+        elif nature == "visarial":
+            return f"|w(|Mvisarial|w)|n {name}"
+        return name
+
+    def get_display_desc(self, looker, **kwargs):
+        base_desc = super().get_display_desc(looker, **kwargs)
+        if not looker:
+            return base_desc
+        nature = self.attributes.get("visarial_nature", default="dual_natured")
+        state = looker.attributes.get("visarial_state", default="physical")
+        vis_desc = self.db.visarial_desc
+        if nature == "physical":
+            return base_desc
+        elif nature == "visarial":
+            if vis_desc:
+                return f"|M{vis_desc}|n"
+            return ""
+        else:
+            if state == "perceiving":
+                if vis_desc:
+                    return f"{base_desc} |M{vis_desc}|n"
+                return base_desc
+            elif state == "manifested":
+                if vis_desc:
+                    return f"|M{vis_desc}|n"
+                return base_desc
+            return base_desc
+
+    def set_nature(self, nature):
+        if nature not in ("physical", "visarial", "dual_natured"):
+            return False
+        self.db.visarial_nature = nature
+        return True
+
+    def get_search_candidates(self, searchdata, **kwargs):
+        candidates = super().get_search_candidates(searchdata, **kwargs)
+        if candidates is None:
+            return None
+        state = self.attributes.get("visarial_state", default="physical")
+        if state == "perceiving":
+            return candidates
+        filtered = []
+        for obj in candidates:
+            nature = obj.attributes.get("visarial_nature", default="dual_natured") if hasattr(obj, "attributes") else "dual_natured"
+            if state == "physical":
+                if nature in ("physical", "dual_natured"):
+                    filtered.append(obj)
+            else:
+                if nature in ("visarial", "dual_natured"):
+                    filtered.append(obj)
+        return filtered
+
 
 class Object(ObjectParent, DefaultObject):
     """

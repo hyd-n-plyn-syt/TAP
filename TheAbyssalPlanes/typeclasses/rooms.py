@@ -7,6 +7,7 @@ Rooms are simple containers that has no location of their own.
 
 from evennia.objects.objects import DefaultRoom
 from evennia.utils.search import search_tag
+from evennia.utils.utils import iter_to_str
 from .objects import ObjectParent
 
 
@@ -19,7 +20,8 @@ class Room(ObjectParent, DefaultRoom):
     def at_object_creation(self):
         """Called only once, when the room object is first created."""
         super().at_object_creation()
-        
+        self.db.visarial_desc = ""
+
         # Identity tags
         self.tags.add("None", category="planetary_body")
         self.tags.add("None", category="planetary_site")
@@ -264,3 +266,50 @@ class Room(ObjectParent, DefaultRoom):
             return f"|wExits:|n {final_exit_tokens[0]} and {final_exit_tokens[1]}"
         else:
             return f"|wExits:|n {', '.join(final_exit_tokens[:-1])}, and {final_exit_tokens[-1]}"
+
+    def _match_visarial(self, looker, obj):
+        state = looker.attributes.get("visarial_state", default="physical")
+        nature = obj.attributes.get("visarial_nature", default="dual_natured")
+        if state == "physical":
+            return nature in ("physical", "dual_natured")
+        elif state == "perceiving":
+            return True
+        return nature in ("visarial", "dual_natured")
+
+    def get_display_characters(self, looker, **kwargs):
+        characters = self.filter_visible(
+            self.contents_get(content_type="character"), looker, **kwargs
+        )
+        characters = [char for char in characters if self._match_visarial(looker, char)]
+        character_names = iter_to_str(
+            (char.get_display_name(looker, **kwargs) for char in characters),
+            endsep=", and",
+        )
+        return f"|wCharacters:|n {character_names}" if character_names else ""
+
+    def get_display_things(self, looker, **kwargs):
+        from collections import defaultdict
+        from evennia.utils import ansi
+
+        things = self.filter_visible(
+            self.contents_get(content_type="object"), looker, **kwargs
+        )
+        things = [thing for thing in things if self._match_visarial(looker, thing)]
+
+        grouped_things = defaultdict(list)
+        for thing in things:
+            grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
+
+        thing_names = []
+        for thingname, thinglist in sorted(grouped_things.items()):
+            nthings = len(thinglist)
+            thing = thinglist[0]
+            base_key = thing.key
+            raw = str(thingname)
+            pos = raw.rfind(base_key)
+            colored_tag = raw[:pos] if pos >= 0 else ""
+            singular, plural = thing.get_numbered_name(nthings, looker, key=base_key)
+            numbered_name = singular if nthings == 1 else plural
+            thing_names.append(colored_tag + numbered_name)
+        thing_names = iter_to_str(thing_names, endsep=", and")
+        return f"|wYou see:|n {thing_names}" if thing_names else ""
