@@ -15,6 +15,8 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 """
 
 from evennia import default_cmds
+from commands.building.dig import GridDig
+from commands.building.setorigin import CmdSetOrigin
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -34,6 +36,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         #
         # any commands you add below will overload the default ones.
         #
+        self.add(GridDig)  # This replaces the default engine @dig globally
+        self.add(CmdSetOrigin)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

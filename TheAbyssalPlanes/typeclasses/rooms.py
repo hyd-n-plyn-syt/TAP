@@ -25,9 +25,16 @@ class Room(ObjectParent, DefaultRoom):
         """Called only once, when the room object is first created."""
         super().at_object_creation()
         
-        # Initialize the 5 parameters as unplaced "None" tags directly onto the base room
-        self.tags.add("None", category="coord_x")
-        self.tags.add("None", category="coord_y")
-        self.tags.add("None", category="coord_z")
-        self.tags.add("None", category="coord_p")
-        self.tags.add("None", category="coord_b")
+        # Identity tags
+        self.tags.add("None", category="planetary_body")
+        self.tags.add("None", category="planetary_site")
+
+        # Global planetary coordinate grid
+        self.tags.add("None", category="planet_x")
+        self.tags.add("None", category="planet_y")
+        self.tags.add("None", category="planet_z")
+
+        # Inner subzone local coordinate grid
+        self.tags.add("None", category="site_x")
+        self.tags.add("None", category="site_y")
+        self.tags.add("None", category="site_z")
