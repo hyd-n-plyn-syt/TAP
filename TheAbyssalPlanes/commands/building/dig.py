@@ -7,7 +7,7 @@ from evennia import search_object
 
 class GridDig(CmdDig):
     """
-    build new rooms and connect them to the current location
+    Build new rooms and connect them to the current location
 
     Usage:
       dig[/switches] <roomname>[;alias;alias...][:typeclass]
