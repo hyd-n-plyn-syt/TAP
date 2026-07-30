@@ -152,28 +152,35 @@ class GridDig(CmdDig):
 
         # TRANSITION PATHWAY C: Standard map navigation adjustments
         else:
-            if site.lower() != "none":
-                isx = int(sx) if sx.lower() != "none" else 0
-                isy = int(sy) if sy.lower() != "none" else 0
-                isz = int(sz) if sz.lower() != "none" else 0
+            if site != "None":
+                isx = int(sx) if sx != "None" else 0
+                isy = int(sy) if sy != "None" else 0
+                isz = int(sz) if sz != "None" else 0
                 if exit_dir in ("north", "n"): isy += 1
                 elif exit_dir in ("south", "s"): isy -= 1
                 elif exit_dir in ("east", "e"): isx += 1
                 elif exit_dir in ("west", "w"): isx -= 1
+                elif exit_dir in ("northeast", "ne"): isx += 1; isy += 1
+                elif exit_dir in ("northwest", "nw"): isx -= 1; isy += 1
+                elif exit_dir in ("southeast", "se"): isx += 1; isy -= 1
+                elif exit_dir in ("southwest", "sw"): isx -= 1; isy -= 1
                 elif exit_dir in ("up", "u"): isz += 1
                 elif exit_dir in ("down", "d"): isz -= 1
                 sx, sy, sz = str(isx), str(isy), str(isz)
             else:
-                if px.lower() != "none" and py.lower() != "none" and pz.lower() != "none":
+                if px != "None" and py != "None" and pz != "None":
                     ipx, ipy, ipz = int(px), int(py), int(pz)
                     if exit_dir in ("north", "n"): ipy += 1
                     elif exit_dir in ("south", "s"): ipy -= 1
                     elif exit_dir in ("east", "e"): ipx += 1
                     elif exit_dir in ("west", "w"): ipx -= 1
+                    elif exit_dir in ("northeast", "ne"): ipx += 1; ipy += 1
+                    elif exit_dir in ("northwest", "nw"): ipx -= 1; ipy += 1
+                    elif exit_dir in ("southeast", "se"): ipx += 1; ipy -= 1
+                    elif exit_dir in ("southwest", "sw"): ipx -= 1; ipy -= 1
                     elif exit_dir in ("up", "u"): ipz += 1
                     elif exit_dir in ("down", "d"): ipz -= 1
                     px, py, pz = str(ipx), str(ipy), str(ipz)
-
 
         # Wipe out default tags from the new room
         new_room.tags.clear(category="planetary_body")
