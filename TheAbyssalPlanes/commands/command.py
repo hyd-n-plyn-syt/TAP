@@ -6,8 +6,15 @@ Commands describe the input the account can do to the game.
 """
 
 from evennia.commands.command import Command as BaseCommand
+from evennia.commands.default.muxcommand import MuxCommand
 
 # from evennia import default_cmds
+
+
+def refresh_prompt(caller):
+    """Push the character's current prompt to its session(s)."""
+    if hasattr(caller, "get_prompt"):
+        caller.msg(prompt=caller.get_prompt())
 
 
 class Command(BaseCommand):
@@ -30,7 +37,26 @@ class Command(BaseCommand):
     #     - at_post_cmd(): Extra actions, often things done after
     #         every command, like prompts.
     #
+    def at_post_cmd(self):
+        """Refresh the character's prompt after every command."""
+        refresh_prompt(self.caller)
+
     pass
+
+
+class GameMuxCommand(MuxCommand):
+    """
+    Base class for all stock Evennia commands.
+
+    Point COMMAND_DEFAULT_CLASS here so every built-in command (look,
+    movement via exits, get, help, etc.) also refreshes the player's
+    prompt after running. Inherits MuxCommand to preserve the argument
+    parsing the default commands rely on (self.lhs, self.rhs, etc.).
+    """
+
+    def at_post_cmd(self):
+        """Refresh the character's prompt after every command."""
+        refresh_prompt(self.caller)
 
 
 # -------------------------------------------------------------

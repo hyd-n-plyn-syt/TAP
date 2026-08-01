@@ -32,7 +32,12 @@ from evennia.settings_default import *
 ######################################################################
 
 # This is the name of your game. Make it catchy!
-SERVERNAME = "TheAbyssalPlanes"
+SERVERNAME = "The Abyssal Planes"
+
+# Base class for all stock commands (look, get, exits, etc.). GameMuxCommand
+# adds an automatic prompt refresh after every command while preserving the
+# MuxCommand argument parsing the defaults rely on.
+COMMAND_DEFAULT_CLASS = "commands.command.GameMuxCommand"
 
 
 ######################################################################
