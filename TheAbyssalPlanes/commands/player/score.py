@@ -14,8 +14,8 @@ class CmdScore(Command):
 
     Shows your species (and its bonuses), your nine sub-stats with their
     effective values, your three derived main stats, and your six derived
-    pools (Vigor, Vim, Mens and their regen rates). Pools a species cannot
-    use are omitted.
+    pools (Vigor, Vim, Mens and their regen rates). Main-stat columns a
+    species locks at 0 are omitted, as are pools a species cannot use.
     """
     key = "score"
     aliases = ["stats"]
@@ -48,22 +48,22 @@ class CmdScore(Command):
             lines.append(f"|wBorn:|n {caller.birth_date}")
 
         lines.append("")
-        lines.append("|w=== Attributes ===|n")
+        attr_lines = []
         for main in stats.MAIN_STATS:
-            locked = bool(data and main in data["locked_main_stats"])
-            suffix = "  |r[locked 0]|n" if locked else ""
+            if stats.sub_stat_is_locked(caller, main):
+                continue
             value = stats.main_stat(caller, main)
-            lines.append(f"|w{main.capitalize():7}|n {value}{suffix}")
+            attr_lines.append(f"|w{main.capitalize():7}|n {value}")
             for sub in stats.SUB_STATS:
                 base = getattr(caller, f"{main}_{sub}")
                 effective = stats.effective_sub_stat(caller, main, sub)
-                if locked:
-                    lines.append(f"   {sub.capitalize():9} 0 |r(locked)|n")
-                else:
-                    display = str(effective)
-                    if effective != base:
-                        display += f" |g(+{effective - base})|n"
-                    lines.append(f"   {sub.capitalize():9} {display}")
+                display = str(effective)
+                if effective != base:
+                    display += f" |g(+{effective - base})|n"
+                attr_lines.append(f"   {sub.capitalize():9} {display}")
+        if attr_lines:
+            lines.append("|w=== Attributes ===|n")
+            lines.extend(attr_lines)
 
         lines.append("")
         lines.append("|w=== Pools ===|n")

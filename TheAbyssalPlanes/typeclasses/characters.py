@@ -25,6 +25,10 @@ from .objects import ObjectParent
 _POOL_FILL_COLORS = ["R", "Y", "G"]
 _POOL_EMPTY_BG = "=e"
 
+# Prompt colors for the projected visarial states. Deliberately distinct
+# from the plane colors (physical |x dark gray, visarial |M magenta).
+_STATE_COLORS = {"perceiving": "|y", "manifesting": "|c"}
+
 
 def pool_color(cur, maxv):
     """Return an ANSI foreground color code for a pool value by how full it is."""
@@ -347,11 +351,11 @@ class Character(ObjectParent, DefaultCharacter):
         """Build the client prompt from current pools and visarial state."""
         mode = self.db.promptmode or "numbers"
         plane = self.current_plane()
-        state_color = "|x" if plane == "physical" else "|M"
-        state_text = plane
+        plane_color = "|x" if plane == "physical" else "|M"
+        state_text = f"{plane_color}{plane}|n"
         projected = self.projected_state
         if projected:
-            state_text += f" {projected}"
+            state_text += f" {_STATE_COLORS.get(projected, '|W')}{projected}|n"
 
         zeroed = stats.zero_pools(self)
         parts = []
@@ -376,5 +380,5 @@ class Character(ObjectParent, DefaultCharacter):
             else:
                 parts.append(f"{label} {pool_color(cur, maxv)}{cur}/{maxv}|n")
 
-        parts.append(f"|w[|n{state_color}{state_text}|n|w]|n")
+        parts.append(f"|w[|n{state_text}|w]|n")
         return "  ".join(parts)
