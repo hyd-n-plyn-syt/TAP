@@ -147,3 +147,20 @@ Foundation of the whole progression system.
   `settrainer`); Characters expose it as `trainer_skills`.
 - Main-stat rank ladder and all stat thresholds are placeholder numbers marked
   for tuning.
+
+## Automated Tests
+
+- Evennia runs the test suite with Django's test runner, which builds a
+  throwaway database and exercises the game against it.
+- **Run everything:**
+  `evennia test --settings settings.py .`
+- Run one group (e.g. data/systems or command integration):
+  `evennia test --settings settings.py world.tests`
+  `evennia test --settings settings.py commands.tests`
+- Test locations: `TheAbyssalPlanes/world/tests/` (pure-data + mock snippets
+  for world/data and world/systems) and `TheAbyssalPlanes/commands/tests/`
+  (evennia integration via `EvenniaCommandTest`). Pure modules use
+  `django.test.SimpleTestCase`; DB-backed `EvenniaTest` for commands.
+- The runner never touches the live game DB (it creates `test_evennia.db3`),
+  so tests are safe to run against a running dev server.
+- Core/game tests are distinct from Evennia's own suite (`evennia test evennia`).
