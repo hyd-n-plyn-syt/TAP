@@ -54,8 +54,7 @@ class CmdScore(Command):
             if stats.sub_stat_is_locked(caller, main):
                 continue
             value = stats.main_stat(caller, main)
-            rank = rankings.rank_name(value)
-            attr_lines.append(f"|w{main.capitalize():7}|n {value} |W[{rank}]|n")
+            attr_lines.append(f"|w{main.capitalize():7}|n {value} {rankings.colored_rank_name(value)}")
             for sub in stats.SUB_STATS:
                 base = getattr(caller, f"{main}_{sub}")
                 effective = stats.effective_sub_stat(caller, main, sub)

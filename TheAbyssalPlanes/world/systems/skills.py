@@ -21,6 +21,7 @@ The `difficulty` key maps to a base XP via world.data.skills.DIFFICULTY_XP.
 """
 
 from world.data import skills as data
+from world.data import species as species_data
 from world.systems import growth
 
 # --- Tunable numbers ---
@@ -42,6 +43,20 @@ def tier(value):
 def tier_name(value):
     """Return the display name of the tier a value is in."""
     return data.TIER_NAMES[tier(value) - 1]
+
+
+def tier_colored_name(value):
+    """Return the tier name wrapped in its display color."""
+    t = tier(value)
+    return f"|{data.tier_color(t)}{data.TIER_NAMES[t - 1]}|n"
+
+
+def requirement_str(value):
+    """
+    Display a skill value as 'NN% TierName' for requirements and thresholds,
+    e.g. '0% Adept', '50% Master', '30% Apprentice'.
+    """
+    return f"{within_tier(value)}% {tier_name(value)}"
 
 
 def within_tier(value):
@@ -110,7 +125,8 @@ def learn_skill(char, key, value=None):
         return False, "Unknown skill."
     if not prereqs_met(char, key):
         reqs = ", ".join(
-            f"{data.get_skill(r)['name']} {v}" for r, v in skill["requires"].items()
+            f"{data.get_skill(r)['name']} {requirement_str(v)}"
+            for r, v in skill["requires"].items()
         )
         return False, f"Requires: {reqs}."
     learned = dict(char.skills)
@@ -124,6 +140,25 @@ def xp_to_next(char, key):
     val = skill_value(char, key)
     buf = float(char.skills_xp.get(key, 0.0))
     return point_cost(tier(val)) - buf
+
+
+def effective_skill_stats(char, key):
+    """
+    The {sub_stat: weight} mapping a skill actually exercises for a character.
+
+    Species with a locked main (e.g. Visarii corpus, Silex animus) exercise
+    their alternate main instead, preserving the sub-stat slot and weight.
+    Returns an empty dict for an unknown skill.
+    """
+    skill = data.get_skill(key)
+    if not skill:
+        return {}
+    stats = {}
+    for stat, weight in skill["stats"].items():
+        main, sub = stat.split("_", 1)
+        alt = species_data.alternate_for(char.species_key, main)
+        stats[f"{alt or main}_{sub}"] = stats.get(f"{alt or main}_{sub}", 0) + weight
+    return stats
 
 # --- Use / growth ---
 
@@ -170,9 +205,10 @@ def use_skill(char, key, difficulty="medium", times=1):
     char.skills = skills
     char.skills_xp = xp
 
-    # Feed the linked statistics (diminishing with the skill's rank).
+    # Feed the linked statistics (diminishing with the skill's rank). Locked
+    # mains are remapped to the species' alternate (see effective_skill_stats).
     stat_total = gain * stat_taper(start_tier)
-    for stat, weight in skill["stats"].items():
+    for stat, weight in effective_skill_stats(char, key).items():
         main, sub = stat.split("_", 1)
         growth.add_stat_xp(char, main, sub, stat_total * weight)
 

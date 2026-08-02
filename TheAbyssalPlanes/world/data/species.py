@@ -15,6 +15,11 @@ Each species is defined by:
                           of the base sub-stat (effective = base + bonus)
     locked_main_stats   - main stats permanently locked at 0 (all sub-stats
                           under them read as 0)
+    locked_alternates   - {locked_main: substitute_main}: when a skill
+                          exercises a sub-stat under a locked main, it instead
+                          feeds the substitute main (same sub-stat slot). Only
+                          present on species with locked mains; other species
+                          need no entry.
     zero_pools          - derived pools pinned to 0 (max and regen); also
                           hidden from the prompt
     cannot_perceive     - cannot perceive or manifest into the visarial realm
@@ -184,6 +189,7 @@ SPECIES = {
         "default_visarial_state": "manifested",
         "stat_bonuses": {"animus_potestas": 1},
         "locked_main_stats": ("corpus",),
+        "locked_alternates": {"corpus": "animus"},
         "zero_pools": ("vigor",),
         "cannot_perceive": False,
         "description": (
@@ -206,6 +212,7 @@ SPECIES = {
         "default_visarial_state": "physical",
         "stat_bonuses": {"corpus_obsistis": 1},
         "locked_main_stats": ("animus",),
+        "locked_alternates": {"animus": "corpus"},
         "zero_pools": ("vim",),
         "cannot_perceive": True,
         "description": (
@@ -253,6 +260,20 @@ def is_locked(key, main_stat):
     """Return True if a main stat is locked at 0 for the species."""
     data = get_species(key)
     return bool(data and main_stat in data["locked_main_stats"])
+
+
+def alternate_for(key, main_stat):
+    """
+    Return the substitute main stat for a locked main, or None.
+
+    A skill exercising a sub-stat under a locked main feeds the substitute
+    main instead (same sub-stat slot). Returns None if the main is not locked
+    or the species has no alternate defined.
+    """
+    data = get_species(key)
+    if not data:
+        return None
+    return data.get("locked_alternates", {}).get(main_stat)
 
 
 def zeroed_pools(key):

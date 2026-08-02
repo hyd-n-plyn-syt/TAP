@@ -10,30 +10,31 @@ main reads a total of 0 and shows rank "none".
 The numeric thresholds below are placeholders to be tuned later.
 """
 
-# Ascending (min_total, rank_name) pairs. A total is mapped to the highest
-# rank whose minimum it reaches.
+# Ascending (min_total, rank_name, color) pairs. A total is mapped to the
+# highest rank whose minimum it reaches. Colors use Evennia ANSI codes,
+# progressing from muted gray through red/yellow/green into blinding tiers.
 RANKS = (
-    (0, "none"),
-    (1, "feeble"),
-    (5, "weak"),
-    (9, "poor"),
-    (13, "below average"),
-    (17, "average"),
-    (21, "good"),
-    (26, "impressive"),
-    (32, "formidable"),
-    (39, "legendary"),
-    (47, "mythic"),
-    (56, "divine"),
-    (66, "godlike"),
-    (81, "ungodly"),
+    (0, "none", "x"),
+    (1, "feeble", "r"),
+    (5, "weak", "r"),
+    (9, "poor", "r"),
+    (13, "below average", "r"),
+    (17, "average", "y"),
+    (21, "good", "y"),
+    (26, "impressive", "g"),
+    (32, "formidable", "g"),
+    (39, "legendary", "c"),
+    (47, "mythic", "C"),
+    (56, "divine", "m"),
+    (66, "godlike", "R"),
+    (81, "ungodly", "W"),
 )
 
 
 def rank_index(total):
     """Return the index into RANKS for a main-stat total (0-based)."""
     idx = 0
-    for i, (minimum, _) in enumerate(RANKS):
+    for i, (minimum, _, _) in enumerate(RANKS):
         if total >= minimum:
             idx = i
     return idx
@@ -42,6 +43,17 @@ def rank_index(total):
 def rank_name(total):
     """Return the rank name for a main-stat total."""
     return RANKS[rank_index(total)][1]
+
+
+def rank_color(total):
+    """Return the ANSI color code letter for a main-stat total's rank."""
+    return RANKS[rank_index(total)][2]
+
+
+def colored_rank_name(total):
+    """Return the rank name wrapped in its display color, e.g. '|g[good]|n'."""
+    idx = rank_index(total)
+    return f"|{RANKS[idx][2]}[{RANKS[idx][1]}]|n"
 
 
 def rank_threshold(index):

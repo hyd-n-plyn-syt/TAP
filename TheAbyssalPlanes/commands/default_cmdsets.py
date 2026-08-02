@@ -19,9 +19,11 @@ from commands.building.dig import GridDig
 from commands.building.setorigin import CmdSetOrigin
 from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
+from commands.building.settrainer import CmdSetTrainer
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
 from commands.player.skills import CmdSkills
+from commands.player.train import CmdTrain
 from commands.player.appearance import (
     CmdSetAdjective,
     CmdSetBuild,
@@ -59,9 +61,11 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetOrigin)
         self.add(CmdAttSet)
         self.add(CmdSetSkill)
+        self.add(CmdSetTrainer)
         self.add(CmdPerceive)
         self.add(CmdManifest)
         self.add(CmdSkills)
+        self.add(CmdTrain)
         self.add(CmdSetHeight)
         self.add(CmdSetBuild)
         self.add(CmdSetAdjective)

@@ -47,6 +47,10 @@ WEBSERVER_PORTS = [(80, 4005)]
 # Public hostname so the webclient's websocket resolves through the domain.
 SERVER_HOSTNAME = "theabyssalplane.duckdns.org"
 
+# New characters are born in the creation area, where a trainer offers the
+# first skills. Must be a dbref (Evennia parses it numerically on delete).
+DEFAULT_HOME = "#3"
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

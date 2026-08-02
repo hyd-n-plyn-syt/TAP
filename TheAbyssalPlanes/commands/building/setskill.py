@@ -99,7 +99,7 @@ class CmdSetSkill(Command):
         missing = skills.missing_prereqs(target, key)
         if missing and not force:
             reqs = ", ".join(
-                f"{data.get_skill(r)['name']} {needed}"
+                f"{data.get_skill(r)['name']} {skills.requirement_str(needed)}"
                 for r, (_, needed) in missing.items()
             )
             caller.msg(

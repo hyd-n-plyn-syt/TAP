@@ -25,8 +25,21 @@ kept current as work happens.
   "feeble" -> ... -> "ungodly". Rank thresholds are placeholders to tune later.
 - **Species lock certain mains at 0** (e.g. Visarii corpus, Silex animus).
   Locked columns never gain XP and stay at 0; their pools are zeroed/hidden.
-  Skills tied to a locked column can still be *learned* but their stat XP is
-  refused; skills that mix mains still feed the unlocked ones.
+  Skills tied to a locked column normally get no stat XP, BUT locked species
+  remap that column to an alternate main (Visarii corpus -> animus, Silex
+  animus -> corpus; see `locked_alternates` in world/data/species.py), so the
+  skill still exercises a meaningful stat.
+- **Ranks and tiers are colored.** Stat ranks (none -> ungodly) and skill
+  tiers (Novice -> Grandmaster) each have an ANSI color shown on score, the
+  skills list, and trainer listings. Ready to reuse anywhere.
+- **Skills start unlearned.** Characters begin with no skills and pick up the
+  first ones from a trainer in the creation area (`Center of Creation`, the
+  new-character home via DEFAULT_HOME).
+- **Trainers.** A builder designates an NPC with `settrainer <target> = s1, s2`
+  (stored as `trained_skills`). Players use `train` to list trainers here or
+  `train <skill>` to learn it (0%, Novice) if prerequisites are met.
+- **Requirements show as percent-of-tier**, e.g. "Attack 0% Adept", "Meditate
+  0% Expert", "50% Master" - never raw 300/400 numbers.
 
 ## Fixed Decisions (locked)
 
@@ -69,9 +82,18 @@ Foundation of the whole progression system.
   `setskill` (builder learn/set/force/reset, `commands/building/setskill.py`),
   registered in the character + building cmdsets.
 - [x] `score` now shows each main stat's rank.
-- [x] Verified live (evennia shell): learn/use, tier math, double taper,
-  stat growth, prereq gating, unknown-skill refusal, locked-column refusal.
-- [ ] Player-facing way to *learn* basic skills (see Phase 5).
+- [x] Species alternate mains: skills exercising a locked stat column feed the
+  species' alternate main instead (Visarii corpus->animus, Silex animus->corpus),
+  via `effective_skill_stats()`.
+- [x] Colored stat ranks (score) and colored skill tiers (skills list, trainer
+  listings); `requirement_str()` shows thresholds as "NN% Tier" everywhere.
+- [x] `train` (players list trainers / learn a skill at 0%, gated by prereqs)
+  and `settrainer` (builder designates a trainer's skills). Registered in the
+  character cmdsets.
+- [x] New characters home to `Center of Creation` (DEFAULT_HOME="#3"), with a
+  trainer NPC (Keeper Solenn) offering the fundamentals and the advanced skills
+  as goals.
+- [ ] Additional player-facing *use* actions for combat/meta skills (Phase 3/5).
 
 ### Phase 2 - Regen, Rest, Time
 
@@ -119,5 +141,9 @@ Foundation of the whole progression system.
 - Stat threshold = 5 + 3 * current_value (`world/systems/growth.py`).
 - `use_skill(char, key, difficulty, times)` returns a result dict; refuses
   unknown skills (reason "unknown") and unmet prereqs (reason "prereq").
+- `requirement_str(value)` renders a skill value as "NN% Tier" (e.g. "0% Adept",
+  "50% Master") for prerequisites and thresholds.
+- Trainers store their offered skills in the `trained_skills` attribute (set by
+  `settrainer`); Characters expose it as `trainer_skills`.
 - Main-stat rank ladder and all stat thresholds are placeholder numbers marked
   for tuning.

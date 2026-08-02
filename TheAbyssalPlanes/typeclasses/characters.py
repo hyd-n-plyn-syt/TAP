@@ -300,6 +300,14 @@ class Character(ObjectParent, DefaultCharacter):
         """
         return skill_systems.use_skill(self, key, difficulty=difficulty, times=times)
 
+    @property
+    def trainer_skills(self):
+        """
+        The list of skill keys this character can teach, or None if they are
+        not a trainer. Set with the builder 'settrainer' command.
+        """
+        return self.attributes.get("trained_skills")
+
     def get_display_name(self, looker=None, **kwargs):
         """
         Characters show a plane prefix plus their appearance phrase.

@@ -23,7 +23,8 @@ skills feed the uncapped statistics.
 """
 
 # Ten tiers from first contact to mastery. 0-99 is tier 1, 900-1000 is
-# tier 10 (grandmaster).
+# tier 10 (grandmaster). TIER_COLORS holds the ANSI color code shown with
+# each tier name where it is displayed.
 TIER_NAMES = (
     "Novice",
     "Apprentice",
@@ -35,6 +36,19 @@ TIER_NAMES = (
     "High Master",
     "Archmaster",
     "Grandmaster",
+)
+
+TIER_COLORS = (
+    "x",
+    "r",
+    "R",
+    "y",
+    "g",
+    "G",
+    "c",
+    "C",
+    "m",
+    "W",
 )
 
 # Base skill XP awarded per use, by difficulty. Tuned numbers - see
@@ -190,3 +204,9 @@ def stats_for(key):
     """Return the {sub_stat: weight} mapping for a skill key, or None."""
     skill = get_skill(key)
     return skill["stats"] if skill else None
+
+
+def tier_color(tier_no):
+    """Return the ANSI color code letter for a 1-10 tier number."""
+    idx = max(0, min(tier_no - 1, len(TIER_COLORS) - 1))
+    return TIER_COLORS[idx]
