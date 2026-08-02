@@ -5,6 +5,8 @@ Loaded automatically via the default setting
 ``FILE_HELP_ENTRY_MODULES = ["world.help_entries"]``.
 """
 
+from world.data import species as species_data
+
 HELP_ENTRY_DICTS = [
     {
         "key": "prompt",
@@ -17,6 +19,14 @@ Your client prompt shows your three pools (Vigor, Vim, Mens) along with
 your current visarial state. It refreshes after every command and whenever
 your pools or state change.
 
+|wState|n
+  [physical]   - present in the physical realm
+  [visarial]   - present in the visarial realm
+  [physical perceiving]  - in the physical, also aware of the visarial
+  [visarial perceiving]  - in the visarial, also aware of the physical
+  [physical manifesting] - a Visarii projected into the physical world
+  [visarial manifesting] - a dual-natured being that crossed into the visarial
+
 |wPrompt Styles|n
   numbers - Vigor: 16/16  Vim: 16/16  Mens: 16/16  [physical]
   percent - Vigor: 100%   Vim: 100%   Mens: 100%   [physical]
@@ -24,7 +34,7 @@ your pools or state change.
 
 Use |wpromptmode|n to switch styles (no argument cycles through them).
 
-See also: |wstats|n, |wattributes|n.
+See also: |wscore|n, |wattributes|n.
 """.strip(),
     },
     {
@@ -64,9 +74,9 @@ Every sub-attribute is one of three |waspects|n:
   Animus Reflexus   - rapid visualization and channeling
   Animus Obsistis   - spiritual fortitude
 
-Use |wstats|n to view your attributes. See also help on |wcorpus|n,
+Use |wscore|n to view your attributes. See also help on |wcorpus|n,
 |wgenius|n, |wanimus|n, |wpotestas|n, |wreflexus|n, |wobsistis|n, |wvigor|n,
-|wvim|n and |wmens|n.
+|wvim|n, |wmens|n and |wspecies|n.
 """.strip(),
     },
     {
@@ -227,6 +237,10 @@ Vim is your spiritual pool - your capacity to hold and channel supernatural
 energy. Spellcraft draws on it. It is |wderived|n from your attributes and
 is never stored directly.
 
+|wVis|n
+Magic and abilities that draw on Vim are known as |wVis|n. Your Vim pool is
+the fuel for your Vis.
+
 |wDerivation|n
   Vim = ((Animus + Animus Obsistis) * 3)
         + ((Animus Potestas + Genius Obsistis) * 2)
@@ -288,6 +302,201 @@ at least 1 point per tick.
 |wNote|n: all divisions round down (integer division).
 
 See also: |wvigor|n, |wvim|n, |wgenius|n.
+""".strip(),
+    },
+]
+
+def _species_overview_text():
+    lines = [
+        "|wSpecies|n",
+        "",
+        "Every soul is born into one of the |wspecies|n of the planes. Your",
+        "species sets your starting visarial nature, grants a persistent +1",
+        "bonus to one of your nine sub-attributes, and may lock certain",
+        "attributes or pools entirely.",
+        "",
+        "|wNatures|n",
+        "  |wdual-natured|n - present in both the physical and visarial realms",
+        "  |wvisarial|n     - exists only in the visarial realm; can perceive",
+        "                     and manifest into the physical plane",
+        "  |wphysical|n     - exists only in the physical realm; cannot",
+        "                     perceive or manifest",
+        "",
+        "|wThe Species|n",
+    ]
+    for key in species_data.species_keys():
+        data = species_data.get_species(key)
+        if data:
+            lines.append(
+                f"  |w{data['name']:10}|n - {data['archetype']} "
+                f"({data['visarial_nature']})"
+            )
+    lines += [
+        "",
+        "Use |wsetspecies|n (Builder) to change a character's species, and",
+        "|wscore|n to view your own. Get help on any species by name, e.g.",
+        "|whelp visarii|n.",
+    ]
+    return "\n".join(lines)
+
+
+def _species_help_entries():
+    entries = []
+    for key in species_data.species_keys():
+        data = species_data.get_species(key)
+        if not data:
+            continue
+        bonus = ", ".join(
+            f"+{value} {name.replace('_', ' ').title()}"
+            for name, value in data["stat_bonuses"].items()
+        )
+        traits = []
+        if data["locked_main_stats"]:
+            traits.append(
+                " |wLocked:|n "
+                + ", ".join(main.capitalize() for main in data["locked_main_stats"])
+                + " permanently at 0."
+            )
+        if data["zero_pools"]:
+            traits.append(
+                " |wNo pool:|n "
+                + ", ".join(pool.capitalize() for pool in data["zero_pools"])
+                + "."
+            )
+        if data.get("cannot_perceive"):
+            traits.append(" |wCannot|n perceive or manifest into the visarial realm.")
+        nature_text = {
+            "dual_natured": (
+                "dual-natured: present in both the physical and visarial realms."
+            ),
+            "visarial": (
+                "visarial: exists only in the visarial realm. They can perceive "
+                "into the physical plane without being there, and manifest to "
+                "project into it."
+            ),
+            "physical": (
+                "physical: exists only in the physical realm and cannot perceive "
+                "or manifest into the visarial realm."
+            ),
+        }[data["visarial_nature"]]
+        text = (
+            f"|w{data['name']} - {data['archetype']}|n\n\n"
+            f"{data['description']}\n\n"
+            f"|wNature|n: {nature_text}\n"
+            f"|wStat bonus|n: {bonus}\n"
+            f"{''.join(traits)}\n\n"
+            f"See also: |wspecies|n, |wscore|n, |wattributes|n."
+        )
+        entries.append(
+            {
+                "key": key,
+                "category": "General",
+                "aliases": data["aliases"],
+                "text": text.strip(),
+            }
+        )
+    return entries
+
+
+HELP_ENTRY_DICTS += [
+    {
+        "key": "species",
+        "category": "General",
+        "aliases": ["races"],
+        "text": _species_overview_text(),
+    }
+]
+HELP_ENTRY_DICTS += _species_help_entries()
+
+HELP_ENTRY_DICTS += [
+    {
+        "key": "appearance",
+        "category": "General",
+        "aliases": ["appear", "describe"],
+        "text": """
+|wAppearance|n
+
+Characters are described in rooms by a three-word phrase rather than a
+name: |w"|xphysical|w) A tall and lithe, translucent |MVisarii|w, standing"|n.
+The phrase is made of four parts, each set by a Builder command:
+
+  |wsetheight|n <short|below-average|average|above-average|tall>
+      - height is relative to the species: an "average" Volucres is far
+        shorter than an "average" Terran.
+  |wsetbuild|n <build>
+      - a single-word build, validated against the height. You cannot be
+        tall and squat, nor short and statuesque.
+  |wsetadjective|n <adjective>
+      - a descriptor drawn from the species' own list.
+  |wsetskin|n <tone>
+      - a named tone from the species' palette; its Truecolor shade colors
+        the species name in the description.
+
+Run any of these with no argument to see the current value and the valid
+options for the character. Add |w= <target>|n to apply to someone else in
+the room. |wnone|n clears a field.
+
+The leading |w(physical)|n / |w(visarial)|n prefix shows the plane the
+character currently occupies, and every character carries a pose
+(default |wstanding|n) that ends the phrase.
+
+See also: |wspecies|n, |wscore|n.
+""".strip(),
+    },
+    {
+        "key": "time",
+        "category": "General",
+        "aliases": ["clock", "date", "cosmos"],
+        "text": """
+|wTime - The Cosmic Clock|n
+
+The universe keeps a single |wuniversal|n time, anchored to the cradle
+world Auridon at the heart of the system. Its calendar runs on a
+|w23-hour|n day, |w28-day|n month and |w13-month|n year - 364 days in all,
+each month ruled by one of the |wsigns|n.
+
+Planetary bodies orbit Sol at different distances, so their |wlocal|n
+years are shorter (inner worlds) or longer (outer worlds) than the
+universal year. The clock itself ticks the same everywhere; only the
+reckoning of years changes.
+
+Use |wtime|n to see the universal date, the sign of the current month,
+and - if you stand on a mapped planet - the local date.
+
+|wThe Signs|n
+""" + "\n".join(f"  |w{s}|n" for s in (
+        "The Warden", "The Lantern", "The Harrow", "The Loom", "The Veil",
+        "The Hearth", "The Thorn", "The Quill", "The Anvil", "The Tide",
+        "The Crown", "The Ember", "The Shroud",
+    )) + """
+
+Every soul is born under the sign that ruled the month of its birth.
+Your sign is recorded at character creation and shown on your |wscore|n.
+
+See also: |wscore|n.
+""".strip(),
+    },
+    {
+        "key": "planets",
+        "category": "General",
+        "aliases": ["planet", "worlds", "sol"],
+        "text": """
+|wThe Planets|n
+
+The planes turn around a single star, |wSol|n. Three worlds are known to
+be inhabited, ranged by their distance from it:
+
+  |wCindris|n   - a scorched inner world; its year is half the universal year.
+  |wAuridon|n   - the cradle world at the heart of the system, its year is
+                 the standard 364-day universal year.
+  |wFrostfall|n - a frozen world on the far edge of Sol's light; its year
+                 is twice the universal year.
+
+Rooms are stamped with their planet by the grid-building tools (see
+|wdig|n). Use |wtime|n while standing on a mapped world to see its local
+date.
+
+See also: |wtime|n.
 """.strip(),
     },
 ]

@@ -89,6 +89,14 @@ class CmdAttSet(Command):
             caller.msg(f"Unknown stat. Choose one of: {valid}")
             return
 
+        data = target.species
+        if data and main in data["locked_main_stats"]:
+            caller.msg(
+                f"|r{main.capitalize()} is permanently locked at 0 "
+                f"for {data['name']} ({data['archetype']}).|n"
+            )
+            return
+
         try:
             value = int(value)
         except ValueError:

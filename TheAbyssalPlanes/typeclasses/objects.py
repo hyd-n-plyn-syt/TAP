@@ -27,14 +27,28 @@ class ObjectParent:
         self.db.visarial_nature = "dual_natured"
         self.db.visarial_desc = ""
 
-    def get_display_name(self, looker=None, **kwargs):
-        name = super().get_display_name(looker, **kwargs)
+    def current_plane(self):
+        """
+        The plane this entity currently occupies: 'physical' or 'visarial'.
+        Physical-natured beings (Silex) are always physical. Visarial-natured
+        beings (Visarii) are physical only while manifested into it; otherwise
+        they rest in the visarial. Dual-natured beings shift planes with their
+        state: perceiving keeps them in the physical, manifesting moves them
+        into the visarial.
+        """
         nature = self.attributes.get("visarial_nature", default="dual_natured")
         if nature == "physical":
-            return f"|w(|xphysical|w)|n {name}"
-        elif nature == "visarial":
-            return f"|w(|Mvisarial|w)|n {name}"
-        return name
+            return "physical"
+        state = self.attributes.get("visarial_state", default="physical")
+        if nature == "visarial":
+            return "physical" if state == "physical" else "visarial"
+        return "physical" if state in ("physical", "perceiving") else "visarial"
+
+    def get_display_name(self, looker=None, **kwargs):
+        name = super().get_display_name(looker, **kwargs)
+        plane = self.current_plane()
+        color = "x" if plane == "physical" else "M"
+        return f"|w(|{color}{plane}|w)|n {name}"
 
     def get_display_desc(self, looker, **kwargs):
         base_desc = super().get_display_desc(looker, **kwargs)
@@ -46,6 +60,8 @@ class ObjectParent:
         if nature == "physical":
             return base_desc
         elif nature == "visarial":
+            if self.current_plane() == "physical":
+                return base_desc
             if vis_desc:
                 return f"|M{vis_desc}|n"
             return ""
@@ -73,15 +89,14 @@ class ObjectParent:
         state = self.attributes.get("visarial_state", default="physical")
         if state == "perceiving":
             return candidates
+        my_plane = self.current_plane()
         filtered = []
         for obj in candidates:
-            nature = obj.attributes.get("visarial_nature", default="dual_natured") if hasattr(obj, "attributes") else "dual_natured"
-            if state == "physical":
-                if nature in ("physical", "dual_natured"):
-                    filtered.append(obj)
-            else:
-                if nature in ("visarial", "dual_natured"):
-                    filtered.append(obj)
+            if not hasattr(obj, "current_plane"):
+                filtered.append(obj)
+                continue
+            if obj.current_plane() == my_plane:
+                filtered.append(obj)
         return filtered
 
 

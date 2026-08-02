@@ -20,8 +20,17 @@ from commands.building.setorigin import CmdSetOrigin
 from commands.building.attset import CmdAttSet
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
-from commands.player.stats import CmdStats
+from commands.player.appearance import (
+    CmdSetAdjective,
+    CmdSetBuild,
+    CmdSetHeight,
+    CmdSetSkin,
+)
+from commands.player.time import CmdTime
+from commands.player.score import CmdScore
+from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
+from commands.player.setpose import CmdSetPose
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -41,12 +50,22 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         #
         # any commands you add below will overload the default ones.
         #
+        # The default 'pose' only whispered a line to the room and never set
+        # a position; replace it with the whitelisted builder 'setpose'.
+        self.remove("pose")
         self.add(GridDig)  # This replaces the default engine @dig globally
         self.add(CmdSetOrigin)
         self.add(CmdAttSet)
         self.add(CmdPerceive)
         self.add(CmdManifest)
-        self.add(CmdStats)
+        self.add(CmdSetHeight)
+        self.add(CmdSetBuild)
+        self.add(CmdSetAdjective)
+        self.add(CmdSetSkin)
+        self.add(CmdSetPose)
+        self.add(CmdTime)
+        self.add(CmdScore)
+        self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
 
 

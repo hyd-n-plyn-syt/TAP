@@ -8,6 +8,7 @@ Rooms are simple containers that has no location of their own.
 from evennia.objects.objects import DefaultRoom
 from evennia.utils.search import search_tag
 from evennia.utils.utils import iter_to_str
+from world.data import appearance as appearance_data
 from .objects import ObjectParent
 
 
@@ -181,8 +182,8 @@ class Room(ObjectParent, DefaultRoom):
                 header=self.get_display_header(looker, **kwargs),
                 footer=self.get_display_footer(looker, **kwargs),
                 exits=self.get_display_exits(looker, **kwargs),
-                characters=self.get_display_characters(looker, **kwargs),
-                things=self.get_display_things(looker, **kwargs),
+                characters=self._grouped_room_contents(looker, **kwargs),
+                things="",
             ),
             looker,
             **kwargs,
@@ -269,47 +270,103 @@ class Room(ObjectParent, DefaultRoom):
 
     def _match_visarial(self, looker, obj):
         state = looker.attributes.get("visarial_state", default="physical")
-        nature = obj.attributes.get("visarial_nature", default="dual_natured")
-        if state == "physical":
-            return nature in ("physical", "dual_natured")
-        elif state == "perceiving":
+        if state == "perceiving":
             return True
-        return nature in ("visarial", "dual_natured")
+        return looker.current_plane() == obj.current_plane()
 
-    def get_display_characters(self, looker, **kwargs):
-        characters = self.filter_visible(
-            self.contents_get(content_type="character"), looker, **kwargs
+    def _grouped_room_contents(self, looker, **kwargs):
+        """
+        List characters and things grouped by plane, then by position:
+            In the (physical), there's a tall and lean, refracting Visarii
+            standing here. There's also a short and stocky, hardy Terran
+            laying here.
+            In the (visarial), there's a willowy, prismatic Visarii standing
+            here.
+        Builders additionally see each character's real name in parentheses.
+        """
+        from collections import OrderedDict
+
+        chars = [
+            char
+            for char in self.filter_visible(
+                self.contents_get(content_type="character"), looker, **kwargs
+            )
+            if self._match_visarial(looker, char)
+        ]
+        things = [
+            thing
+            for thing in self.filter_visible(
+                self.contents_get(content_type="object"), looker, **kwargs
+            )
+            if self._match_visarial(looker, thing)
+        ]
+        if not chars and not things:
+            return ""
+
+        is_builder = looker is not None and self.locks.check_lockstring(
+            looker, "perm(Builder)"
         )
-        characters = [char for char in characters if self._match_visarial(looker, char)]
-        character_names = iter_to_str(
-            (char.get_display_name(looker, **kwargs) for char in characters),
-            endsep=", and",
+
+        by_plane = OrderedDict(
+            (plane, {"chars": [], "things": []})
+            for plane in ("physical", "visarial")
         )
-        return f"|wCharacters:|n {character_names}" if character_names else ""
-
-    def get_display_things(self, looker, **kwargs):
-        from collections import defaultdict
-        from evennia.utils import ansi
-
-        things = self.filter_visible(
-            self.contents_get(content_type="object"), looker, **kwargs
-        )
-        things = [thing for thing in things if self._match_visarial(looker, thing)]
-
-        grouped_things = defaultdict(list)
+        for char in chars:
+            by_plane[char.current_plane()]["chars"].append(char)
         for thing in things:
-            grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
+            by_plane[thing.current_plane()]["things"].append(thing)
 
-        thing_names = []
-        for thingname, thinglist in sorted(grouped_things.items()):
-            nthings = len(thinglist)
-            thing = thinglist[0]
-            base_key = thing.key
-            raw = str(thingname)
-            pos = raw.rfind(base_key)
-            colored_tag = raw[:pos] if pos >= 0 else ""
-            singular, plural = thing.get_numbered_name(nthings, looker, key=base_key)
-            numbered_name = singular if nthings == 1 else plural
-            thing_names.append(colored_tag + numbered_name)
-        thing_names = iter_to_str(thing_names, endsep=", and")
-        return f"|wYou see:|n {thing_names}" if thing_names else ""
+        sections = []
+        for plane, group in by_plane.items():
+            if not group["chars"] and not group["things"]:
+                continue
+            color = "x" if plane == "physical" else "M"
+            label = f"|w(|{color}{plane}|w)|n"
+
+            by_position = OrderedDict()
+            for char in group["chars"]:
+                by_position.setdefault(char.pose or "standing", []).append(char)
+
+            sentences = []
+            for index, (position, pos_chars) in enumerate(by_position.items()):
+                entries = []
+                for char in pos_chars:
+                    core, _ = char.appearance_bits
+                    entry = f"{appearance_data.article(core).lower()} {core}"
+                    if is_builder:
+                        entry += f" ({char.name})"
+                    entries.append(entry)
+                lead = "there's" if index == 0 else "There's also"
+                sentences.append(
+                    f"{lead} {iter_to_str(entries, endsep=', and')} {position} here."
+                )
+
+            if group["things"]:
+                things_sentence = f"you see {self._things_list(group['things'], looker, **kwargs)}."
+                if sentences:
+                    things_sentence = things_sentence[0].upper() + things_sentence[1:]
+                sentences.append(things_sentence)
+
+            sections.append(f"In the {label}, {' '.join(sentences)}")
+
+        return "\n".join(sections)
+
+    def _things_list(self, things, looker, **kwargs):
+        """Join one plane's things into a clean, counted list without plane prefixes."""
+        from collections import defaultdict
+
+        grouped = defaultdict(list)
+        for thing in things:
+            raw = thing.get_display_name(looker, **kwargs)
+            color = "x" if thing.current_plane() == "physical" else "M"
+            prefix = f"|w(|{color}{thing.current_plane()}|w)|n "
+            name = raw[len(prefix):] if raw.startswith(prefix) else raw
+            grouped[name].append(thing)
+
+        entries = []
+        for name, lst in grouped.items():
+            thing = lst[0]
+            nthings = len(lst)
+            singular, plural = thing.get_numbered_name(nthings, looker, key=thing.key)
+            entries.append(singular if nthings == 1 else plural)
+        return iter_to_str(entries, endsep=", and")

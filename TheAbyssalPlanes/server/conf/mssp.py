@@ -55,7 +55,7 @@ MSSPTable = {
     "ROOMS": "0",  # use 0 if room-less
     "CLASSES": "0",  # use 0 if class-less
     "LEVELS": "0",  # use 0 if level-less
-    "RACES": "0",  # use 0 if race-less
+    "RACES": "9",  # use 0 if race-less
     "SKILLS": "0",  # use 0 if skill-less
     # Protocols set to 1 or 0; should usually not be changed)
     "ANSI": "1",
