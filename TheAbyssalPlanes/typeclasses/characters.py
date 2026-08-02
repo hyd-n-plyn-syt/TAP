@@ -15,6 +15,7 @@ from evennia.objects.objects import DefaultCharacter
 from world.data import appearance as appearance_data
 from world.data import calendar as calendar_data
 from world.data import species as species_data
+from world.systems import skills as skill_systems
 from world.systems import stats
 
 from .objects import ObjectParent
@@ -69,6 +70,10 @@ class Character(ObjectParent, DefaultCharacter):
     pose = AttributeProperty(default="standing")
     sign = AttributeProperty(default=None)
     birth_date = AttributeProperty(default=None)
+
+    skills = AttributeProperty(default={}, category="growth")
+    skills_xp = AttributeProperty(default={}, category="growth")
+    stat_xp = AttributeProperty(default={}, category="growth")
 
     @property
     def species(self):
@@ -286,6 +291,14 @@ class Character(ObjectParent, DefaultCharacter):
             return False
         self.pose = pose
         return True
+
+    def use_skill(self, key, difficulty="medium", times=1):
+        """
+        Attempt to exercise a skill, awarding XP to the skill and its linked
+        statistics. The character must already know the skill. Returns the
+        result dict from the growth system, or None if the skill is unknown.
+        """
+        return skill_systems.use_skill(self, key, difficulty=difficulty, times=times)
 
     def get_display_name(self, looker=None, **kwargs):
         """

@@ -2,6 +2,7 @@
 Player command to view a character's score: species, attributes and pools.
 """
 from commands.command import Command
+from world.data import rankings
 from world.systems import stats
 
 
@@ -53,7 +54,8 @@ class CmdScore(Command):
             if stats.sub_stat_is_locked(caller, main):
                 continue
             value = stats.main_stat(caller, main)
-            attr_lines.append(f"|w{main.capitalize():7}|n {value}")
+            rank = rankings.rank_name(value)
+            attr_lines.append(f"|w{main.capitalize():7}|n {value} |W[{rank}]|n")
             for sub in stats.SUB_STATS:
                 base = getattr(caller, f"{main}_{sub}")
                 effective = stats.effective_sub_stat(caller, main, sub)
