@@ -7,7 +7,9 @@ A text-based MUD built with [Evennia](https://www.evennia.com). Currently in dev
 - **Platform:** Windows / PowerShell 7.6.1 (never use bash syntax).
 - **Venv:** `D:\TAP\evenv` (always active). Run Evennia commands from `D:\TAP\TheAbyssalPlanes`.
 - **Server:** `evennia start|stop|reload|reboot|status|info|--log|istart|makemigrations|shell`.
-- **Client:** telnet `localhost:4000`, webclient `localhost:4001`.
+- **Client (local):** telnet `localhost:4000`, website/webclient `http://localhost`.
+- **Public:** MUD via telnet at `theabyssalplane.duckdns.org:4000`; website/webclient at `http://theabyssalplane.duckdns.org` (web served on port 80).
+- **Repo:** https://github.com/hyd-n-plyn-syt/TAP (private).
 - See `SETUP.md` for full environment bootstrap.
 
 ## Modules Utilized

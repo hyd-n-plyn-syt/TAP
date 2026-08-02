@@ -39,6 +39,14 @@ SERVERNAME = "The Abyssal Planes"
 # MuxCommand argument parsing the defaults rely on.
 COMMAND_DEFAULT_CLASS = "commands.command.GameMuxCommand"
 
+# Serve the website/webclient on port 80 so it's reachable at the domain root
+# (the router can only open port ranges, so external 80 must hit local 80).
+# 80 is the proxy port the Portal presents; 4005 is the internal web port.
+WEBSERVER_PORTS = [(80, 4005)]
+
+# Public hostname so the webclient's websocket resolves through the domain.
+SERVER_HOSTNAME = "theabyssalplane.duckdns.org"
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

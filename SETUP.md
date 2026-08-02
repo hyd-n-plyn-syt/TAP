@@ -77,6 +77,21 @@ evennia shell
 
 
 
+PUBLIC ACCESS (DUCKDNS)
+
+* The MUD is reachable externally via telnet at theabyssalplane.duckdns.org:4000.
+* The website/webclient is served on port 80 (Evennia WEBSERVER_PORTS = [(80, 4005)]):
+  http://theabyssalplane.duckdns.org
+* The router only supports opening port ranges (no external->internal remap), so
+  Evennia must own port 80 directly. The IIS "Default Web Site" had claimed :80
+  and was unbinding it (Remove-WebBinding) to free the port for Evennia.
+* SERVER_HOSTNAME is set to theabyssalplane.duckdns.org so the webclient websocket
+  resolves through the domain.
+* Windows Firewall inbound rules: "Evennia Telnet 4000", "Evennia Web 80",
+  "Evennia Web 4001", "Evennia 4002"-"Evennia 4005" (all TCP, Allow).
+* The GitHub repo is private: https://github.com/hyd-n-plyn-syt/TAP
+
+
 RUN OPENCODE INSIDE THE ENVIRONMENT TO HELP MANAGE
 
 # 1. Go to your main project directory
