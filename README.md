@@ -19,6 +19,31 @@ doc is [`GAMEPLAN.md`](GAMEPLAN.md).
 
 ## Systems Overview
 
+### Definitions & Lore
+Abyss: The darkness between the stars. The place where the Planes dance around Mundus, never drifting far from their Sol. A desolate and lifeless place that requires some sort of protective medium to travel through for most life. There are however, exceptions. Eldritch, unspeakable horrors do sometimes call the vast empty of the Abyss home.
+
+Mundus: The known Universe, and all the realms within it. It's was once thought that the edge of it was a solid mass of stars, meant to contain all of the Realms. Since scholars have started to explore and study the Abyss, this sentiment has shifted towards one that posits that it could be endless, limited only by our perception of the realms.
+
+Planes: Planetary bodies that orbit around a central star. There are several known within Mundus. Some of them support life, while others do not. There are even some that do not exist within the Physical Realm, and are only seen by those that can perceive the Visarial Realm.
+
+Vim: This is the energy force that binds all things together, whether they display any connection to it, or not. It's the stuff that pours out of whatever is beyond existence to give life to it, and then flows out into all living and non-living entities.
+
+Vis: Force, power, and natural energy. This is the expression, the very actions one takes that are fueled by pure Vim. Vis can take endless forms. Whether it's coming from the hands of a direct wielder of Vim, or Vim-fueled contraptions and devices of all shapes and sizes. There are many schools of thought dedicated to the study manipulating Vim into Vis.
+
+Visarial Realm: The realm of Vim. This is the first realm that's known of where Vim pours in from beyond existence. It seems to be layered on top of the Physical Realm, sharing landscapes and even structures in some places, but does not follow all of the rules of physics that have been discovered so far within the Physical Realm. The first of the sentient species within existence were born within this realm, and a great number of entities call it home. Some can interact with the Physical Realm under certain circumstances, while others are bound to it entirely.
+
+Physical Realm: The known Planes of existence. This is where most life that is not pure-Vim lives out it's time within Mundus. Everything here is subject to the discovered laws of physics and entropy, although any of these forces can be manipulated through Vis.
+
+Vistronics: The branch of technology and engineering dealing with the control, manipulation, and utilization of Vim flow through circuits, nodes, and conductive mediums.
+    * Visographer: One that creates Vistronic circuit boards and components that are made by etching or engraving copper, glass, or stone channels for the magic to flow through.
+        * Visography: The practice of writing, etching, or coding spell-arrays into Vistronic components. (Real-world equivalent: Programming / Cryptography).
+
+Vismechanics: Mechanical systems driven by physical Vim pressure, gears, and kinetic energy.
+    * Viswright: One that designs and engineers mechanical contraptions that are powered by Vim. Basic contraptions may not require a skilled Visographer to create vistronic components for them, though most advanced ones may require several devices.
+
+Viskinetics: The study and application of Vim to generate heavy physical force, torque, and motion. This school of thought is what creates the devices that power most Vistronics and Vismechanical devices and contraptions.
+    * Visicist: A scholar that has dedicated themselves to the study of the flow of Vim and processing it into practical physical application, or, Vis.
+
 ### Visarial Planes & Vim Connection
 Every object and character has a `visarial_nature` that sets both its **plane**
 and its **connection to Vim**:
