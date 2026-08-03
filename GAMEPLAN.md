@@ -62,6 +62,17 @@ kept current as work happens.
   standalone objects.
 - **Planethemes:** perceiving = yellow, manifesting = cyan; physical plane = dark
   gray, visarial = magenta (prompt/score).
+- **Object/entity planes & vim connection:** `visarial_nature` controls both the
+  plane and the Vim connection. *Physical-natured* (Silex, plain rocks) are IN and
+  OF the physical - physical desc only, never a custom `visarial_desc`, and to a
+  perceiver they show a dark-gray 'absolutely disconnected from Vim' line.
+  *Visarial-natured* (Visarii) are IN and OF Vim - visarial desc only, no physical
+  desc (a magenta Vim aura by default). *Dual-natured* are IN physical by default
+  but OF both, so they carry both a physical and a visarial desc. Only creatures
+  (`is_creature`) perceive and can `can_project`; plain objects are fixed to their
+  nature's plane. Visibility is driven by four per-entity flags (`can_phys_see`,
+  `can_vis_see`, `can_phys_touch`, `can_vis_touch`) so see/touch can be controlled
+  independently. Builders set a prop's nature with the `setnature` command.
 
 ## Build Phases
 

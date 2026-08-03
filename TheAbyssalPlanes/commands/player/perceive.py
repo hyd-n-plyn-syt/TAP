@@ -11,7 +11,7 @@ class CmdPerceive(Command):
         current = caller.attributes.get("visarial_state", default="physical")
         data = caller.species
 
-        if data and data.get("cannot_perceive"):
+        if not caller.can_project:
             caller.msg("Your kind cannot perceive the visarial realm.")
             return
 

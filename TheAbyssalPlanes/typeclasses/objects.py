@@ -25,56 +25,139 @@ class ObjectParent:
     def at_object_creation(self):
         super().at_object_creation()
         self.db.visarial_nature = "dual_natured"
-        self.db.visarial_desc = ""
+
+    def nature(self):
+        """The visarial nature: 'physical', 'visarial' or 'dual_natured'."""
+        return self.attributes.get("visarial_nature", default="dual_natured")
+
+    def state(self):
+        """The visarial state: 'physical', 'perceiving' or 'manifested'."""
+        return self.attributes.get("visarial_state", default="physical")
+
+    @property
+    def is_creature(self):
+        """
+        Whether this is a living, conscious being (a Character). Only
+        creatures perceive and shift planes; plain objects are fixed to their
+        nature's plane.
+        """
+        return hasattr(self, "species")
+
+    @property
+    def can_project(self):
+        """
+        Whether this creature can perceive or manifest into the other plane.
+        False for plain objects and for Vim-blind species (Silex).
+        """
+        if not self.is_creature:
+            return False
+        data = getattr(self, "species", None)
+        return not bool(data and data.get("cannot_perceive"))
+
+    @property
+    def can_phys_see(self):
+        """Whether this entity currently perceives the physical plane."""
+        if not self.is_creature:
+            return False
+        if self.nature() == "physical":
+            return True
+        return self.state() in ("physical", "perceiving")
+
+    @property
+    def can_vis_see(self):
+        """Whether this entity currently perceives the visarial plane."""
+        if not self.is_creature:
+            return False
+        if self.nature() == "physical":
+            return False
+        if self.nature() == "visarial":
+            return True
+        return self.state() in ("perceiving", "manifested")
+
+    @property
+    def can_phys_touch(self):
+        """Whether this entity currently occupies the physical plane."""
+        return self.current_plane() == "physical"
+
+    @property
+    def can_vis_touch(self):
+        """Whether this entity currently occupies the visarial plane."""
+        return self.current_plane() == "visarial"
 
     def current_plane(self):
         """
         The plane this entity currently occupies: 'physical' or 'visarial'.
-        Physical-natured beings (Silex) are always physical. Visarial-natured
-        beings (Visarii) are physical only while manifested into it; otherwise
-        they rest in the visarial. Dual-natured beings shift planes with their
-        state: perceiving keeps them in the physical, manifesting moves them
-        into the visarial.
+        Physical-natured things are always physical. Visarial-natured beings
+        (Visarii) are physical only while manifested into it; otherwise they
+        rest in the visarial. Dual-natured beings shift planes with their
+        state. Plain objects never perceive or manifest, so their plane is
+        fixed by their nature: visarial-natured live in the visarial, any
+        other nature stays in the physical.
         """
-        nature = self.attributes.get("visarial_nature", default="dual_natured")
+        nature = self.nature()
         if nature == "physical":
             return "physical"
-        state = self.attributes.get("visarial_state", default="physical")
+        state = self.state()
         if nature == "visarial":
-            return "physical" if state == "physical" else "visarial"
-        return "physical" if state in ("physical", "perceiving") else "visarial"
+            return "physical" if self.is_creature and state == "physical" else "visarial"
+        if self.is_creature:
+            return "physical" if state in ("physical", "perceiving") else "visarial"
+        return "physical"
 
-    def get_display_name(self, looker=None, **kwargs):
-        name = super().get_display_name(looker, **kwargs)
-        plane = self.current_plane()
-        color = "x" if plane == "physical" else "M"
-        return f"|w(|{color}{plane}|w)|n {name}"
+    def visarial_desc_text(self):
+        """
+        The plain text of this entity's visarial-realm appearance, shown to
+        lookers who perceive the visarial realm. Physical-natured things are
+        purely physical and report that they are disconnected from Vim; they
+        can never carry a custom ``visarial_desc``. Vis- and dual-natured things
+        are of Vim: a stored ``visarial_desc`` overrides a default aura.
+        """
+        if self.nature() == "physical":
+            kind = "being" if self.is_creature else "object"
+            return (
+                "This entity is absolutely disconnected from Vim."
+                if kind == "being"
+                else "This object is absolutely disconnected from Vim."
+            )
+        custom = self.db.visarial_desc
+        if custom:
+            return str(custom)
+        kind = "being" if self.is_creature else "object"
+        return (
+            "This entity gives off an aura of Vim."
+            if kind == "being"
+            else "This object gives off an aura of Vim"
+        )
+
+    def format_visarial_desc(self, text):
+        """Color a visarial-realm description line: a magenta Vim aura, or the
+        dark-gray plane color for things disconnected from Vim."""
+        if not text:
+            return ""
+        if self.nature() == "physical":
+            return f"|x{text}|n"
+        return f"|M{text}|n"
 
     def get_display_desc(self, looker, **kwargs):
         base_desc = super().get_display_desc(looker, **kwargs)
         if not looker:
             return base_desc
-        nature = self.attributes.get("visarial_nature", default="dual_natured")
-        state = looker.attributes.get("visarial_state", default="physical")
-        vis_desc = self.db.visarial_desc
+        nature = self.nature()
+        vis_text = self.visarial_desc_text()
+
         if nature == "physical":
+            if vis_text and looker.can_vis_see:
+                return f"{base_desc} {self.format_visarial_desc(vis_text)}"
             return base_desc
-        elif nature == "visarial":
-            if self.current_plane() == "physical":
-                return base_desc
-            if vis_desc:
-                return f"|M{vis_desc}|n"
-            return ""
-        else:
-            if state == "perceiving":
-                if vis_desc:
-                    return f"{base_desc} |M{vis_desc}|n"
-                return base_desc
-            elif state == "manifested":
-                if vis_desc:
-                    return f"|M{vis_desc}|n"
-                return base_desc
-            return base_desc
+        if nature == "visarial":
+            return self.format_visarial_desc(vis_text)
+
+        parts = []
+        if self.can_phys_touch and looker.can_phys_see:
+            parts.append(base_desc)
+        if self.can_vis_touch and vis_text and looker.can_vis_see:
+            parts.append(self.format_visarial_desc(vis_text))
+        return " ".join(parts) or base_desc
 
     def set_nature(self, nature):
         if nature not in ("physical", "visarial", "dual_natured"):
@@ -86,16 +169,14 @@ class ObjectParent:
         candidates = super().get_search_candidates(searchdata, **kwargs)
         if candidates is None:
             return None
-        state = self.attributes.get("visarial_state", default="physical")
-        if state == "perceiving":
-            return candidates
-        my_plane = self.current_plane()
         filtered = []
         for obj in candidates:
-            if not hasattr(obj, "current_plane"):
+            if not hasattr(obj, "can_phys_touch"):
                 filtered.append(obj)
                 continue
-            if obj.current_plane() == my_plane:
+            if (obj.can_phys_touch and self.can_phys_see) or (
+                obj.can_vis_touch and self.can_vis_see
+            ):
                 filtered.append(obj)
         return filtered
 

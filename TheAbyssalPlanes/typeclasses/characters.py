@@ -347,11 +347,11 @@ class Character(ObjectParent, DefaultCharacter):
         lines = [self.appearance_phrase]
         if self.db.desc:
             lines.append(self.db.desc)
-        vis = self.db.visarial_desc
+        vis = self.visarial_desc_text()
         if vis:
             looker_state = looker.attributes.get("visarial_state", default="physical")
             if looker_state == "perceiving" or looker.current_plane() == "visarial":
-                lines.append(f"|M{vis}|n")
+                lines.append(self.format_visarial_desc(vis))
 
         return self.format_appearance(
             self.appearance_template.format(

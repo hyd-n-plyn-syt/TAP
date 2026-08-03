@@ -21,7 +21,6 @@ class Room(ObjectParent, DefaultRoom):
     def at_object_creation(self):
         """Called only once, when the room object is first created."""
         super().at_object_creation()
-        self.db.visarial_desc = ""
 
         # Identity tags
         self.tags.add("None", category="planetary_body")
@@ -269,10 +268,9 @@ class Room(ObjectParent, DefaultRoom):
             return f"|wExits:|n {', '.join(final_exit_tokens[:-1])}, and {final_exit_tokens[-1]}"
 
     def _match_visarial(self, looker, obj):
-        state = looker.attributes.get("visarial_state", default="physical")
-        if state == "perceiving":
-            return True
-        return looker.current_plane() == obj.current_plane()
+        return (obj.can_phys_touch and looker.can_phys_see) or (
+            obj.can_vis_touch and looker.can_vis_see
+        )
 
     def _grouped_room_contents(self, looker, **kwargs):
         """
@@ -357,10 +355,7 @@ class Room(ObjectParent, DefaultRoom):
 
         grouped = defaultdict(list)
         for thing in things:
-            raw = thing.get_display_name(looker, **kwargs)
-            color = "x" if thing.current_plane() == "physical" else "M"
-            prefix = f"|w(|{color}{thing.current_plane()}|w)|n "
-            name = raw[len(prefix):] if raw.startswith(prefix) else raw
+            name = thing.get_display_name(looker, **kwargs)
             grouped[name].append(thing)
 
         entries = []

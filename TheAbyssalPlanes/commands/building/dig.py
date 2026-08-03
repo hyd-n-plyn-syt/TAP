@@ -74,6 +74,7 @@ class GridDig(CmdDig):
 
         # --- OUTWARD TRANSITION LOGIC (PUNCHING OUT TO SURFACE) ---
         if exit_dir in ("leave", "out", "exit"):
+            to_exit = self.rhs_objs[0]
             target_planet = room["name"].strip().lower()
             
             # Fix: Import search_tag to query database purely by the 5D tag index layout
@@ -107,7 +108,8 @@ class GridDig(CmdDig):
                 obj_type="exit", typeclass=to_exit["option"], method=self.method_type
             )
             if errors: self.msg("|rError creating exit:|n %s" % errors); return
-            
+            if not exit_typeclass: return
+
             new_to_exit, errors = exit_typeclass.create(
                 to_exit["name"],
                 location=location,
@@ -130,6 +132,7 @@ class GridDig(CmdDig):
             obj_type="room", typeclass=room["option"], method=self.method_type
         )
         if errors: self.msg("|rError creating room:|n %s" % errors); return
+        if not room_typeclass: return
         new_room, errors = room_typeclass.create(
             room["name"], aliases=room["aliases"], report_to=caller, caller=caller, method=self.method_type,
         )
@@ -214,7 +217,20 @@ class GridDig(CmdDig):
             to_exit = self.rhs_objs[0]
             if to_exit["name"] and location:
                 exit_typeclass, errors = self.get_object_typeclass(obj_type="exit", typeclass=to_exit["option"], method=self.method_type)
-                new_to_exit, errors = exit_typeclass.create(to_exit["name"], location=location, destination=new_room, aliases=to_exit["aliases"], report_to=caller, caller=caller, method=self.method_type)
+                if errors:
+                    self.msg("|rError creating exit:|n %s" % errors)
+                    return
+                if not exit_typeclass:
+                    return
+                new_to_exit, errors = exit_typeclass.create(
+                    to_exit["name"],
+                    location=location,
+                    destination=new_room,
+                    aliases=to_exit["aliases"],
+                    report_to=caller,
+                    caller=caller,
+                    method=self.method_type,
+                )
                 if new_to_exit: caller.msg(f"Created Exit: {new_to_exit.name} -> {new_room.name}")
 
         if len(self.rhs_objs) > 1:
