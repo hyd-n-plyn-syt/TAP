@@ -1,5 +1,9 @@
 """Tests for the pure-data modules in world/data (skills, species, rankings)."""
 
+import os
+import tempfile
+from unittest import mock
+
 from django.test import SimpleTestCase
 
 from world.data import changes, rankings, skills, species
@@ -199,3 +203,45 @@ class ChangesCatalogTest(SimpleTestCase):
     def test_date_formatting(self):
         self.assertEqual(changes.short_date("2026-08-03"), "Aug 3")
         self.assertEqual(changes.full_date("2026-08-03"), "August 3, 2026")
+
+    def test_serialize_single_line_body(self):
+        entry = {"number": 11, "date": "2026-08-03", "title": "Short title", "body": "A short body."}
+        block = changes._serialize(entry)
+        self.assertIn('"number": 11', block)
+        self.assertIn('"body": "A short body."', block)
+
+    def test_serialize_wraps_long_body(self):
+        entry = {"number": 11, "date": "2026-08-03", "title": "T", "body": "word " * 30}
+        block = changes._serialize(entry)
+        self.assertIn('"body": (', block)
+
+    def test_serialize_escapes_quotes(self):
+        entry = {"number": 11, "date": "2026-08-03", "title": 'Say "hi"', "body": "it's fine"}
+        block = changes._serialize(entry)
+        self.assertIn('\\"hi\\"', block)
+        self.assertIn("it's fine", block)
+
+    def test_append_entry_writes_file_and_updates_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "changes.py")
+            with open(changes.CHANGES_FILE, encoding="utf-8") as f:
+                source = f.read()
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(source)
+            with mock.patch.object(changes, "CHANGES", list(changes.CHANGES)):
+                entry = changes.append_entry("A brand new title", "Its body text.", filepath=path)
+                self.assertEqual(entry["number"], changes.latest_number())
+                self.assertIs(changes.get_change(entry["number"]), entry)
+            with open(path, encoding="utf-8") as f:
+                new_source = f.read()
+            import ast
+
+            ast.parse(new_source)
+            self.assertIn("A brand new title", new_source)
+            self.assertIn("Its body text.", new_source)
+
+    def test_append_entry_requires_title_and_body(self):
+        with self.assertRaises(ValueError):
+            changes.append_entry("   ", "body")
+        with self.assertRaises(ValueError):
+            changes.append_entry("title", "   ")

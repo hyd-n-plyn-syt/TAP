@@ -1,5 +1,8 @@
 """Integration tests for player commands using Evennia's in-DB test harness."""
 
+import ast
+import os
+import tempfile
 from unittest import mock
 
 from evennia import create_object
@@ -12,6 +15,7 @@ from commands.player.manifest import CmdManifest
 from commands.player.changes import CmdChanges
 from commands.building.setnature import CmdSetNature
 from commands.building.force import CmdForce
+from commands.building.addchange import CmdAddChange
 from world.data import changes
 
 
@@ -526,3 +530,41 @@ class ChangesCommandTest(EvenniaCommandTest):
             str(c.args[0]) for c in m.call_args_list if c.args
         )
         self.assertNotIn("New change", joined)
+
+
+class AddChangeCommandTest(EvenniaCommandTest):
+    def _fake_file(self):
+        tmp = tempfile.TemporaryDirectory()
+        path = os.path.join(tmp.name, "changes.py")
+        with open(changes.CHANGES_FILE, encoding="utf-8") as f:
+            source = f.read()
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(source)
+        self.addCleanup(tmp.cleanup)
+        return path
+
+    def test_missing_equals_shows_usage(self):
+        out = self.call(CmdAddChange(), "Just a title")
+        self.assertTrue(out.startswith("Usage"))
+
+    def test_empty_body_shows_usage(self):
+        out = self.call(CmdAddChange(), "Title =   ")
+        self.assertTrue(out.startswith("Usage"))
+
+    def test_appends_entry_and_announces(self):
+        path = self._fake_file()
+        with mock.patch.object(changes, "CHANGES", list(changes.CHANGES)) as fake, \
+                mock.patch.object(changes, "CHANGES_FILE", path):
+            before = changes.latest_number()
+            out = self.call(
+                CmdAddChange(), "A spiffy new feature = It does cool things now."
+            )
+            self.assertIn(f"Added change #{before + 1}", out)
+            self.assertEqual(changes.latest_number(), before + 1)
+            entry = changes.get_change(before + 1)
+            self.assertEqual(entry["title"], "A spiffy new feature")
+            self.assertEqual(entry["body"], "It does cool things now.")
+        with open(path, encoding="utf-8") as f:
+            new_source = f.read()
+        ast.parse(new_source)
+        self.assertIn("A spiffy new feature", new_source)

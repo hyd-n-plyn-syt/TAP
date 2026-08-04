@@ -1,0 +1,48 @@
+# Scratch DB-query scripts (see AGENTS.md "Scratch scripts")
+scr_*.py
+scr_*_result.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+*.tox/
+.coverage
+htmlcov/
+
+# Virtual environment
+evenv/
+
+# Environment & secrets
+.env
+.env.*
+
+# Evennia runtime artifacts
+*.db3
+server_logs/
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor temp files
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+
+# Test artifacts
+.pytest_cache/
+db.sqlite3

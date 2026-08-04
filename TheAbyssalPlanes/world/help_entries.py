@@ -420,9 +420,9 @@ Characters are described in rooms by a three-word phrase rather than a
 name: |w"|xphysical|w) A tall and lithe, translucent |MVisarii|w, standing"|n.
 The phrase is made of four parts, each set by a Builder command:
 
-  |wsetheight|n <short|below-average|average|above-average|tall>
-      - height is relative to the species: an "average" Volucres is far
-        shorter than an "average" Terran.
+  |wsetheight|n <diminutive|short|middling|tall|towering>
+      - height is relative to the species: a "middling" Volucres is far
+        shorter than a "middling" Terran.
   |wsetbuild|n <build>
       - a single-word build, validated against the height. You cannot be
         tall and squat, nor short and statuesque.
@@ -522,6 +522,25 @@ When a new change is added it is announced in-game to anyone connected
 and shown at |wlogin|n until read, so nothing is missed.
 
 See also: |whelp|n.
+""".strip(),
+    },
+    {
+        "key": "addchange",
+        "category": "General",
+        "aliases": ["addchangelog"],
+        "text": """
+|wAdd Change|n
+
+|waddchange <title> = <body>|n appends a new entry to the changelog
+(see |wchanges|n). It is numbered one above the latest and dated today,
+then written into the game's changelog data file so it survives a server
+restart. The change is announced immediately to everyone connected, and
+players who miss it get it shown at |wlogin|n until they read it.
+
+Builders only. There is no way to edit or remove an entry in-game; to
+correct a mistake, edit the entry in world/data/changes.py directly.
+
+See also: |wchanges|n.
 """.strip(),
     },
 ]

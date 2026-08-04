@@ -158,6 +158,14 @@ Foundation of the whole progression system.
   "50% Master") for prerequisites and thresholds.
 - Trainers store their offered skills in the `trained_skills` attribute (set by
   `settrainer`); Characters expose it as `trainer_skills`.
+- In-game changelog: `world/data/changes.py` holds numbered entries (currently
+  10, retroactive to 2026-07-29). The `changes` command (`commands/player/changes.py`)
+  lists unread / full history / single entries; Accounts track reads via
+  `changes_seen`, alert on login, and `world/server_hooks.py` (wired through
+  `AT_SERVER_STARTSTOP_MODULE`) broadcasts the newest change on every server
+  start/reload. The builder `addchange <title> = <body>` appends a new
+  auto-numbered, dated entry (`commands/building/addchange.py`), writes it back
+  into the data file so it survives restarts, and announces it immediately.
 - Main-stat rank ladder and all stat thresholds are placeholder numbers marked
   for tuning.
 
@@ -177,3 +185,4 @@ Foundation of the whole progression system.
 - The runner never touches the live game DB (it creates `test_evennia.db3`),
   so tests are safe to run against a running dev server.
 - Core/game tests are distinct from Evennia's own suite (`evennia test evennia`).
+- Suite is at 124 tests (data/systems + command integration) and passing.

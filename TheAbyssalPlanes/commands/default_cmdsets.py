@@ -22,6 +22,7 @@ from commands.building.setskill import CmdSetSkill
 from commands.building.settrainer import CmdSetTrainer
 from commands.building.setnature import CmdSetNature
 from commands.building.force import CmdForce
+from commands.building.addchange import CmdAddChange
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
 from commands.player.skills import CmdSkills
@@ -67,6 +68,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetSkill)
         self.add(CmdSetTrainer)
         self.add(CmdSetNature)
+        self.add(CmdAddChange)
         self.add(CmdPerceive)
         self.add(CmdManifest)
         self.add(CmdSkills)

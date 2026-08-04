@@ -82,9 +82,9 @@ class CmdSetHeight(CmdAppearanceBase):
       setheight <height> = <target>
       setheight none
 
-    Valid heights: short, below-average, average, above-average, tall.
-    Height is relative to the character's species, so an "average" Terran
-    differs from an "average" Volucres. Height is set first; the build is
+    Valid heights: diminutive, short, middling, tall, towering.
+    Height is relative to the character's species, so a "middling" Terran
+    differs from a "middling" Volucres. Height is set first; the build is
     validated against it.
     """
     key = "setheight"

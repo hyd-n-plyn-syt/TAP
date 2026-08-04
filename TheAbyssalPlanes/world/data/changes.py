@@ -7,8 +7,15 @@ haven't read yet, 'changes all' shows everything, and 'changes <number>'
 shows one entry in full.
 
 To add a new change simply append a dict with the next number; the on-login
-alert and the live server-start broadcast pick it up automatically.
+alert and the live server-start broadcast pick it up automatically. The
+builder 'addchange' command appends entries for you (numbering and dating
+them) and writes them back to this file.
 """
+
+import ast
+import datetime
+
+CHANGES_FILE = __file__
 
 CHANGES = [
     {
@@ -154,6 +161,17 @@ CHANGES = [
             "you are reading now."
         ),
     },
+    {
+        "number": 11,
+        "date": "2026-08-03",
+        "title": "Added the 'addchange' command",
+        "body": (
+            "The 'addchange' command was added. This command adds a new change to the "
+            "list, applying time, date, and the newest number on the list before "
+            "announcing it to the entire server. This is of course restricted to "
+            "builder and above, and meant for significant changes only."
+        ),
+    },
 ]
 
 
@@ -216,3 +234,87 @@ def full_date(date_str):
     """Long form date for a detail view, e.g. 'August 3, 2026'."""
     year, month, day = _split_date(date_str)
     return f"{_MONTHS[month - 1]} {day}, {year}"
+
+
+def _q(text):
+    """A double-quoted Python string literal with quotes/backslashes escaped."""
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _wrap_string(text, width=74):
+    """Split a body into lines of roughly 'width' characters on word bounds."""
+    words = text.split(" ")
+    lines = []
+    cur = ""
+    for word in words:
+        candidate = f"{cur} {word}".strip()
+        if len(candidate) > width and cur:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = candidate
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _serialize(entry):
+    """Render one entry as Python source in the style of CHANGES."""
+    chunks = _wrap_string(entry["body"])
+    if len(chunks) == 1:
+        body_block = [f'        "body": {_q(chunks[0])},']
+    else:
+        body_block = ['        "body": (']
+        for chunk in chunks[:-1]:
+            body_block.append(f"            {_q(chunk + ' ')}")
+        body_block.append(f"            {_q(chunks[-1])}")
+        body_block.append("        ),")
+    block = [
+        "    {",
+        f'        "number": {entry["number"]},',
+        f'        "date": {_q(entry["date"])},',
+        f'        "title": {_q(entry["title"])},',
+    ] + body_block + ["    },"]
+    return "\n".join(block)
+
+
+def _insert(entry_block, source):
+    """Insert a serialized entry before the closing bracket of CHANGES."""
+    tree = ast.parse(source)
+    end = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "CHANGES" for t in node.targets
+        ):
+            end = node.value.end_lineno
+            break
+    if end is None:
+        raise ValueError("Could not locate the CHANGES list.")
+    lines = source.splitlines()
+    lines[end - 1:end - 1] = [entry_block]
+    return "\n".join(lines) + "\n"
+
+
+def append_entry(title, body, filepath=None):
+    """Append a new, auto-numbered change dated today, persisting it to the
+    changelog file and to the in-memory list. Returns the new entry. Pass a
+    custom 'filepath' (tests) to avoid touching the real file."""
+    title = " ".join(str(title).strip().split())
+    body = " ".join(str(body).strip().split())
+    if not title:
+        raise ValueError("A title is required.")
+    if not body:
+        raise ValueError("A body is required.")
+    entry = {
+        "number": latest_number() + 1,
+        "date": datetime.date.today().isoformat(),
+        "title": title,
+        "body": body,
+    }
+    path = filepath or CHANGES_FILE
+    with open(path, "r", encoding="utf-8") as f:
+        source = f.read()
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(_insert(_serialize(entry), source))
+    CHANGES.append(entry)
+    return entry

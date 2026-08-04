@@ -12,59 +12,60 @@ the skin-tone Truecolor highlight on the species name.
 """
 
 # Ordered height categories; stored by key, displayed by label.
-HEIGHTS = ("short", "below_average", "average", "above_average", "tall")
+HEIGHTS = ("diminutive", "short", "middling", "tall", "towering")
 
 HEIGHT_LABELS = {
+    "diminutive": "Diminutive",
     "short": "Short",
-    "below_average": "Below Average",
-    "average": "Average",
-    "above_average": "Above Average",
+    "middling": "Middling",
     "tall": "Tall",
+    "towering": "Towering",
 }
 
 # The word used inside the room description phrase, e.g.
 # "A tall and lithe, translucent Visarii standing here."
 HEIGHT_PHRASE = {
+    "diminutive": "diminutive",
     "short": "short",
-    "below_average": "below-average",
-    "average": "average",
-    "above_average": "above-average",
+    "middling": "middling",
     "tall": "tall",
+    "towering": "towering",
 }
 
 # Fallbacks used when a character's height/build is unset.
-DEFAULT_HEIGHT = "average"
+DEFAULT_HEIGHT = "middling"
 DEFAULT_BUILD = "average"
 
 
-def height_phrase(height):
-    """Return the phrase word for a height key."""
-    return HEIGHT_PHRASE.get(height, HEIGHT_PHRASE["average"])
+def height_phrase(height=""):
+    """Return the phrase word for a height key, defaulting to the
+    DEFAULT_HEIGHT phrase for unknown or unset heights."""
+    return HEIGHT_PHRASE.get(height, HEIGHT_PHRASE[DEFAULT_HEIGHT])
 
 # Single-word builds and the heights each is valid for.
 BUILDS = {
-    "petite": ("short",),
-    "compact": ("short", "below_average"),
-    "squat": ("short", "below_average"),
-    "delicate": ("short", "below_average"),
-    "stocky": ("short", "below_average", "average"),
-    "thick": ("short", "below_average", "average"),
-    "wiry": ("short", "below_average", "average", "above_average"),
-    "slender": ("below_average", "average", "above_average"),
-    "svelte": ("below_average", "average", "above_average"),
-    "lean": ("average", "above_average", "tall"),
-    "lithe": ("average", "above_average", "tall"),
-    "athletic": ("average", "above_average", "tall"),
-    "muscular": ("average", "above_average", "tall"),
-    "broad": ("average", "above_average", "tall"),
-    "heavy": ("average", "above_average", "tall"),
-    "rangy": ("above_average", "tall"),
-    "lanky": ("above_average", "tall"),
-    "willowy": ("above_average", "tall"),
-    "brawny": ("above_average", "tall"),
-    "burly": ("above_average", "tall"),
-    "hulking": ("tall",),
-    "statuesque": ("tall",),
+    "petite": ("diminutive",),
+    "compact": ("diminutive", "short"),
+    "squat": ("diminutive", "short"),
+    "delicate": ("diminutive", "short"),
+    "stocky": ("diminutive", "short", "middling"),
+    "thick": ("diminutive", "short", "middling"),
+    "wiry": ("diminutive", "short", "middling", "tall"),
+    "slender": ("short", "middling", "tall"),
+    "svelte": ("short", "middling", "tall"),
+    "lean": ("middling", "tall", "towering"),
+    "lithe": ("middling", "tall", "towering"),
+    "athletic": ("middling", "tall", "towering"),
+    "muscular": ("middling", "tall", "towering"),
+    "broad": ("middling", "tall", "towering"),
+    "heavy": ("middling", "tall", "towering"),
+    "rangy": ("tall", "towering"),
+    "lanky": ("tall", "towering"),
+    "willowy": ("tall", "towering"),
+    "brawny": ("tall", "towering"),
+    "burly": ("tall", "towering"),
+    "hulking": ("towering",),
+    "statuesque": ("towering",),
 }
 
 # Appearance descriptors unique to each species.
