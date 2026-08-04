@@ -267,11 +267,6 @@ class Room(ObjectParent, DefaultRoom):
         else:
             return f"|wExits:|n {', '.join(final_exit_tokens[:-1])}, and {final_exit_tokens[-1]}"
 
-    def _match_visarial(self, looker, obj):
-        return (obj.can_phys_touch and looker.can_phys_see) or (
-            obj.can_vis_touch and looker.can_vis_see
-        )
-
     def _grouped_room_contents(self, looker, **kwargs):
         """
         List characters and things grouped by plane, then by position:
@@ -289,14 +284,14 @@ class Room(ObjectParent, DefaultRoom):
             for char in self.filter_visible(
                 self.contents_get(content_type="character"), looker, **kwargs
             )
-            if self._match_visarial(looker, char)
+            if char.visible_to(looker)
         ]
         things = [
             thing
             for thing in self.filter_visible(
                 self.contents_get(content_type="object"), looker, **kwargs
             )
-            if self._match_visarial(looker, thing)
+            if thing.visible_to(looker)
         ]
         if not chars and not things:
             return ""

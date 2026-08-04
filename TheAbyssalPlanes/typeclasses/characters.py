@@ -124,7 +124,7 @@ class Character(ObjectParent, DefaultCharacter):
             self.db.visarial_nature = data["visarial_nature"]
             self.db.visarial_state = data["default_visarial_state"]
         else:
-            self.db.visarial_state = "physical"
+            self.db.visarial_state = "normal"
         self.reset_pools()
         if not self.sign:
             date = calendar_data.cosmic_date()
@@ -147,15 +147,17 @@ class Character(ObjectParent, DefaultCharacter):
         """Remove the character's species, restoring neutral defaults."""
         self.species_key = None
         self.db.visarial_nature = "dual_natured"
-        self.db.visarial_state = "physical"
+        self.db.visarial_state = "normal"
         self.reset_pools()
 
     def set_state(self, state):
-        if state not in ("physical", "perceiving", "manifested"):
+        if state not in ("normal", "perceiving", "manifested"):
             return False
         data = self.species
         if data:
-            if data.get("cannot_perceive") and state != "physical":
+            if state == "perceiving" and not data.get("can_perceive"):
+                return False
+            if state == "manifested" and not data.get("can_manifest"):
                 return False
         self.db.visarial_state = state
         self.msg(prompt=self.get_prompt())
@@ -165,23 +167,13 @@ class Character(ObjectParent, DefaultCharacter):
     def projected_state(self):
         """
         The optional prompt suffix shown when actively perceiving the other
-        plane or manifesting into a non-native one. Returns None when simply
-        existing in the character's home plane.
-
-        - 'perceiving'  - aware of the other plane while remaining in place
-        - 'manifesting' - a dual-natured character that crossed into the
-                          visarial realm, or a Visarii projected into the
-                          physical world
+        plane or manifesting fully into it. Returns None when simply existing
+        in the creature's native plane.
         """
-        state = self.db.visarial_state or "physical"
-        data = self.species
+        state = self.state()
         if state == "perceiving":
             return "perceiving"
         if state == "manifested":
-            if data and data["visarial_nature"] == "visarial":
-                return None
-            return "manifesting"
-        if state == "physical" and data and data["visarial_nature"] == "visarial":
             return "manifesting"
         return None
 
@@ -236,8 +228,12 @@ class Character(ObjectParent, DefaultCharacter):
         occupants by position: e.g. ("tall and lean, refracting Visarii",
         "standing").
         """
-        height = appearance_data.height_phrase(self.appearance_height) if self.appearance_height else "average"
-        build = self.appearance_build or "average"
+        height = (
+            appearance_data.height_phrase(self.appearance_height)
+            if self.appearance_height
+            else appearance_data.DEFAULT_HEIGHT
+        )
+        build = self.appearance_build or appearance_data.DEFAULT_BUILD
         adjective = self.appearance_adjective
         if adjective:
             middle = f"{height} and {build}, {adjective}"
@@ -265,7 +261,7 @@ class Character(ObjectParent, DefaultCharacter):
                 return False
             value = key
         elif attr == "build":
-            height = self.appearance_height or "average"
+            height = self.appearance_height or appearance_data.DEFAULT_HEIGHT
             if not appearance_data.valid_build(height, value):
                 return False
         elif attr == "adjective":
@@ -299,6 +295,41 @@ class Character(ObjectParent, DefaultCharacter):
         result dict from the growth system, or None if the skill is unknown.
         """
         return skill_systems.use_skill(self, key, difficulty=difficulty, times=times)
+
+    def at_say(self, message, msg_self=None, msg_location=None, receivers=None,
+               msg_receivers=None, **kwargs):
+        """Realm-aware 'say'. A speaker's words land only in the realm they
+        currently occupy; other characters in the same room only hear them if
+        they perceive that realm. Whispering to an explicit target bypasses
+        realm gating (you can whisper to anyone you share a room with)."""
+        if kwargs.get("whisper", False) or not self.location:
+            return super().at_say(
+                message, msg_self=msg_self, msg_location=msg_location,
+                receivers=receivers, msg_receivers=msg_receivers, **kwargs,
+            )
+
+        if self.can_speak_phys and not self.can_speak_vis:
+            hear_flag = "can_hear_phys"
+        elif self.can_speak_vis and not self.can_speak_phys:
+            hear_flag = "can_hear_vis"
+        else:
+            return super().at_say(
+                message, msg_self=msg_self, msg_location=msg_location,
+                receivers=receivers, msg_receivers=msg_receivers, **kwargs,
+            )
+
+        audience = [
+            obj
+            for obj in self.location.contents
+            if obj is not self and getattr(obj, hear_flag, False)
+        ]
+        for receiver in audience:
+            receiver.msg(
+                text=(f"{self.get_display_name(receiver)} says, |n\"{message}|n\"", {"type": "say"}),
+                from_obj=self,
+            )
+        if msg_self:
+            self.msg(text=("You say, |n\"{message}|n\"".format(message=message), {"type": "say"}), from_obj=self)
 
     @property
     def trainer_skills(self):
@@ -344,14 +375,15 @@ class Character(ObjectParent, DefaultCharacter):
         else:
             name = prefix
 
+        if not self.visible_to(looker):
+            return ""
+
         lines = [self.appearance_phrase]
         if self.db.desc:
             lines.append(self.db.desc)
         vis = self.visarial_desc_text()
-        if vis:
-            looker_state = looker.attributes.get("visarial_state", default="physical")
-            if looker_state == "perceiving" or looker.current_plane() == "visarial":
-                lines.append(self.format_visarial_desc(vis))
+        if self.can_vis_touch and vis and looker.can_vis_see:
+            lines.append(self.format_visarial_desc(vis))
 
         return self.format_appearance(
             self.appearance_template.format(
@@ -378,7 +410,7 @@ class Character(ObjectParent, DefaultCharacter):
         if projected:
             state_text += f" {_STATE_COLORS.get(projected, '|W')}{projected}|n"
 
-        zeroed = stats.zero_pools(self)
+        zeroed = species_data.zeroed_pools(self.species_key)
         parts = []
         for pool in stats.POOL_KEYS:
             if pool in zeroed:

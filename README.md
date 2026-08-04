@@ -54,14 +54,24 @@ and its **connection to Vim**:
 | **visarial**  | visarial     | yes    | Visarial desc / Magenta aura | visarial |
 | **dual-natured** | physical (default) | both | Physical *and* visarial desc | both, by state |
 
-- `perceive` (yellow) to be aware of the other plane while staying put; `manifest`
-  (cyan) to cross into it. Silex can do neither.
+Creatures also carry a `visarial_state` — `normal` (present in your native
+realm), `perceiving` (aware of the other realm while staying put) or
+`manifested` (fully present in the opposite realm). `perceive` (yellow) toggles
+the middle state; `manifest` (cyan) toggles the last. Silex can do neither.
+
 - Visibility is per-entity and split into *see* vs *touch* (`can_phys_see`,
   `can_vis_see`, `can_phys_touch`, `can_vis_touch`), so what you can perceive and
   what you can reach are independently controlled.
+- Speech follows the same rule. Voice (`can_speak_phys` / `can_speak_vis`) only
+  lands in the realm you occupy, and hearing (`can_hear_phys` / `can_hear_vis`)
+  mirrors sight — you hear a realm if you can see it. Words spoken in the
+  physical are heard only by those who can see the physical; words from the
+  visarial only by those who can see it. Whispering to a named target bypasses
+  the realms.
 - Vim-connected things radiate a magenta aura; physical things read as
   "absolutely disconnected from Vim."
-- Builders set a prop's nature with `setnature`.
+- Builders set a prop's nature with `setnature`. Staff can `force` anyone, in
+  any room, on any plane, whether or not they can see them.
 
 ### The 5D Room Grid
 Rooms are stamped with a two-tier coordinate grid (planet-level and subzone-level)
@@ -104,7 +114,7 @@ showing your pools and current plane/fold state.
 (player `pmode`)
 
 **Builder:** `dig` · `setorigin` · `attset` · `setskill` · `settrainer` ·
-`setnature` · `setspecies`
+`setnature` · `setspecies` · `force`
 
 ---
 

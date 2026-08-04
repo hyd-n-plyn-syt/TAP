@@ -8,35 +8,34 @@ class CmdPerceive(Command):
 
     def func(self):
         caller = self.caller
-        current = caller.attributes.get("visarial_state", default="physical")
+        current = caller.attributes.get("visarial_state", default="normal")
         data = caller.species
 
-        if not caller.can_project:
+        if not caller.can_perceive:
             caller.msg("Your kind cannot perceive the visarial realm.")
             return
 
         if data and data["visarial_nature"] == "visarial":
             if current == "perceiving":
-                caller.set_state("manifested")
+                caller.set_state("normal")
                 caller.msg("You turn your awareness away from the physical plane.")
-            elif current == "physical":
+            elif current == "normal":
                 caller.set_state("perceiving")
                 caller.msg(
-                    "You withdraw into the visarial realm, perceiving the physical "
-                    "plane from within it."
+                    "You begin to perceive the physical plane from within the visarial realm."
                 )
             else:
                 caller.set_state("perceiving")
                 caller.msg(
-                    "You perceive into the physical plane without leaving the visarial realm."
+                    "You withdraw to the visarial realm, perceiving the physical plane."
                 )
             return
 
-        if current == "physical":
+        if current == "normal":
             caller.set_state("perceiving")
             caller.msg("You begin to perceive the visarial realm.")
         elif current == "perceiving":
-            caller.set_state("physical")
+            caller.set_state("normal")
             caller.msg("You cease perceiving the visarial realm.")
         elif current == "manifested":
             caller.set_state("perceiving")

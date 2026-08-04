@@ -65,7 +65,7 @@ class SpeciesCatalogTest(SimpleTestCase):
         for spec in species.SPECIES.values():
             self.assertEqual(spec["key"], spec["key"].lower())
             self.assertIn(spec["visarial_nature"], {"dual_natured", "visarial", "physical"})
-            self.assertIn(spec["default_visarial_state"], ("physical", "manifested"))
+            self.assertEqual(spec["default_visarial_state"], "normal")
             self.assertIsInstance(spec["locked_main_stats"], tuple)
             self.assertLessEqual(set(spec["locked_main_stats"]), {"corpus", "animus"})
 
@@ -79,7 +79,7 @@ class SpeciesCatalogTest(SimpleTestCase):
     def test_zeroed_pools_are_valid(self):
         valid = {"vigor", "vim", "mens"}
         for spec in species.SPECIES.values():
-            self.assertLessEqual(set(spec["zero_pools"]), valid, spec["key"])
+            self.assertLessEqual(set(spec["zeroed_pools"]), valid, spec["key"])
 
     def test_visarii_and_silex_lock_opposite_columns(self):
         visarii = species.SPECIES["visarii"]

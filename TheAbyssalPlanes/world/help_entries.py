@@ -357,13 +357,13 @@ def _species_help_entries():
                 + ", ".join(main.capitalize() for main in data["locked_main_stats"])
                 + " permanently at 0."
             )
-        if data["zero_pools"]:
+        if data["zeroed_pools"]:
             traits.append(
                 " |wNo pool:|n "
-                + ", ".join(pool.capitalize() for pool in data["zero_pools"])
+                + ", ".join(pool.capitalize() for pool in data["zeroed_pools"])
                 + "."
             )
-        if data.get("cannot_perceive"):
+        if not data.get("can_perceive") or not data.get("can_manifest"):
             traits.append(" |wCannot|n perceive or manifest into the visarial realm.")
         nature_text = {
             "dual_natured": (

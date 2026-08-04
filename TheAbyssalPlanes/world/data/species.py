@@ -9,8 +9,11 @@ Each species is defined by:
     archetype           - colloquial one-line label (human, elf, orc, ...)
     aliases             - alternate lookup/help names
     visarial_nature     - "dual_natured", "visarial" or "physical"
-    default_visarial_state - starting visarial state; all species except the
-                          Visarii start "physical"
+    default_visarial_state - starting visarial state: 'normal' means present
+                          in the native realm (interpreted via visarial_nature);
+                          'perceiving' senses the other realm from home;
+                          'manifested' is fully present in the opposite realm.
+                          All species start 'normal'.
     stat_bonuses        - {sub_stat: bonus} persistent modifiers added on top
                           of the base sub-stat (effective = base + bonus)
     locked_main_stats   - main stats permanently locked at 0 (all sub-stats
@@ -20,9 +23,10 @@ Each species is defined by:
                           feeds the substitute main (same sub-stat slot). Only
                           present on species with locked mains; other species
                           need no entry.
-    zero_pools          - derived pools pinned to 0 (max and regen); also
+    zeroed_pools        - derived pools pinned to 0 (max and regen); also
                           hidden from the prompt
-    cannot_perceive     - cannot perceive or manifest into the visarial realm
+    can_perceive        - can use the 'perceive' command (see the other realm)
+    can_manifest        - can use the 'manifest' command (occupy the other realm)
     description         - flavor text
 """
 
@@ -33,11 +37,12 @@ SPECIES = {
         "archetype": "standard human",
         "aliases": ["human", "humanoid"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"genius_obsistis": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Terra-born, versatile, and balanced. They are the standard, "
             "adaptable middle-ground species of the material world. Classic, "
@@ -52,11 +57,12 @@ SPECIES = {
         "archetype": "standard elf",
         "aliases": ["elf", "elven"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"genius_potestas": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Lithe, flawless humanoids with an ethereal elegance. They are "
             "distinct from the crystalline Visarii because they are entirely "
@@ -74,11 +80,12 @@ SPECIES = {
         "archetype": "space elf",
         "aliases": ["space elf", "sideral"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"animus_obsistis": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "An ancient branch of humanoids that evolved to live, travel, and "
             "survive in the vacuum of space. Exceptionally tall, graceful "
@@ -99,11 +106,12 @@ SPECIES = {
         "archetype": "toad-men",
         "aliases": ["toad man", "toad", "batrachian"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"corpus_potestas": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Massive, broad-shouldered, and stocky creatures with dense, "
             "warty hide that ranges from deep marsh-green to muddy brown. "
@@ -122,11 +130,12 @@ SPECIES = {
         "archetype": "newt-men",
         "aliases": ["newt man", "newt", "triton"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"corpus_reflexus": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Slender, highly agile amphibian humanoids who represent the "
             "swift, toxic, and predatory side of the waterways. Sleek, "
@@ -147,11 +156,12 @@ SPECIES = {
         "archetype": "bird-men",
         "aliases": ["bird man", "bird", "volucre"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"animus_reflexus": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Elegant and predatory, resembling falcons or eagles. They live "
             "on high, wind-swept spires where the physical atmosphere thins "
@@ -166,11 +176,12 @@ SPECIES = {
         "archetype": "bat-men",
         "aliases": ["bat man", "bat", "pterat"],
         "visarial_nature": "dual_natured",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"genius_reflexus": 1},
         "locked_main_stats": (),
-        "zero_pools": (),
-        "cannot_perceive": False,
+        "zeroed_pools": (),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Darker, stealthier, and more nocturnal than the Volucres. "
             "Instead of pure flapping flight, they excel at high-speed diving "
@@ -186,12 +197,13 @@ SPECIES = {
         "archetype": "crystal elf",
         "aliases": ["crystal elf", "crystal"],
         "visarial_nature": "visarial",
-        "default_visarial_state": "manifested",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"animus_potestas": 1},
         "locked_main_stats": ("corpus",),
         "locked_alternates": {"corpus": "animus"},
-        "zero_pools": ("vigor",),
-        "cannot_perceive": False,
+        "zeroed_pools": ("vigor",),
+        "can_perceive": True,
+        "can_manifest": True,
         "description": (
             "Sleek, sharp, and geometric humanoids made of a translucent, "
             "violet-tinged crystalline form. In the physical world they exist "
@@ -209,12 +221,13 @@ SPECIES = {
         "archetype": "flint-like orc",
         "aliases": ["orc", "flint orc", "stone orc"],
         "visarial_nature": "physical",
-        "default_visarial_state": "physical",
+        "default_visarial_state": "normal",
         "stat_bonuses": {"corpus_obsistis": 1},
         "locked_main_stats": ("animus",),
         "locked_alternates": {"animus": "corpus"},
-        "zero_pools": ("vim",),
-        "cannot_perceive": True,
+        "zeroed_pools": ("vim",),
+        "can_perceive": False,
+        "can_manifest": False,
         "description": (
             "Somewhat large humanoids with rough, chiseled, matte-black stone "
             "flesh. When they clash in battle, their rocky skin literally "
@@ -279,4 +292,4 @@ def alternate_for(key, main_stat):
 def zeroed_pools(key):
     """Return the tuple of pools pinned to 0 for the species."""
     data = get_species(key)
-    return data["zero_pools"] if data else ()
+    return data["zeroed_pools"] if data else ()

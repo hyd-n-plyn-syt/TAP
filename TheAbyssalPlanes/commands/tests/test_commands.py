@@ -1,11 +1,16 @@
 """Integration tests for player commands using Evennia's in-DB test harness."""
 
+from unittest import mock
+
 from evennia import create_object
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.player.skills import CmdSkills
 from commands.player.train import CmdTrain
+from commands.player.perceive import CmdPerceive
+from commands.player.manifest import CmdManifest
 from commands.building.setnature import CmdSetNature
+from commands.building.force import CmdForce
 
 
 class SkillsCommandTest(EvenniaCommandTest):
@@ -103,7 +108,7 @@ class PlaneVisibilityTest(EvenniaCommandTest):
 
     def test_physical_looker_does_not_see_vis_obelisk(self):
         room, _, _ = self._make_obelisks()
-        self.char1.attributes.add("visarial_state", "physical")
+        self.char1.attributes.add("visarial_state", "normal")
         out = room.return_appearance(self.char1)
         self.assertIn("black obelisk", out)
         self.assertNotIn("lapis obelisk", out)
@@ -132,7 +137,7 @@ class PlaneVisibilityTest(EvenniaCommandTest):
 
     def test_physical_object_desc_hidden_from_plain_looker(self):
         room, phys, _ = self._make_obelisks()
-        self.char1.attributes.add("visarial_state", "physical")
+        self.char1.attributes.add("visarial_state", "normal")
         out = phys.get_display_desc(self.char1)
         self.assertNotIn("disconnected", out)
 
@@ -159,7 +164,8 @@ class PlaneVisibilityTest(EvenniaCommandTest):
         )
         self.assertIsNone(silex.db.visarial_desc)
         self.assertEqual(silex.is_creature, True)
-        self.assertEqual(silex.can_project, False)
+        self.assertEqual(silex.can_perceive, False)
+        self.assertEqual(silex.can_manifest, False)
         self.assertEqual(silex.can_phys_see, True)
         self.assertEqual(silex.can_vis_see, False)
 
@@ -167,7 +173,8 @@ class PlaneVisibilityTest(EvenniaCommandTest):
         vis = create_object("typeclasses.characters.Character", key="Prism")
         vis.apply_species("visarii")
         self.assertEqual(vis.visarial_desc_text(), "This entity gives off an aura of Vim.")
-        self.assertEqual(vis.can_project, True)
+        self.assertEqual(vis.can_perceive, True)
+        self.assertEqual(vis.can_manifest, True)
         self.assertEqual(vis.can_vis_see, True)
 
     def test_can_see_and_touch_flags(self):
@@ -176,6 +183,216 @@ class PlaneVisibilityTest(EvenniaCommandTest):
         self.assertEqual(self.char1.can_vis_see, True)
         self.assertEqual(self.char1.can_phys_touch, True)
         self.assertEqual(self.char1.can_vis_touch, False)
+
+
+class VisariiPlaneTest(EvenniaCommandTest):
+    def _make_visarii(self):
+        vis = create_object("typeclasses.characters.Character", key="Prism")
+        self.assertTrue(vis.apply_species("visarii"))
+        return vis
+
+    def test_native_visarii_lives_in_visarial(self):
+        vis = self._make_visarii()
+        self.assertEqual(vis.state(), "normal")
+        self.assertEqual(vis.current_plane(), "visarial")
+        self.assertTrue(vis.can_vis_touch)
+        self.assertTrue(vis.can_vis_see)
+        self.assertFalse(vis.can_phys_touch)
+        self.assertFalse(vis.can_phys_see)
+
+    def test_perceiving_visarii_sees_physical_in_place(self):
+        vis = self._make_visarii()
+        vis.set_state("perceiving")
+        self.assertEqual(vis.current_plane(), "visarial")
+        self.assertTrue(vis.can_vis_touch)
+        self.assertTrue(vis.can_phys_see)
+        self.assertFalse(vis.can_phys_touch)
+
+    def test_manifested_visarii_touches_physical_only(self):
+        vis = self._make_visarii()
+        vis.set_state("manifested")
+        self.assertEqual(vis.current_plane(), "physical")
+        self.assertTrue(vis.can_phys_touch)
+        self.assertTrue(vis.can_phys_see)
+        self.assertFalse(vis.can_vis_touch)
+        self.assertFalse(vis.can_vis_see)
+
+    def test_silex_cannot_leave_physical(self):
+        silex = create_object("typeclasses.characters.Character", key="Grimstone")
+        self.assertTrue(silex.apply_species("silex"))
+        self.assertFalse(silex.set_state("perceiving"))
+        self.assertFalse(silex.set_state("manifested"))
+        self.assertTrue(silex.set_state("normal"))
+        self.assertFalse(silex.can_vis_touch)
+        self.assertFalse(silex.can_vis_see)
+
+
+class VisariiCommandsTest(EvenniaCommandTest):
+    def test_visarii_native_cannot_manifest_into_physical_by_default(self):
+        self.char1.apply_species("visarii")
+        self.assertEqual(self.char1.state(), "normal")
+        self.assertFalse(self.char1.can_phys_touch)
+
+    def test_visarii_manifest_projects_into_physical(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdManifest(), "")
+        self.assertIn("project your crystalline form", out)
+        self.assertEqual(self.char1.state(), "manifested")
+        self.assertEqual(self.char1.current_plane(), "physical")
+        self.assertTrue(self.char1.can_phys_touch)
+
+    def test_visarii_perceive_sees_physical_in_place(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdPerceive(), "")
+        self.assertIn("perceive the physical plane", out)
+        self.assertEqual(self.char1.state(), "perceiving")
+        self.assertEqual(self.char1.current_plane(), "visarial")
+        self.assertTrue(self.char1.can_phys_see)
+        self.assertFalse(self.char1.can_phys_touch)
+
+    def test_silex_cannot_manifest(self):
+        self.char1.apply_species("silex")
+        out = self.call(CmdManifest(), "")
+        self.assertIn("cannot manifest", out)
+        self.assertEqual(self.char1.state(), "normal")
+        self.assertTrue(self.char1.can_phys_touch)
+        self.assertFalse(self.char1.can_vis_touch)
+
+    def test_silex_cannot_perceive(self):
+        self.char1.apply_species("silex")
+        out = self.call(CmdPerceive(), "")
+        self.assertIn("cannot perceive", out)
+        self.assertEqual(self.char1.state(), "normal")
+
+
+class SpeakHearPlaneTest(EvenniaCommandTest):
+    def _dual(self):
+        c = create_object("typeclasses.characters.Character", key="Walker")
+        c.apply_species("terran")
+        return c
+
+    def _visarii(self):
+        c = create_object("typeclasses.characters.Character", key="Prism")
+        c.apply_species("visarii")
+        return c
+
+    def _silex(self):
+        c = create_object("typeclasses.characters.Character", key="Grimstone")
+        c.apply_species("silex")
+        return c
+
+    def test_dual_normal_speaks_and_hears_physical(self):
+        c = self._dual()
+        self.assertTrue(c.can_speak_phys)
+        self.assertFalse(c.can_speak_vis)
+        self.assertTrue(c.can_hear_phys)
+        self.assertFalse(c.can_hear_vis)
+
+    def test_dual_perceiving_hears_visarial_but_speaks_physical(self):
+        c = self._dual()
+        c.set_state("perceiving")
+        self.assertTrue(c.can_speak_phys)
+        self.assertFalse(c.can_speak_vis)
+        self.assertTrue(c.can_hear_phys)
+        self.assertTrue(c.can_hear_vis)
+
+    def test_dual_manifested_speaks_and_hears_visarial_only(self):
+        c = self._dual()
+        c.set_state("manifested")
+        self.assertFalse(c.can_speak_phys)
+        self.assertTrue(c.can_speak_vis)
+        self.assertFalse(c.can_hear_phys)
+        self.assertTrue(c.can_hear_vis)
+
+    def test_visarii_normal_speaks_and_hears_visarial(self):
+        c = self._visarii()
+        self.assertFalse(c.can_speak_phys)
+        self.assertTrue(c.can_speak_vis)
+        self.assertFalse(c.can_hear_phys)
+        self.assertTrue(c.can_hear_vis)
+
+    def test_visarii_perceiving_hears_physical_but_speaks_visarial(self):
+        c = self._visarii()
+        c.set_state("perceiving")
+        self.assertFalse(c.can_speak_phys)
+        self.assertTrue(c.can_speak_vis)
+        self.assertTrue(c.can_hear_phys)
+        self.assertTrue(c.can_hear_vis)
+
+    def test_visarii_manifested_speaks_and_hears_physical_only(self):
+        c = self._visarii()
+        c.set_state("manifested")
+        self.assertTrue(c.can_speak_phys)
+        self.assertFalse(c.can_speak_vis)
+        self.assertTrue(c.can_hear_phys)
+        self.assertFalse(c.can_hear_vis)
+
+    def test_silex_physical_only(self):
+        c = self._silex()
+        self.assertTrue(c.can_speak_phys)
+        self.assertFalse(c.can_speak_vis)
+        self.assertTrue(c.can_hear_phys)
+        self.assertFalse(c.can_hear_vis)
+
+    def test_at_say_physical_reaches_physical_hearers(self):
+        speaker = self._dual()
+        speaker.location = self.room1
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        silex_listener = self._silex()
+        silex_listener.location = self.room1
+        silex_listener.msg = mock.Mock()
+        vis_native = self._visarii()
+        vis_native.location = self.room1
+        vis_native.msg = mock.Mock()
+        speaker.at_say("hello", msg_self=False)
+        self.assertTrue(phys_listener.msg.called)
+        self.assertTrue(silex_listener.msg.called)
+        self.assertFalse(vis_native.msg.called)
+
+    def test_at_say_visarial_reaches_visarial_hearers(self):
+        speaker = self._dual()
+        speaker.set_state("manifested")
+        speaker.location = self.room1
+        vis_listener = self._visarii()
+        vis_listener.location = self.room1
+        vis_listener.msg = mock.Mock()
+        silex_listener = self._silex()
+        silex_listener.location = self.room1
+        silex_listener.msg = mock.Mock()
+        speaker.at_say("Echo", msg_self=False)
+        self.assertTrue(vis_listener.msg.called)
+        self.assertFalse(silex_listener.msg.called)
+
+    def test_whisper_bypasses_realm_gating(self):
+        speaker = self._dual()
+        speaker.location = self.room1
+        silex_listener = self._silex()
+        silex_listener.location = self.room1
+        silex_listener.msg = mock.Mock()
+        speaker.at_say(
+            "psst",
+            whisper=True,
+            receivers=silex_listener,
+            msg_receivers='{object} whispers: "{speech}"',
+        )
+        self.assertTrue(silex_listener.msg.called)
+
+    def test_cmdsay_realm_gated_end_to_end(self):
+        from evennia.commands.default.general import CmdSay
+
+        self.char1.apply_species("terran")
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        vis_native = self._visarii()
+        vis_native.location = self.room1
+        vis_native.msg = mock.Mock()
+        out = self.call(CmdSay(), "hello there")
+        self.assertIn("You say", out)
+        self.assertTrue(phys_listener.msg.called)
+        self.assertFalse(vis_native.msg.called)
 
 
 class SetNatureCommandTest(EvenniaCommandTest):
@@ -199,3 +416,46 @@ class SetNatureCommandTest(EvenniaCommandTest):
         out = self.call(CmdSetNature(), "physical")
         self.assertIn("physical", out)
         self.assertEqual(self.char1.nature(), "physical")
+
+
+class SearchVisibilityTest(EvenniaCommandTest):
+    def test_non_builder_cannot_search_other_plane(self):
+        plain = create_object("typeclasses.characters.Character", key="Plain")
+        plain.apply_species("terran")
+        plain.location = self.room1
+        vis_native = create_object("typeclasses.characters.Character", key="Prism")
+        vis_native.apply_species("visarii")
+        vis_native.location = self.room1
+        result = plain.search("Prism", quiet=True)
+        self.assertNotIn(vis_native, result)
+
+    def test_builder_can_search_other_plane(self):
+        vis_native = create_object("typeclasses.characters.Character", key="Prism")
+        vis_native.apply_species("visarii")
+        vis_native.location = self.room1
+        result = self.char1.search("Prism", quiet=True)
+        self.assertIn(vis_native, result)
+
+
+class ForceCommandTest(EvenniaCommandTest):
+    def _visarii(self):
+        c = create_object("typeclasses.characters.Character", key="Prism")
+        c.apply_species("visarii")
+        return c
+
+    def test_force_missing_args(self):
+        out = self.call(CmdForce(), "")
+        self.assertIn("target and a command string", out)
+
+    def test_force_other_plane_same_room(self):
+        vis_hearer = self._visarii()
+        vis_hearer.location = self.room1
+        vis_hearer.msg = mock.Mock()
+        silex_listener = create_object("typeclasses.characters.Character", key="Grimstone")
+        silex_listener.apply_species("silex")
+        silex_listener.location = self.room1
+        silex_listener.msg = mock.Mock()
+        out = self.call(CmdForce(), "Prism = say hello")
+        self.assertIn("You have forced Prism", out)
+        self.assertTrue(vis_hearer.msg.called)
+        self.assertFalse(silex_listener.msg.called)

@@ -32,6 +32,10 @@ HEIGHT_PHRASE = {
     "tall": "tall",
 }
 
+# Fallbacks used when a character's height/build is unset.
+DEFAULT_HEIGHT = "average"
+DEFAULT_BUILD = "average"
+
 
 def height_phrase(height):
     """Return the phrase word for a height key."""

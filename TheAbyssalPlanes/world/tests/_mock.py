@@ -6,19 +6,16 @@ sub-stat base values, and the `species_key`. This mock provides those so
 the pure math in world/systems and world/data can be tested without evennia.
 """
 
-from types import SimpleNamespace
-
 
 class MockChar:
     """Minimal facade standing in for a Character in unit tests.
 
-    Mirrors both access patterns the systems use: direct `.species_key`
-    (skills) and the attribute-handler proxy `char.db.species_key` (stats).
+    All systems read `species_key` directly off the character, so the mock
+    only needs that one field alongside the stat and growth dicts.
     """
 
     def __init__(self, species_key=None):
         self.species_key = species_key
-        self.db = SimpleNamespace(species_key=species_key)
         self.skills = {}
         self.skills_xp = {}
         self.stat_xp = {}

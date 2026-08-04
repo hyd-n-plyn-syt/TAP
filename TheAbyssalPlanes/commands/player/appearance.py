@@ -116,7 +116,7 @@ class CmdSetBuild(CmdAppearanceBase):
     attr = "build"
 
     def list_options(self, caller, target):
-        height = target.appearance_height or "average"
+        height = target.appearance_height or appearance.DEFAULT_HEIGHT
         builds = appearance.builds_for_height(height)
         return (
             f"|wValid for height '{height}':|n "

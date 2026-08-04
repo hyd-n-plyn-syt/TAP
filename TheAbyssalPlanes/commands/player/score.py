@@ -3,6 +3,7 @@ Player command to view a character's score: species, attributes and pools.
 """
 from commands.command import Command
 from world.data import rankings
+from world.data import species
 from world.systems import stats
 
 
@@ -27,7 +28,7 @@ class CmdScore(Command):
         caller = self.caller
         pools = stats.derived_pools(caller)
         data = caller.species
-        zeroed = stats.zero_pools(caller)
+        zeroed = species.zeroed_pools(caller.species_key)
 
         lines = ["|w=== Score ===|n"]
         if data:

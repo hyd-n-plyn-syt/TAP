@@ -28,27 +28,14 @@ POOL_KEYS = ("vigor", "vim", "mens")
 BASE_DEFAULTS = {f"{main}_{sub}": 1 for main in MAIN_STATS for sub in SUB_STATS}
 
 
-def _species_key(char):
-    """Return the character's stored species key (or None)."""
-    db = getattr(char, "db", None)
-    if db is None:
-        return None
-    return getattr(db, "species_key", None)
-
-
 def species_bonus(char, main, sub):
     """Return the persistent species bonus for a sub-stat (0 if none)."""
-    return species.stat_bonus(_species_key(char), f"{main}_{sub}")
+    return species.stat_bonus(char.species_key, f"{main}_{sub}")
 
 
 def sub_stat_is_locked(char, main):
     """Return True if the whole main-stat column is locked at 0."""
-    return species.is_locked(_species_key(char), main)
-
-
-def zero_pools(char):
-    """Return the tuple of derived pools pinned to 0 for this character."""
-    return species.zeroed_pools(_species_key(char))
+    return species.is_locked(char.species_key, main)
 
 
 def effective_sub_stat(char, main, sub):
@@ -91,7 +78,7 @@ def derived_pools(char):
         "mens": ((genius + go) * 3) + ((gp + co) * 2),
         "mens_regen": 1 + ((genius + go) // 6) + (gr // 4) + (co // 8),
     }
-    for pool in zero_pools(char):
+    for pool in species.zeroed_pools(char.species_key):
         pools[pool] = 0
         pools[f"{pool}_regen"] = 0
     return pools

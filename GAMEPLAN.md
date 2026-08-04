@@ -69,10 +69,12 @@ kept current as work happens.
   *Visarial-natured* (Visarii) are IN and OF Vim - visarial desc only, no physical
   desc (a magenta Vim aura by default). *Dual-natured* are IN physical by default
   but OF both, so they carry both a physical and a visarial desc. Only creatures
-  (`is_creature`) perceive and can `can_project`; plain objects are fixed to their
+  (`is_creature`) perceive or manifest; plain objects are fixed to their
   nature's plane. Visibility is driven by four per-entity flags (`can_phys_see`,
   `can_vis_see`, `can_phys_touch`, `can_vis_touch`) so see/touch can be controlled
-  independently. Builders set a prop's nature with the `setnature` command.
+  independently; speech and hearing mirror it (`can_speak_*`/`can_hear_*`, wired
+  into `Character.at_say`). Builders set a prop's nature with the `setnature`
+  command, and staff `force`/search bypass plane and location.
 
 ## Build Phases
 

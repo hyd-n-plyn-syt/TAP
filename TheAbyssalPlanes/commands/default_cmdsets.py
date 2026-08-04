@@ -21,6 +21,7 @@ from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
 from commands.building.settrainer import CmdSetTrainer
 from commands.building.setnature import CmdSetNature
+from commands.building.force import CmdForce
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
 from commands.player.skills import CmdSkills
@@ -59,6 +60,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         # a position; replace it with the whitelisted builder 'setpose'.
         self.remove("pose")
         self.add(GridDig)  # This replaces the default engine @dig globally
+        self.add(CmdForce)  # Replaces the default 'force' (global, plane-agnostic)
         self.add(CmdSetOrigin)
         self.add(CmdAttSet)
         self.add(CmdSetSkill)

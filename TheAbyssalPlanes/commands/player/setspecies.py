@@ -85,12 +85,12 @@ class CmdSetSpecies(Command):
                 "locked: "
                 + ", ".join(main.capitalize() for main in data["locked_main_stats"])
             )
-        if data["zero_pools"]:
+        if data["zeroed_pools"]:
             traits.append(
-                "no " + ", ".join(pool.capitalize() for pool in data["zero_pools"])
+                "no " + ", ".join(pool.capitalize() for pool in data["zeroed_pools"])
             )
-        if data.get("cannot_perceive"):
-            traits.append("cannot perceive the Visarium")
+        if not data.get("can_perceive") or not data.get("can_manifest"):
+            traits.append("cannot perceive or manifest into the Visarium")
         suffix = f" ({'; '.join(traits)})" if traits else ""
         caller.msg(
             f"|gSet {target.name}'s species to {data['name']} "

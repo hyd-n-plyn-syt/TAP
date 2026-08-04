@@ -31,8 +31,8 @@ class ObjectParent:
         return self.attributes.get("visarial_nature", default="dual_natured")
 
     def state(self):
-        """The visarial state: 'physical', 'perceiving' or 'manifested'."""
-        return self.attributes.get("visarial_state", default="physical")
+        """The visarial state: 'normal', 'perceiving' or 'manifested'."""
+        return self.attributes.get("visarial_state", default="normal")
 
     @property
     def is_creature(self):
@@ -44,35 +44,52 @@ class ObjectParent:
         return hasattr(self, "species")
 
     @property
-    def can_project(self):
+    def can_perceive(self):
         """
-        Whether this creature can perceive or manifest into the other plane.
-        False for plain objects and for Vim-blind species (Silex).
+        Whether this creature can use the 'perceive' command (see the other
+        realm). False for plain objects and species locked out of perceiving
+        (Silex).
         """
         if not self.is_creature:
             return False
         data = getattr(self, "species", None)
-        return not bool(data and data.get("cannot_perceive"))
+        return bool(data and data.get("can_perceive"))
+
+    @property
+    def can_manifest(self):
+        """
+        Whether this creature can use the 'manifest' command (occupy the other
+        realm). False for plain objects and species locked out of manifesting
+        (Silex).
+        """
+        if not self.is_creature:
+            return False
+        data = getattr(self, "species", None)
+        return bool(data and data.get("can_manifest"))
+
+    def visible_to(self, looker):
+        """
+        Whether 'looker' can perceive this entity given both of their current
+        planes and states. True when the entity's occupied plane(s) overlap
+        with the planes the looker can currently see.
+        """
+        return (self.can_phys_touch and looker.can_phys_see) or (
+            self.can_vis_touch and looker.can_vis_see
+        )
 
     @property
     def can_phys_see(self):
         """Whether this entity currently perceives the physical plane."""
         if not self.is_creature:
             return False
-        if self.nature() == "physical":
-            return True
-        return self.state() in ("physical", "perceiving")
+        return self.current_plane() == "physical" or self.state() == "perceiving"
 
     @property
     def can_vis_see(self):
         """Whether this entity currently perceives the visarial plane."""
         if not self.is_creature:
             return False
-        if self.nature() == "physical":
-            return False
-        if self.nature() == "visarial":
-            return True
-        return self.state() in ("perceiving", "manifested")
+        return self.current_plane() == "visarial" or self.state() == "perceiving"
 
     @property
     def can_phys_touch(self):
@@ -84,25 +101,51 @@ class ObjectParent:
         """Whether this entity currently occupies the visarial plane."""
         return self.current_plane() == "visarial"
 
+    @property
+    def can_speak_phys(self):
+        """
+        Whether words spoken by this entity land in the physical plane. You
+        can only speak into the realm you currently occupy - perceiving the
+        other realm never carries your voice there.
+        """
+        return self.current_plane() == "physical"
+
+    @property
+    def can_speak_vis(self):
+        """
+        Whether words spoken by this entity land in the visarial plane. You
+        can only speak into the realm you currently occupy - perceiving the
+        other realm never carries your voice there.
+        """
+        return self.current_plane() == "visarial"
+
+    @property
+    def can_hear_phys(self):
+        """Whether this entity currently perceives sound from the physical plane."""
+        return self.can_phys_see
+
+    @property
+    def can_hear_vis(self):
+        """Whether this entity currently perceives sound from the visarial plane."""
+        return self.can_vis_see
+
     def current_plane(self):
         """
         The plane this entity currently occupies: 'physical' or 'visarial'.
-        Physical-natured things are always physical. Visarial-natured beings
-        (Visarii) are physical only while manifested into it; otherwise they
-        rest in the visarial. Dual-natured beings shift planes with their
-        state. Plain objects never perceive or manifest, so their plane is
-        fixed by their nature: visarial-natured live in the visarial, any
-        other nature stays in the physical.
+        The 'normal' and 'perceiving' states mean present in the native realm
+        (physical for physical- and dual-natured, visarial for visarial-natured),
+        while 'manifested' means fully present in the opposite realm. The
+        visarial_nature drives this mapping, so the state need not name a plane.
+        Physical-natured things are always physical. Plain objects never
+        perceive or manifest, so their plane is fixed by their nature.
         """
         nature = self.nature()
         if nature == "physical":
             return "physical"
         state = self.state()
-        if nature == "visarial":
-            return "physical" if self.is_creature and state == "physical" else "visarial"
-        if self.is_creature:
-            return "physical" if state in ("physical", "perceiving") else "visarial"
-        return "physical"
+        if nature == "dual_natured":
+            return "physical" if state in ("normal", "perceiving") else "visarial"
+        return "physical" if state == "manifested" else "visarial"
 
     def visarial_desc_text(self):
         """
@@ -169,14 +212,14 @@ class ObjectParent:
         candidates = super().get_search_candidates(searchdata, **kwargs)
         if candidates is None:
             return None
+        if self.locks.check_lockstring(self, "_dummy:perm(Builder)"):
+            return candidates
         filtered = []
         for obj in candidates:
-            if not hasattr(obj, "can_phys_touch"):
+            if not hasattr(obj, "visible_to"):
                 filtered.append(obj)
                 continue
-            if (obj.can_phys_touch and self.can_phys_see) or (
-                obj.can_vis_touch and self.can_vis_see
-            ):
+            if obj.visible_to(self):
                 filtered.append(obj)
         return filtered
 
