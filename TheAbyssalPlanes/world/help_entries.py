@@ -416,29 +416,52 @@ HELP_ENTRY_DICTS += [
         "text": """
 |wAppearance|n
 
-Characters are described in rooms by a three-word phrase rather than a
-name: |w"|xphysical|w) A tall and lithe, translucent |MVisarii|w, standing"|n.
-The phrase is made of four parts, each set by a Builder command:
+When you look at a character, you see a detailed paragraph describing their
+appearance. The paragraph is auto-generated from stored attributes: height,
+build, species, gender, adjective, eyes, eye colour, hair, hair colour,
+and skin tone. Each attribute contributes a sentence; unset attributes are
+silently omitted. Pose determines the opening line (e.g. 'Before you
+stands...' vs 'Before you sits...'). The player-written |wdesc|n follows
+immediately after.
 
-  |wsetheight|n <diminutive|short|middling|tall|towering>
+|wBuilder Commands|n
+
+  |wsetheight|n <diminutive||short||middling||tall||towering>
       - height is relative to the species: a "middling" Volucres is far
         shorter than a "middling" Terran.
+
   |wsetbuild|n <build>
       - a single-word build, validated against the height. You cannot be
         tall and squat, nor short and statuesque.
+
   |wsetadjective|n <adjective>
       - a descriptor drawn from the species' own list.
+
   |wsetskin|n <tone>
-      - a named tone from the species' palette; its Truecolor shade colors
+      - a named tone from the species' palette; its Truecolor shade colours
         the species name in the description.
 
-Run any of these with no argument to see the current value and the valid
-options for the character. Add |w= <target>|n to apply to someone else in
-the room. |wnone|n clears a field.
+  |wseteyes|n <shape>
+      - an eye shape drawn from the species' own list.
 
-The leading |w(physical)|n / |w(visarial)|n prefix shows the plane the
-character currently occupies, and every character carries a pose
-(default |wstanding|n) that ends the phrase.
+  |wseteyecolor|n <colour>
+      - an eye colour drawn from the species' palette; shown in its
+        Truecolor hex in the description.
+
+  |wsethair|n <style>
+      - a hair style drawn from the species' own list.
+
+  |wsethaircolor|n <colour>
+      - a hair colour drawn from the species' palette; shown in its
+        Truecolor hex in the description.
+
+  |wsetpose|n <position>
+      - a whitelisted position word (e.g. standing, sitting, kneeling).
+
+Run any of these with no argument to see the current value and the valid
+options for the character, with each colour highlighted in its Truecolor
+hex. Add |w= <target>|n to apply to someone else in the room. |wnone|
+clears a field.
 
 See also: |wspecies|n, |wscore|n.
 """.strip(),
