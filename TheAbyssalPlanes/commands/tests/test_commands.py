@@ -8,6 +8,7 @@ from unittest import mock
 from evennia import create_object
 from evennia.utils.test_resources import EvenniaCommandTest
 
+from commands.player.emote import CmdEmote
 from commands.player.skills import CmdSkills
 from commands.player.train import CmdTrain
 from commands.player.perceive import CmdPerceive
@@ -568,3 +569,340 @@ class AddChangeCommandTest(EvenniaCommandTest):
             new_source = f.read()
         ast.parse(new_source)
         self.assertIn("A spiffy new feature", new_source)
+
+
+class EmoteCommandTest(EvenniaCommandTest):
+    def _dual(self):
+        c = create_object("typeclasses.characters.Character", key="Walker")
+        c.apply_species("terran")
+        return c
+
+    def _visarii(self):
+        c = create_object("typeclasses.characters.Character", key="Prism")
+        c.apply_species("visarii")
+        return c
+
+    def _silex(self):
+        c = create_object("typeclasses.characters.Character", key="Grimstone")
+        c.apply_species("silex")
+        return c
+
+    def _get_msg_text(self, mock_obj):
+        call_args = mock_obj.msg.call_args
+        return call_args[1]["text"][0]
+
+    def test_emote_physical_seen_by_physical_only(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        vis_native = self._visarii()
+        vis_native.location = self.room1
+        vis_native.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at the wall")
+        self.assertIn("waves at the wall", out)
+        self.assertTrue(phys_listener.msg.called)
+        self.assertFalse(vis_native.msg.called)
+
+    def test_emote_visarial_seen_by_visarial_only(self):
+        self.char1.apply_species("visarii")
+        self.char1.set_state("normal")
+        self.char1.location = self.room1
+        vis_listener = self._visarii()
+        vis_listener.location = self.room1
+        vis_listener.msg = mock.Mock()
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        out = self.call(CmdEmote(), "glows in the dark")
+        self.assertIn("glows in the dark", out)
+        self.assertTrue(vis_listener.msg.called)
+        self.assertFalse(phys_listener.msg.called)
+
+    def test_emote_at_target_resolves(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @walker")
+        self.assertIn("waves at a middling and average Terran", out)
+        self.assertTrue(target.msg.called)
+
+    def test_emote_at_target_seen_by_observer(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        observer = self._visarii()
+        observer.set_state("perceiving")
+        observer.location = self.room1
+        observer.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @walker")
+        self.assertTrue(observer.msg.called)
+        msg_text = self._get_msg_text(observer)
+        self.assertIn("waves at", msg_text)
+        self.assertIn("middling and average Terran", msg_text)
+
+    def test_emote_at_target_multiple_resolves(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        dup1 = create_object("typeclasses.characters.Character", key="Clone")
+        dup1.apply_species("terran")
+        dup1.location = self.room1
+        dup1.msg = mock.Mock()
+        dup2 = create_object("typeclasses.characters.Character", key="Clone")
+        dup2.apply_species("terran")
+        dup2.location = self.room1
+        dup2.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @clone")
+        self.assertIn("waves at", out)
+        self.assertIn("Clone", out)
+        self.assertTrue(dup1.msg.called)
+        self.assertTrue(dup2.msg.called)
+
+    def test_emote_at_target_not_found_errors(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        out = self.call(CmdEmote(), "waves at @nobody")
+        self.assertIn("No one matching", out)
+
+    def test_emote_at_target_in_quote_rejected(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        out = self.call(CmdEmote(), 'says "Hello @walker"')
+        self.assertIn("can't apply a target", out)
+
+    def test_emote_at_self_removes_prefix(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @self")
+        self.assertIn("waves at a middling and average Terran", out)
+        self.assertIn("(You)", out)
+        self.assertTrue(target.msg.called)
+
+    def test_emote_quoted_speech_heard_same_realm(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        out = self.call(CmdEmote(), 'yells "Hello!"')
+        self.assertTrue(phys_listener.msg.called)
+        msg_text = self._get_msg_text(phys_listener)
+        self.assertIn('"Hello!"', msg_text)
+
+    def test_emote_quoted_speech_heard_perceiving_other_realm(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        vis_perceiving = self._visarii()
+        vis_perceiving.set_state("perceiving")
+        vis_perceiving.location = self.room1
+        vis_perceiving.msg = mock.Mock()
+        out = self.call(CmdEmote(), 'yells "Hello!"')
+        self.assertTrue(vis_perceiving.msg.called)
+        msg_text = self._get_msg_text(vis_perceiving)
+        self.assertIn('"Hello!"', msg_text)
+
+    def test_emote_quoted_then_continuation_comma(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        out = self.call(CmdEmote(), 'says "Hello." then waves')
+        self.assertTrue(phys_listener.msg.called)
+        msg_text = self._get_msg_text(phys_listener)
+        self.assertIn('"Hello,"', msg_text)
+
+    def test_emote_display_name_no_prefix_same_realm(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves")
+        self.assertTrue(target.msg.called)
+        msg_text = self._get_msg_text(target)
+        self.assertNotIn("|w(|", msg_text)
+
+    def test_emote_display_name_prefix_diff_realm(self):
+        self.char1.apply_species("visarii")
+        self.char1.set_state("manifested")
+        self.char1.location = self.room1
+        perceiving_vis = self._visarii()
+        perceiving_vis.set_state("perceiving")
+        perceiving_vis.location = self.room1
+        perceiving_vis.msg = mock.Mock()
+        out = self.call(CmdEmote(), "glows")
+        self.assertTrue(perceiving_vis.msg.called)
+        msg_text = self._get_msg_text(perceiving_vis)
+        self.assertIn("|w(|", msg_text)
+
+    def test_emote_staff_sees_real_name(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        self.char1.locks.add("perm(Builder):id(%s)" % self.char1.dbref)
+        out = self.call(CmdEmote(), "waves at @walker")
+        self.assertIn("(Walker)", out)
+        self.assertTrue(target.msg.called)
+
+    def test_emote_multiple_quotes_independent(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        phys_listener = self._dual()
+        phys_listener.location = self.room1
+        phys_listener.msg = mock.Mock()
+        out = self.call(CmdEmote(), 'says "Hello." and then "Goodbye."')
+        self.assertTrue(phys_listener.msg.called)
+        msg_text = self._get_msg_text(phys_listener)
+        self.assertIn('"Hello,"', msg_text)
+        self.assertIn('"Goodbye."', msg_text)
+
+    def test_emote_empty_args(self):
+        out = self.call(CmdEmote(), "")
+        self.assertIn("What do you want to do?", out)
+
+    def test_emote_multi_sentence_pronoun_reset(self):
+        self.char1.apply_species("terran")
+        self.char1.gender = "male"
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), '@me says, "Hello!" to @self. @me snorts at @walker.')
+        msg_text = self._get_msg_text(target)
+        self.assertIn("himself", msg_text)
+        self.assertIn("|wHe|n", msg_text)
+
+    def test_emote_multi_sentence_self_view(self):
+        self.char1.apply_species("terran")
+        self.char1.gender = "female"
+        self.char1.location = self.room1
+        out = self.call(CmdEmote(), '@me says, "Hello!" to @self. @me nods.')
+        self.assertIn("yourself", out)
+        self.assertIn("You", out)
+
+    def test_emote_reflexive_pronouns_observer(self):
+        self.char1.apply_species("terran")
+        self.char1.gender = "male"
+        self.char1.location = self.room1
+        observer = self._dual()
+        observer.location = self.room1
+        observer.msg = mock.Mock()
+        out = self.call(CmdEmote(), "@me waves at @self")
+        self.assertTrue(observer.msg.called)
+        msg_text = self._get_msg_text(observer)
+        self.assertIn("himself", msg_text)
+
+    def test_emote_reflexive_pronouns_self(self):
+        self.char1.apply_species("terran")
+        self.char1.gender = "female"
+        self.char1.location = self.room1
+        out = self.call(CmdEmote(), "@me waves at @self")
+        self.assertIn("yourself", out)
+
+    def test_emote_reflexive_neuter(self):
+        self.char1.apply_species("terran")
+        self.char1.gender = "neuter"
+        self.char1.location = self.room1
+        out = self.call(CmdEmote(), "@me waves at @self")
+        self.assertIn("yourself", out)
+
+    def test_emote_target_by_species(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @terran")
+        self.assertTrue(target.msg.called)
+        self.assertIn("waves at", out)
+
+    def test_emote_target_by_adjective(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.appearance_adjective = "hardy"
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "stares at @hardy")
+        self.assertTrue(target.msg.called)
+        self.assertIn("stares at", out)
+
+    def test_emote_target_by_height(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.appearance_height = "tall"
+        target.msg = mock.Mock()
+        out = self.call(CmdEmote(), "waves at @tall")
+        self.assertTrue(target.msg.called)
+        self.assertIn("waves at", out)
+
+    def test_emote_target_pronoun_on_repeat(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.gender = "male"
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), "waves at @walker. @walker waves back.")
+        msg_text = self._get_msg_text(target)
+        self.assertIn("middling and average Terran male", msg_text)
+        self.assertIn("|wHe|n waves back", msg_text)
+
+    def test_emote_target_pronoun_mid_sentence(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.gender = "male"
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), "waves at @walker and nods at @walker.")
+        msg_text = self._get_msg_text(target)
+        self.assertIn("middling and average Terran male", msg_text)
+        self.assertIn("|whim|n", msg_text)
+
+    def test_emote_target_possessive_on_repeat(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.gender = "male"
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), "looks at @walker and pats @walker's gear.")
+        msg_text = self._get_msg_text(target)
+        self.assertIn("middling and average Terran male", msg_text)
+        self.assertIn("|whis|n gear", msg_text)
+
+    def test_emote_target_possessive_sentence_start(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.gender = "female"
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), "looks at @walker. @walker's blade gleams.")
+        msg_text = self._get_msg_text(target)
+        self.assertIn("|wHer|n blade gleams", msg_text)
+
+    def test_emote_target_pronoun_sentence_start(self):
+        self.char1.apply_species("terran")
+        self.char1.location = self.room1
+        target = self._dual()
+        target.location = self.room1
+        target.gender = "female"
+        target.msg = mock.Mock()
+        self.call(CmdEmote(), "waves at @walker. @walker waves back.")
+        msg_text = self._get_msg_text(target)
+        self.assertIn("|wShe|n", msg_text)

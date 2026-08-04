@@ -239,7 +239,7 @@ class Character(ObjectParent, DefaultCharacter):
             middle = f"{height} and {build}, {adjective}"
         else:
             middle = f"{height} and {build}"
-        core = f"{middle} {self.species_display_name}"
+        core = f"{middle} {self.species_display_name} {self.gender}"
         return core, (self.pose or "standing")
 
     @property
@@ -250,6 +250,35 @@ class Character(ObjectParent, DefaultCharacter):
         """
         core, pose = self.appearance_bits
         return f"{appearance_data.article(core)} {core} {pose} here."
+
+    @property
+    def appearance_name(self):
+        """
+        The appearance description without pose or 'here.' — used in emotes:
+        "A tall and lithe, translucent Visarii"
+        """
+        core, _ = self.appearance_bits
+        return f"{appearance_data.article(core)} {core}"
+
+    @property
+    def gender(self):
+        """The character's gender key: 'male', 'female', or 'neuter' (default)."""
+        return self.attributes.get("gender", default="neuter")
+
+    @gender.setter
+    def gender(self, value):
+        self.db.gender = value
+
+    _PRONOUNS = {
+        "male":   {"subject": "He",  "object": "him",  "possessive": "His",  "poss_obj": "his",  "reflexive": "himself"},
+        "female": {"subject": "She", "object": "her",  "possessive": "Her",  "poss_obj": "her",  "reflexive": "herself"},
+        "neuter": {"subject": "It",  "object": "it",   "possessive": "Its",  "poss_obj": "its",  "reflexive": "itself"},
+    }
+
+    @property
+    def pronouns(self):
+        """Return the pronoun dict for this character's gender."""
+        return self._PRONOUNS.get(self.gender, self._PRONOUNS["neuter"])
 
     def set_appearance(self, attr, value):
         """Set one appearance attribute, normalizing whitespace. Returns True

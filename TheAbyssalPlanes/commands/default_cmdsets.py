@@ -21,6 +21,7 @@ from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
 from commands.building.settrainer import CmdSetTrainer
 from commands.building.setnature import CmdSetNature
+from commands.building.setgender import CmdSetGender
 from commands.building.force import CmdForce
 from commands.building.addchange import CmdAddChange
 from commands.player.perceive import CmdPerceive
@@ -38,6 +39,7 @@ from commands.player.score import CmdScore
 from commands.player.changes import CmdChanges
 from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
+from commands.player.emote import CmdEmote
 from commands.player.setpose import CmdSetPose
 
 
@@ -68,6 +70,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetSkill)
         self.add(CmdSetTrainer)
         self.add(CmdSetNature)
+        self.add(CmdSetGender)
         self.add(CmdAddChange)
         self.add(CmdPerceive)
         self.add(CmdManifest)
@@ -83,6 +86,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdChanges)
         self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
+        self.add(CmdEmote)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

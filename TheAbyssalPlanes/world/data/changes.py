@@ -172,6 +172,29 @@ CHANGES = [
             "builder and above, and meant for significant changes only."
         ),
     },
+    {
+        "number": 12,
+        "date": "2026-08-04",
+        "title": "Added a builder setgender command",
+        "body": (
+            "There's now a setgender command for builders. The choices for now are "
+            "male, female, and neuter. The first two are obvious. The third describes "
+            "something without gender. Using SETGENDER CHOICE, where choice is one of "
+            "the three options will set your gender. SETGENDER CHOICE = NAME, will set "
+            "a character's gender."
+        ),
+    },
+    {
+        "number": 13,
+        "date": "2026-08-04",
+        "title": "Added an EMOTE command",
+        "body": (
+            "There is now a fully functional, fairly robust emote command in place. You "
+            "can target others and yourself with @target, speak by utilizing quotation "
+            "marks, and even declare possessive nouns for yourself with @my. There are "
+            "many more examples, and much more thorough directions in HELP EMOTE."
+        ),
+    },
 ]
 
 
