@@ -133,8 +133,14 @@ Foundation of the whole progression system.
 
 ### Phase 5 - Custom Character Creation
 
-- Replace stock creation with a guided flow: species pick, appearance, starting
-  skills, sign/birth date.
+- [x] Replace stock creation with a guided flow: species pick, appearance,
+  stat priorities, stat point allocation.
+- [x] EvMenu-based chargen: gender → species → height → build → adjective →
+  skin → eyes → eye colour → hair → hair colour → stat priorities → point
+  distribution → review/confirm.
+- [x] `charcreate` overrides stock Evennia command; `mychars` lists all
+  characters on an account.
+- [ ] Starting skills, sign/birth date selection.
 - Player-visible skill learning path (teachers, trainers, practice).
 
 ### Phase 6 - World, NPCs, Content & Polish

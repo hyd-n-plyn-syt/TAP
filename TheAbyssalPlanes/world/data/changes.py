@@ -211,6 +211,20 @@ CHANGES = [
             "appended after the generated paragraph for extra player-written flair."
         ),
     },
+    {
+        "number": 15,
+        "date": "2026-08-04",
+        "title": "Guided character creation system",
+        "body": (
+            "New characters are now created through a step-by-step menu: choose "
+            "gender, species, then each appearance option (height, build, adjective, "
+            "skin colour, eyes, eye colour, hair, hair colour). Finally, you order "
+            "the three main attributes by priority and distribute bonus points "
+            "(6/4/2) across their sub-stats. The 'charcreate' command replaces the "
+            "stock Evennia flow, and a new 'mychars' command lists all characters "
+            "on your account."
+        ),
+    },
 ]
 
 
