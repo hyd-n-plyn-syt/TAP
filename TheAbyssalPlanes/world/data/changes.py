@@ -195,6 +195,22 @@ CHANGES = [
             "many more examples, and much more thorough directions in HELP EMOTE."
         ),
     },
+    {
+        "number": 14,
+        "date": "2026-08-04",
+        "title": "Expanded character appearance system",
+        "body": (
+            "Looking at a character now shows a detailed, multi-sentence paragraph "
+            "describing their appearance instead of a short phrase. The paragraph is "
+            "auto-generated from stored attributes: height, build, species, gender, "
+            "adjective, eyes, eye colour, hair, hair colour, and skin tone. Each "
+            "attribute contributes a sentence; unset attributes are silently omitted. "
+            "Pose determines the opening line (e.g. 'Before you stands...' vs "
+            "'Before you sits...'). Four new builder commands were added: seteyes, "
+            "seteyecolor, sethair, and sethaircolor. The manual 'desc' is still "
+            "appended after the generated paragraph for extra player-written flair."
+        ),
+    },
 ]
 
 

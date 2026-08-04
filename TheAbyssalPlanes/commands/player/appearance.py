@@ -164,4 +164,88 @@ class CmdSetSkin(CmdAppearanceBase):
 
     def list_options(self, caller, target):
         skins = appearance.skins_for_species(target.species_key)
-        return "|wValid tones:|n " + ", ".join(f"|w{s}|n" for s in skins)
+        return "|wValid tones:|n " + appearance.color_list_with_hex(skins)
+
+
+class CmdSetEyes(CmdAppearanceBase):
+    """
+    Set a character's eye shape.
+
+    Usage:
+      seteyes
+      seteyes <shape>
+      seteyes <shape> = <target>
+      seteyes none
+
+    The eye shape is drawn from the character's species list. Run
+    'seteyes' with no argument to see the options for the species.
+    """
+    key = "seteyes"
+    attr = "eyes"
+
+    def list_options(self, caller, target):
+        opts = appearance.eye_options(target.species_key)
+        return "|wValid for this species:|n " + ", ".join(f"|w{o}|n" for o in opts)
+
+
+class CmdSetEyeColor(CmdAppearanceBase):
+    """
+    Set a character's eye colour.
+
+    Usage:
+      seteyecolor
+      seteyecolor <colour>
+      seteyecolor <colour> = <target>
+      seteyecolor none
+
+    The eye colour is drawn from the character's species list. Run
+    'seteyecolor' with no argument to see the options for the species.
+    """
+    key = "seteyecolor"
+    attr = "eye_color"
+
+    def list_options(self, caller, target):
+        opts = appearance.eye_color_options(target.species_key)
+        return "|wValid for this species:|n " + appearance.color_list_with_hex(opts)
+
+
+class CmdSetHair(CmdAppearanceBase):
+    """
+    Set a character's hair style.
+
+    Usage:
+      sethair
+      sethair <style>
+      sethair <style> = <target>
+      sethair none
+
+    The hair style is drawn from the character's species list. Run
+    'sethair' with no argument to see the options for the species.
+    """
+    key = "sethair"
+    attr = "hair"
+
+    def list_options(self, caller, target):
+        opts = appearance.hair_options(target.species_key)
+        return "|wValid for this species:|n " + ", ".join(f"|w{o}|n" for o in opts)
+
+
+class CmdSetHairColor(CmdAppearanceBase):
+    """
+    Set a character's hair colour.
+
+    Usage:
+      sethaircolor
+      sethaircolor <colour>
+      sethaircolor <colour> = <target>
+      sethaircolor none
+
+    The hair colour is drawn from the character's species list. Run
+    'sethaircolor' with no argument to see the options for the species.
+    """
+    key = "sethaircolor"
+    attr = "hair_color"
+
+    def list_options(self, caller, target):
+        opts = appearance.hair_color_options(target.species_key)
+        return "|wValid for this species:|n " + appearance.color_list_with_hex(opts)

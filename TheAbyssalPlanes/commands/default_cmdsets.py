@@ -33,6 +33,10 @@ from commands.player.appearance import (
     CmdSetBuild,
     CmdSetHeight,
     CmdSetSkin,
+    CmdSetEyes,
+    CmdSetEyeColor,
+    CmdSetHair,
+    CmdSetHairColor,
 )
 from commands.player.time import CmdTime
 from commands.player.score import CmdScore
@@ -80,6 +84,10 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetBuild)
         self.add(CmdSetAdjective)
         self.add(CmdSetSkin)
+        self.add(CmdSetEyes)
+        self.add(CmdSetEyeColor)
+        self.add(CmdSetHair)
+        self.add(CmdSetHairColor)
         self.add(CmdSetPose)
         self.add(CmdTime)
         self.add(CmdScore)

@@ -17,6 +17,13 @@ from commands.player.changes import CmdChanges
 from commands.building.setnature import CmdSetNature
 from commands.building.force import CmdForce
 from commands.building.addchange import CmdAddChange
+from commands.player.appearance import (
+    CmdSetEyes,
+    CmdSetEyeColor,
+    CmdSetHair,
+    CmdSetHairColor,
+    CmdSetSkin,
+)
 from world.data import changes
 
 
@@ -906,3 +913,284 @@ class EmoteCommandTest(EvenniaCommandTest):
         self.call(CmdEmote(), "waves at @walker. @walker waves back.")
         msg_text = self._get_msg_text(target)
         self.assertIn("|wShe|n", msg_text)
+
+
+class AppearanceParagraphTest(EvenniaCommandTest):
+    """Tests for the expanded appearance_paragraph shown on 'look'."""
+
+    def _visarii(self):
+        c = create_object("typeclasses.characters.Character", key="Prism")
+        c.apply_species("visarii")
+        return c
+
+    def test_paragraph_basic_terran(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_height = "tall"
+        self.char1.appearance_build = "lean"
+        self.char1.gender = "male"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("male Terran", para)
+        self.assertIn("lean of frame with little waste upon your form", para)
+        self.assertIn("taller than average with a commanding presence", para)
+
+    def test_paragraph_pose_opening(self):
+        self.char1.apply_species("terran")
+        self.char1.pose = "sitting"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Before you sits", para)
+
+    def test_paragraph_adjective_sentence(self):
+        self.char1.apply_species("visarii")
+        self.char1.appearance_adjective = "translucent"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("translucent body", para)
+
+    def test_paragraph_height_description(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_height = "towering"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("enormous, towering over most who stand nearby", para)
+
+    def test_paragraph_build_description(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_build = "muscular"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("powerfully built with thick cords of muscle", para)
+
+    def test_paragraph_eyes(self):
+        self.char1.apply_species("visarii")
+        self.char1.appearance_eyes = "faceted"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Faceted eyes catch the light", para)
+
+    def test_paragraph_eye_color(self):
+        self.char1.apply_species("visarii")
+        self.char1.appearance_eyes = "luminous"
+        self.char1.appearance_eye_color = "violet"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Luminous", para)
+        self.assertIn("violet", para)
+        self.assertIn("eyes glow", para)
+
+    def test_paragraph_hair(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_hair = "braided"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Neat braids", para)
+
+    def test_paragraph_hair_color(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_hair = "long"
+        self.char1.appearance_hair_color = "black"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Long", para)
+        self.assertIn("black", para)
+        self.assertIn("hair", para)
+
+    def test_paragraph_skin_tone(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_skin = "bronze"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("bronze", para)
+        self.assertIn("hue", para)
+
+    def test_paragraph_skin_hex_colored(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_skin = "bronze"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("|", para)
+        self.assertIn("bronze", para)
+
+    def test_paragraph_possessive_pronoun_male(self):
+        self.char1.apply_species("visarii")
+        self.char1.gender = "male"
+        self.char1.appearance_adjective = "translucent"
+        observer = self._visarii()
+        para = self.char1.appearance_paragraph(observer)
+        self.assertIn("His ", para)
+        self.assertNotIn("Their ", para)
+
+    def test_paragraph_possessive_pronoun_female(self):
+        self.char1.apply_species("visarii")
+        self.char1.gender = "female"
+        self.char1.appearance_adjective = "translucent"
+        observer = self._visarii()
+        para = self.char1.appearance_paragraph(observer)
+        self.assertIn("Her ", para)
+        self.assertNotIn("Their ", para)
+
+    def test_paragraph_possessive_pronoun_neuter(self):
+        self.char1.apply_species("visarii")
+        self.char1.gender = "neuter"
+        self.char1.appearance_adjective = "translucent"
+        observer = self._visarii()
+        para = self.char1.appearance_paragraph(observer)
+        self.assertIn("Its ", para)
+        self.assertNotIn("Their ", para)
+
+    def test_paragraph_self_view_uses_your(self):
+        self.char1.apply_species("visarii")
+        self.char1.gender = "male"
+        self.char1.appearance_adjective = "translucent"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Your ", para)
+        self.assertNotIn("Their ", para)
+        self.assertNotIn("His ", para)
+
+    def test_paragraph_observer_gets_pronouns(self):
+        self.char1.apply_species("visarii")
+        self.char1.gender = "female"
+        self.char1.appearance_adjective = "translucent"
+        observer = self._visarii()
+        para = self.char1.appearance_paragraph(observer)
+        self.assertIn("Her ", para)
+        self.assertNotIn("Their ", para)
+
+    def test_paragraph_visarii_skin_sentence(self):
+        self.char1.apply_species("visarii")
+        self.char1.appearance_skin = "violet"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("crystalline surface", para)
+
+    def test_paragraph_silex_skin_sentence(self):
+        self.char1.apply_species("silex")
+        self.char1.appearance_skin = "obsidian"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("stone flesh", para)
+
+    def test_paragraph_volucres_skin_sentence(self):
+        self.char1.apply_species("volucres")
+        self.char1.appearance_skin = "fair"
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("feathers", para)
+
+    def test_paragraph_missing_optional_attrs(self):
+        self.char1.apply_species("terran")
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("neuter Terran", para)
+
+    def test_paragraph_species_name_in_output(self):
+        self.char1.apply_species("visarii")
+        para = self.char1.appearance_paragraph(self.char1)
+        self.assertIn("Visarii", para)
+
+    def test_paragraph_observer_sees_paragraph(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_height = "tall"
+        observer = self._visarii()
+        observer.location = self.room1
+        self.char1.location = self.room1
+        para = self.char1.appearance_paragraph(observer)
+        self.assertIn("taller than average, with a commanding presence", para)
+
+    def test_return_appearance_uses_paragraph(self):
+        self.char1.apply_species("terran")
+        self.char1.appearance_height = "tall"
+        self.char1.gender = "male"
+        self.char1.db.desc = "A custom description."
+        out = self.char1.return_appearance(self.char1)
+        self.assertIn("male Terran", out)
+        self.assertIn("taller than average, with a commanding presence", out)
+        self.assertIn("A custom description.", out)
+        # Desc follows the paragraph with a space, not a newline
+        idx = out.index("male Terran")
+        desc_idx = out.index("A custom description.")
+        between = out[idx:desc_idx]
+        self.assertNotIn("\n", between.strip())
+
+
+class BuilderAppearanceCommandsTest(EvenniaCommandTest):
+    """Tests for the new builder appearance commands."""
+
+    def _visarii(self):
+        c = create_object("typeclasses.characters.Character", key="Prism")
+        c.apply_species("visarii")
+        return c
+
+    def test_seteyes_valid(self):
+        self.char1.apply_species("visarii")
+        self.call(CmdSetEyes(), "faceted")
+        self.assertEqual(self.char1.appearance_eyes, "faceted")
+
+    def test_seteyes_invalid(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdSetEyes(), "square")
+        self.assertIn("Invalid", out)
+
+    def test_seteyes_no_species(self):
+        out = self.call(CmdSetEyes(), "round")
+        self.assertIn("no species", out)
+
+    def test_seteyes_list_options(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdSetEyes(), "")
+        self.assertIn("faceted", out)
+
+    def test_seteyes_clear(self):
+        self.char1.apply_species("visarii")
+        self.call(CmdSetEyes(), "faceted")
+        self.call(CmdSetEyes(), "none")
+        self.assertIsNone(self.char1.appearance_eyes)
+
+    def test_seteyecolor_valid(self):
+        self.char1.apply_species("visarii")
+        self.call(CmdSetEyeColor(), "violet")
+        self.assertEqual(self.char1.appearance_eye_color, "violet")
+
+    def test_seteyecolor_invalid(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdSetEyeColor(), "rainbow")
+        self.assertIn("Invalid", out)
+
+    def test_sethair_valid(self):
+        self.char1.apply_species("terran")
+        self.call(CmdSetHair(), "braided")
+        self.assertEqual(self.char1.appearance_hair, "braided")
+
+    def test_sethair_invalid(self):
+        self.char1.apply_species("terran")
+        out = self.call(CmdSetHair(), "mohawk")
+        self.assertIn("Invalid", out)
+
+    def test_sethaircolor_valid(self):
+        self.char1.apply_species("terran")
+        self.call(CmdSetHairColor(), "black")
+        self.assertEqual(self.char1.appearance_hair_color, "black")
+
+    def test_sethaircolor_invalid(self):
+        self.char1.apply_species("terran")
+        out = self.call(CmdSetHairColor(), "plaid")
+        self.assertIn("Invalid", out)
+
+    def test_seteyes_on_target(self):
+        self.char1.apply_species("visarii")
+        target = self._visarii()
+        target.location = self.room1
+        self.call(CmdSetEyes(), f"faceted = {target.name}")
+        self.assertEqual(target.appearance_eyes, "faceted")
+
+    def test_seteyecolor_list_shows_hex(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdSetEyeColor(), "")
+        self.assertIn("(#b0a0f0)", out)
+        self.assertIn("violet", out)
+
+    def test_sethaircolor_list_shows_hex(self):
+        self.char1.apply_species("terran")
+        out = self.call(CmdSetHairColor(), "")
+        self.assertIn("(#1a1a1a)", out)
+        self.assertIn("black", out)
+
+    def test_setskin_list_shows_hex(self):
+        self.char1.apply_species("visarii")
+        out = self.call(CmdSetSkin(), "")
+        self.assertIn("(#a99ad4)", out)
+        self.assertIn("ghost-violet", out)
+
+    def test_color_list_with_hex_formatting(self):
+        from world.data.appearance import color_list_with_hex
+        result = color_list_with_hex(["violet", "silver"])
+        self.assertIn("(#b0a0f0)", result)
+        self.assertIn("(#dcdcdc)", result)
+        self.assertIn("violet", result)
+        self.assertIn("silver", result)

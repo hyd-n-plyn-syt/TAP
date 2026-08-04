@@ -67,6 +67,10 @@ class Character(ObjectParent, DefaultCharacter):
     appearance_build = AttributeProperty(default=None)
     appearance_adjective = AttributeProperty(default=None)
     appearance_skin = AttributeProperty(default=None)
+    appearance_eyes = AttributeProperty(default=None)
+    appearance_eye_color = AttributeProperty(default=None)
+    appearance_hair = AttributeProperty(default=None)
+    appearance_hair_color = AttributeProperty(default=None)
     pose = AttributeProperty(default="standing")
     sign = AttributeProperty(default=None)
     birth_date = AttributeProperty(default=None)
@@ -260,6 +264,116 @@ class Character(ObjectParent, DefaultCharacter):
         core, _ = self.appearance_bits
         return f"{appearance_data.article(core)} {core}"
 
+    def appearance_paragraph(self, looker):
+        """Build the multi-sentence appearance paragraph shown on 'look'.
+
+        The paragraph is generated from stored attributes: pose, height,
+        build, gender, species, adjective, eyes, hair, skin.  Each
+        attribute contributes a sentence; unset optional attributes are
+        silently omitted.  The looker argument is accepted for future
+        self-vs-other viewpoint differences.
+        """
+        species_key = self.species_key
+        species_name = (
+            self.species["name"]
+            if self.species
+            else "Stranger"
+        )
+        gender = self.gender or "neuter"
+
+        # Opening — pose-dependent.
+        pose = self.pose or "standing"
+        opening = appearance_data.POSE_OPENINGS.get(pose, "Before you stands")
+
+        # Core physical description: combined height + build with pronouns.
+        height = self.appearance_height or appearance_data.DEFAULT_HEIGHT
+        build_word = self.appearance_build or appearance_data.DEFAULT_BUILD
+
+        if looker == self:
+            subj, be, poss = "You", "are", "your"
+        else:
+            pr = self.pronouns
+            subj, be, poss = pr["subject"], "is", pr["poss_obj"]
+
+        hb_phrase = appearance_data.height_build_phrase(
+            height, build_word, subj=subj, be=be, poss=poss,
+        )
+
+        parts = [f"{opening} a {gender} {species_name}."]
+        if hb_phrase:
+            parts.append(hb_phrase)
+
+        # Adjective sentence.
+        adjective = self.appearance_adjective
+        if adjective and species_key:
+            adj_descs = appearance_data.SPECIES_ADJECTIVE_DESCRIPTIONS.get(
+                species_key, {}
+            )
+            adj_desc = adj_descs.get(adjective)
+            if adj_desc:
+                parts.append(adj_desc)
+
+        # Eye sentence — shape description with embedded {color} placeholder.
+        if self.appearance_eyes and species_key:
+            eye_descs = appearance_data.SPECIES_EYE_DESCRIPTIONS.get(species_key, {})
+            eye_desc = eye_descs.get(self.appearance_eyes)
+            if eye_desc:
+                if self.appearance_eye_color:
+                    hexcol = appearance_data.hex_for_name(self.appearance_eye_color) or ""
+                    color_tag = (
+                        f"|{hexcol}{self.appearance_eye_color}|n"
+                        if hexcol
+                        else self.appearance_eye_color
+                    )
+                    eye_desc = eye_desc.replace("{color}", color_tag)
+                else:
+                    eye_desc = eye_desc.replace("{color}", "")
+                    eye_desc = " ".join(eye_desc.split())
+                parts.append(eye_desc)
+
+        # Hair sentence — style description with embedded {color} placeholder.
+        if self.appearance_hair and self.appearance_hair != "none" and species_key:
+            hair_descs = appearance_data.SPECIES_HAIR_DESCRIPTIONS.get(
+                species_key, {}
+            )
+            hair_desc = hair_descs.get(self.appearance_hair)
+            if hair_desc:
+                if self.appearance_hair_color and self.appearance_hair_color != "none":
+                    hexcol = appearance_data.hex_for_name(self.appearance_hair_color) or ""
+                    color_tag = (
+                        f"|{hexcol}{self.appearance_hair_color}|n"
+                        if hexcol
+                        else self.appearance_hair_color
+                    )
+                    hair_desc = hair_desc.replace("{color}", color_tag)
+                else:
+                    hair_desc = hair_desc.replace("{color}", "")
+                    hair_desc = " ".join(hair_desc.split())
+                parts.append(hair_desc)
+
+        # Skin tone.
+        if self.appearance_skin and species_key:
+            skin_tpl = appearance_data.SPECIES_SKIN_SENTENCES.get(
+                species_key, "Their skin bears a {color} hue."
+            )
+            hexcol = self.skin_hex or ""
+            color_tag = f"|{hexcol}{self.appearance_skin}|n" if hexcol else self.appearance_skin
+            parts.append(skin_tpl.format(color=color_tag))
+
+        para = " ".join(parts)
+
+        # Pronoun replacement: swap generic 'their/Their' for the
+        # character's actual gendered pronouns, or 'your/Your' for
+        # self-view.
+        if looker == self:
+            para = para.replace("Their ", "Your ").replace("their ", "your ")
+        else:
+            poss = self.pronouns["possessive"]
+            poss_low = self.pronouns["poss_obj"]
+            para = para.replace("Their ", f"{poss} ").replace("their ", f"{poss_low} ")
+
+        return para
+
     @property
     def gender(self):
         """The character's gender key: 'male', 'female', or 'neuter' (default)."""
@@ -298,6 +412,18 @@ class Character(ObjectParent, DefaultCharacter):
                 return False
         elif attr == "skin":
             if not (self.species_key and appearance_data.valid_skin(self.species_key, value)):
+                return False
+        elif attr == "eyes":
+            if not (self.species_key and appearance_data.valid_eye(self.species_key, value)):
+                return False
+        elif attr == "eye_color":
+            if not (self.species_key and appearance_data.valid_eye_color(self.species_key, value)):
+                return False
+        elif attr == "hair":
+            if not (self.species_key and appearance_data.valid_hair(self.species_key, value)):
+                return False
+        elif attr == "hair_color":
+            if not (self.species_key and appearance_data.valid_hair_color(self.species_key, value)):
                 return False
         else:
             return False
@@ -390,35 +516,28 @@ class Character(ObjectParent, DefaultCharacter):
 
     def return_appearance(self, looker, **kwargs):
         """
-        'Look' on a character: the plane prefix and name, followed by the
-        appearance phrase, the long description, then any visarial aspect
-        the looker can perceive. Works for self and others alike.
+        'Look' on a character: the generated appearance paragraph followed
+        immediately by the player-written desc, then any visarial aspect
+        the looker can perceive.
         """
         if not looker:
             return ""
-        plane = self.current_plane()
-        color = "x" if plane == "physical" else "M"
-        prefix = f"|w(|{color}{plane}|w)|n"
-        if self.locks.check_lockstring(looker, "perm(Builder)"):
-            name = f"{prefix} {self.name}"
-        else:
-            name = prefix
 
         if not self.visible_to(looker):
             return ""
 
-        lines = [self.appearance_phrase]
+        parts = [self.appearance_paragraph(looker)]
         if self.db.desc:
-            lines.append(self.db.desc)
+            parts.append(self.db.desc)
         vis = self.visarial_desc_text()
         if self.can_vis_touch and vis and looker.can_vis_see:
-            lines.append(self.format_visarial_desc(vis))
+            parts.append(self.format_visarial_desc(vis))
 
         return self.format_appearance(
             self.appearance_template.format(
-                name=name,
-                extra_name_info=self.get_extra_display_name_info(looker, **kwargs),
-                desc="\n".join(lines),
+                name="",
+                extra_name_info="",
+                desc=" ".join(parts),
                 header=self.get_display_header(looker, **kwargs),
                 footer=self.get_display_footer(looker, **kwargs),
                 exits="",
