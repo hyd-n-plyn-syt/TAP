@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from world.data import rankings, skills, species
+from world.data import changes, rankings, skills, species
 
 MAINS = ("corpus", "genius", "animus")
 SUBS = ("potestas", "reflexus", "obsistis")
@@ -166,3 +166,36 @@ class SkillEquationTest(SimpleTestCase):
         self.assertEqual(sys.skill_taper(1), 1.0)
         self.assertLess(sys.skill_taper(10), sys.skill_taper(2))
         self.assertLess(sys.stat_taper(10), sys.stat_taper(2))
+
+
+class ChangesCatalogTest(SimpleTestCase):
+    def test_entries_are_numbered_and_sorted(self):
+        self.assertGreaterEqual(len(changes.CHANGES), 1)
+        numbers = [c["number"] for c in changes.CHANGES]
+        self.assertEqual(numbers, sorted(numbers))
+        self.assertEqual(numbers, list(range(1, len(numbers) + 1)))
+
+    def test_latest_number_matches_last_entry(self):
+        self.assertEqual(changes.latest_number(), changes.CHANGES[-1]["number"])
+
+    def test_get_change(self):
+        first = changes.CHANGES[0]
+        self.assertIs(changes.get_change(first["number"]), first)
+        self.assertIsNone(changes.get_change(9999))
+
+    def test_unread(self):
+        latest = changes.latest_number()
+        self.assertEqual(changes.unread(latest), [])
+        self.assertEqual(len(changes.unread(0)), latest)
+
+    def test_alert_text(self):
+        latest = changes.latest_number()
+        self.assertIsNone(changes.alert_text(latest))
+        alert = changes.alert_text(latest - 1)
+        self.assertIn("#10", alert)
+        self.assertIn("changes", alert)
+        self.assertNotIn("more", alert)
+
+    def test_date_formatting(self):
+        self.assertEqual(changes.short_date("2026-08-03"), "Aug 3")
+        self.assertEqual(changes.full_date("2026-08-03"), "August 3, 2026")

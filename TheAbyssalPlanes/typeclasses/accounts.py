@@ -17,12 +17,14 @@ activate them, add the following line to your settings file:
     GUEST_ENABLED = True
 
 You will also need to modify the connection screen to reflect the
-possibility to connect with a guest account. The setting file accepts
-several more options for customizing the Guest account system.
+possibility to connect with a Guest account. The setting file accepts
+a lot more options for customizing the Guest account system.
 
 """
 
+from evennia import AttributeProperty
 from evennia.accounts.accounts import DefaultAccount, DefaultGuest
+from world.data import changes
 
 
 class Account(DefaultAccount):
@@ -136,7 +138,14 @@ class Account(DefaultAccount):
 
     """
 
-    pass
+    changes_seen = AttributeProperty(default=0)
+
+    def at_post_login(self, session=None, **kwargs):
+        """Announce any unread changes on login."""
+        super().at_post_login(session=session, **kwargs)
+        alert = changes.alert_text(self.changes_seen)
+        if alert:
+            self.msg(alert)
 
 
 class Guest(DefaultGuest):

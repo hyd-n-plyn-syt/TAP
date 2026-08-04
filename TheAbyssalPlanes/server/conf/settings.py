@@ -51,6 +51,10 @@ SERVER_HOSTNAME = "theabyssalplane.duckdns.org"
 # first skills. Must be a dbref (Evennia parses it numerically on delete).
 DEFAULT_HOME = "#3"
 
+# Run our server start/reload hooks so new changelog entries announce
+# themselves to connected players (see world/server_hooks.py).
+AT_SERVER_STARTSTOP_MODULE = "world.server_hooks"
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

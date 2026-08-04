@@ -499,4 +499,29 @@ date.
 See also: |wtime|n.
 """.strip(),
     },
+    {
+        "key": "changes",
+        "category": "General",
+        "aliases": ["changelog", "news"],
+        "text": """
+|wChanges|n
+
+|wchanges|n shows the game's changelog - every major change recorded since
+the first entry.
+
+  |wchanges|n           - list the changes you have not read yet
+  |wchanges all|n       - show the entire history since the first entry
+  |wchanges <number>|n  - read one change in full
+  |wchanges latest|n    - read the newest change
+
+Reading a change (|wchanges <number>|n or |wchanges latest|n) marks it and
+everything before it as read, so it drops out of the plain |wchanges|n
+list. |wchanges all|n catches you up in one go.
+
+When a new change is added it is announced in-game to anyone connected
+and shown at |wlogin|n until read, so nothing is missed.
+
+See also: |whelp|n.
+""".strip(),
+    },
 ]

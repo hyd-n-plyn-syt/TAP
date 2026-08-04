@@ -9,8 +9,10 @@ from commands.player.skills import CmdSkills
 from commands.player.train import CmdTrain
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
+from commands.player.changes import CmdChanges
 from commands.building.setnature import CmdSetNature
 from commands.building.force import CmdForce
+from world.data import changes
 
 
 class SkillsCommandTest(EvenniaCommandTest):
@@ -459,3 +461,68 @@ class ForceCommandTest(EvenniaCommandTest):
         self.assertIn("You have forced Prism", out)
         self.assertTrue(vis_hearer.msg.called)
         self.assertFalse(silex_listener.msg.called)
+
+
+class ChangesCommandTest(EvenniaCommandTest):
+    account_typeclass = "typeclasses.accounts.Account"
+
+    def test_bare_lists_unread(self):
+        out = self.call(CmdChanges(), "")
+        self.assertIn("Changes", out)
+        self.assertIn("#1", out)
+        self.assertIn("changes <number>", out)
+        self.assertEqual(self.account.changes_seen, 0)
+
+    def test_all_lists_everything_and_marks_read(self):
+        out = self.call(CmdChanges(), "all")
+        self.assertIn("#1", out)
+        self.assertIn(f"#{changes.latest_number()}", out)
+        self.assertEqual(self.account.changes_seen, changes.latest_number())
+
+    def test_read_single_shows_body_and_marks_read(self):
+        out = self.call(CmdChanges(), "#5")
+        self.assertIn("Change #5", out)
+        self.assertIn(changes.get_change(5)["title"], out)
+        self.assertEqual(self.account.changes_seen, 5)
+        self.assertNotIn("more", out)
+
+    def test_read_latest_marks_read(self):
+        out = self.call(CmdChanges(), "latest")
+        self.assertIn(f"#10", out)
+        self.assertEqual(self.account.changes_seen, changes.latest_number())
+
+    def test_caught_up_message(self):
+        self.account.changes_seen = changes.latest_number()
+        out = self.call(CmdChanges(), "")
+        self.assertIn("all caught up", out)
+
+    def test_bad_argument(self):
+        out = self.call(CmdChanges(), "xyz")
+        self.assertTrue(out.startswith("Usage"))
+
+    def test_unknown_number(self):
+        out = self.call(CmdChanges(), "#999")
+        self.assertIn("There is no change #999", out)
+
+    def test_login_alert_when_unread(self):
+        self.account.changes_seen = changes.latest_number() - 1
+        with mock.patch.object(self.account, "_send_to_connect_channel"), \
+                mock.patch.object(self.account, "puppet_object"):
+            with mock.patch.object(self.account, "msg", wraps=self.account.msg) as m:
+                self.account.at_post_login(session=None)
+        joined = "\n".join(
+            str(c.args[0]) for c in m.call_args_list if c.args
+        )
+        self.assertIn("New change", joined)
+        self.assertIn("changes", joined)
+
+    def test_no_login_alert_when_read(self):
+        self.account.changes_seen = changes.latest_number()
+        with mock.patch.object(self.account, "_send_to_connect_channel"), \
+                mock.patch.object(self.account, "puppet_object"):
+            with mock.patch.object(self.account, "msg", wraps=self.account.msg) as m:
+                self.account.at_post_login(session=None)
+        joined = "\n".join(
+            str(c.args[0]) for c in m.call_args_list if c.args
+        )
+        self.assertNotIn("New change", joined)

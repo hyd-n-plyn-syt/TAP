@@ -34,6 +34,7 @@ from commands.player.appearance import (
 )
 from commands.player.time import CmdTime
 from commands.player.score import CmdScore
+from commands.player.changes import CmdChanges
 from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
 from commands.player.setpose import CmdSetPose
@@ -77,6 +78,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetPose)
         self.add(CmdTime)
         self.add(CmdScore)
+        self.add(CmdChanges)
         self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
 
