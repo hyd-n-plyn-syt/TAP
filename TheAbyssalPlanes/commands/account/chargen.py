@@ -23,11 +23,13 @@ class CmdCharCreate(Command):
     account_caller = True
 
     def func(self):
-        if not self.args:
+        args = self.args.strip()
+        if not args:
             self.msg("Usage: charcreate <name>")
             return
 
-        name = self.lhs.strip()
+        # Support "name = desc" syntax from stock, but ignore desc.
+        name = args.split("=")[0].strip()
         if not name:
             self.msg("You must provide a name for your character.")
             return
