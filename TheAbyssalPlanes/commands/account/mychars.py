@@ -28,7 +28,7 @@ class CmdMyChars(Command):
             self.msg("You must be logged in.")
             return
 
-        chars = account.characters
+        chars = account.characters.all()
         if not chars:
             self.msg("You have no characters. Use |wcharcreate <name>|n to make one.")
             return

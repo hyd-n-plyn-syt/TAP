@@ -16,7 +16,7 @@ def _get_char(caller):
     """Return the character being created, or the last one on the account."""
     char = caller.ndb._chargen_character
     if not char and caller.account:
-        chars = caller.account.characters
+        chars = caller.account.characters.all()
         if chars:
             char = chars[-1]
             caller.ndb._chargen_character = char
@@ -40,26 +40,12 @@ def _load(caller, key, default=None):
     return default
 
 
-def _options_list(items):
-    """Build numbered option dicts from a list of strings."""
+def _options_list(items, handler):
+    """Build numbered option dicts that route directly to *handler* with the resolved value."""
     return [
-        {"key": str(i + 1), "desc": item, "goto": ("_parse_choice", {"choice": str(i + 1), "items": items})}
+        {"key": str(i + 1), "desc": item, "goto": (handler, {"value": item})}
         for i, item in enumerate(items)
     ]
-
-
-def _parse_choice(caller, raw_string, **kwargs):
-    """Shared parser: resolve a numbered choice to the actual value."""
-    items = kwargs.get("items", [])
-    choice = raw_string.strip()
-    if not choice.isdigit():
-        caller.msg("Enter a number from the list.")
-        return None
-    idx = int(choice) - 1
-    if idx < 0 or idx >= len(items):
-        caller.msg(f"Enter a number between 1 and {len(items)}.")
-        return None
-    return items[idx]
 
 
 # ── welcome ────────────────────────────────────────────────────────────
@@ -93,14 +79,14 @@ def node_gender(caller, raw_string, **kwargs):
         "What is your character's gender?"
     )
     options = [
-        {"key": "1", "desc": "Male", "goto": ("_set_gender", {"gender": "male"})},
-        {"key": "2", "desc": "Female", "goto": ("_set_gender", {"gender": "female"})},
-        {"key": "3", "desc": "Neuter", "goto": ("_set_gender", {"gender": "neuter"})},
+        {"key": "1", "desc": "Male", "goto": (set_gender, {"gender": "male"})},
+        {"key": "2", "desc": "Female", "goto": (set_gender, {"gender": "female"})},
+        {"key": "3", "desc": "Neuter", "goto": (set_gender, {"gender": "neuter"})},
     ]
     return text, options
 
 
-def _set_gender(caller, raw_string, **kwargs):
+def set_gender(caller, raw_string, **kwargs):
     gender = kwargs["gender"]
     char = _get_char(caller)
     if char:
@@ -123,15 +109,12 @@ def node_species(caller, raw_string, **kwargs):
         data = species_data.get_species(key)
         if data:
             items.append(f"{data['name']:12s}  {data['archetype']} ({data['visarial_nature'].replace('_', '-')})")
-    options = _options_list(items)
+    options = _options_list(items, set_species)
     return text, options
 
 
-def _set_species(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_species(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     # Extract the species key from the display string.
     species_name = value.split()[0].lower()
@@ -167,15 +150,12 @@ def node_height(caller, raw_string, **kwargs):
         "towering": "Enormous, towering over most who stand nearby.",
     }
     items = [f"{h.title()}: {descs[h]}" for h in appearance.HEIGHTS]
-    options = _options_list(items)
+    options = _options_list(items, set_height)
     return text, options
 
 
-def _set_height(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_height(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     height = value.split(":")[0].strip().lower()
     char = _get_char(caller)
@@ -196,15 +176,12 @@ def node_build(caller, raw_string, **kwargs):
     )
     builds = appearance.builds_for_height(height)
     items = [f"{b.title()}: {appearance.BUILD_DESCRIPTIONS.get(b, '')}" for b in builds]
-    options = _options_list(items)
+    options = _options_list(items, set_build)
     return text, options
 
 
-def _set_build(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_build(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     build = value.split(":")[0].strip().lower()
     char = _get_char(caller)
@@ -225,15 +202,12 @@ def node_adjective(caller, raw_string, **kwargs):
     )
     adjs = appearance.adjectives_for_species(species_key)
     items = list(adjs)
-    options = _options_list(items)
+    options = _options_list(items, set_adjective)
     return text, options
 
 
-def _set_adjective(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_adjective(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     char = _get_char(caller)
     if char:
@@ -253,15 +227,12 @@ def node_skin(caller, raw_string, **kwargs):
     )
     skins = appearance.skins_for_species(species_key)
     items = list(skins)
-    options = _options_list(items)
+    options = _options_list(items, set_skin)
     return text, options
 
 
-def _set_skin(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_skin(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     char = _get_char(caller)
     if char:
@@ -281,15 +252,12 @@ def node_eyes(caller, raw_string, **kwargs):
     )
     eyes = appearance.eye_options(species_key)
     items = list(eyes)
-    options = _options_list(items)
+    options = _options_list(items, set_eyes)
     return text, options
 
 
-def _set_eyes(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_eyes(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     char = _get_char(caller)
     if char:
@@ -309,15 +277,12 @@ def node_eye_color(caller, raw_string, **kwargs):
     )
     colors = appearance.eye_color_options(species_key)
     items = list(colors)
-    options = _options_list(items)
+    options = _options_list(items, set_eye_color)
     return text, options
 
 
-def _set_eye_color(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_eye_color(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     char = _get_char(caller)
     if char:
@@ -338,15 +303,12 @@ def node_hair(caller, raw_string, **kwargs):
     )
     hairs = appearance.hair_options(species_key)
     items = list(hairs)
-    options = _options_list(items)
+    options = _options_list(items, set_hair)
     return text, options
 
 
-def _set_hair(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_hair(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     hair = value.lower()
     char = _get_char(caller)
@@ -370,15 +332,12 @@ def node_hair_color(caller, raw_string, **kwargs):
     )
     colors = appearance.hair_color_options(species_key)
     items = list(colors)
-    options = _options_list(items)
+    options = _options_list(items, set_hair_color)
     return text, options
 
 
-def _set_hair_color(caller, raw_string, **kwargs):
-    items = kwargs["items"]
-    value = _parse_choice(caller, raw_string, items=items)
-    if value is None:
-        return None
+def set_hair_color(caller, raw_string, **kwargs):
+    value = kwargs["value"]
 
     char = _get_char(caller)
     if char:
@@ -390,103 +349,122 @@ def _set_hair_color(caller, raw_string, **kwargs):
 # ── stat priority ──────────────────────────────────────────────────────
 
 
+def _unlocked_stats(species_key):
+    """Return the list of main stats not locked for this species."""
+    return [m for m in stats.MAIN_STATS if not species_data.is_locked(species_key, m)]
+
+
+def _points_for_count(count):
+    """Return the points-per-priority list for a given number of priorities."""
+    if count == 2:
+        return [10, 7]
+    return [9, 7, 5]
+
+
 def node_stat_priority(caller, raw_string, **kwargs):
     species_key = _load(caller, "species_key", "")
-    locked = [m for m in stats.MAIN_STATS if species_data.is_locked(species_key, m)]
+    unlocked = _unlocked_stats(species_key)
+    count = len(unlocked)
+    points = _points_for_count(count)
 
-    text = (
-        "|wStep 11 — Stat Priorities|n\n\n"
-        "Arrange the three main attributes in order of importance. "
-        "The |wfirst|n you choose gets |w6 points|n to distribute among "
-        "its sub-stats, the |wsecond|n gets |w4 points|n, and the "
-        "|wthird|n gets |w2 points|n.\n\n"
-        "Each sub-stat starts at 1 and can go up to 5 at creation."
-    )
-    if locked:
-        text += (
-            f"\n\n|wNote:|n Your species has |x{', '.join(l.title() for l in locked)}|n "
-            "locked at 0 — points placed there are wasted."
+    if count == 3:
+        text = (
+            "|wStep 11 — Stat Priorities|n\n\n"
+            "Arrange the three main attributes in order of importance. "
+            f"The |wfirst|n you choose gets |w{points[0]} points|n to distribute among "
+            f"its sub-stats, the |wsecond|n gets |w{points[1]} points|n, and the "
+            f"|wthird|n gets |w{points[2]} points|n.\n\n"
+            "Each sub-stat starts at 1 and can go up to 5 at creation.\n\n"
+            "Type the three stats in your preferred order, e.g. |wCorpus Genius Animus|n."
         )
-    text += (
-        "\n\nType the three stats in your preferred order, e.g. |wCorpus Genius Animus|n."
-    )
+    else:
+        locked = [m for m in stats.MAIN_STATS if species_data.is_locked(species_key, m)]
+        text = (
+            "|wStep 11 — Stat Priorities|n\n\n"
+            f"Your species has |x{', '.join(l.title() for l in locked)}|n locked at 0, "
+            f"leaving |w{count} unlocked stats|n to arrange.\n\n"
+            f"The |wfirst|n you choose gets |w{points[0]} points|n, "
+            f"the |wsecond|n gets |w{points[1]} points|n.\n\n"
+            "Each sub-stat starts at 1 and can go up to 5 at creation.\n\n"
+            f"Type the {count} stats in your preferred order, e.g. |w{' '.join(s.title() for s in unlocked)}|n."
+        )
 
-    options = {"key": "_default", "goto": ("_parse_priority", {"locked": locked})}
+    options = {"key": "_default", "goto": (parse_priority, {"unlocked": unlocked, "count": count})}
     return text, options
 
 
-def _parse_priority(caller, raw_string, **kwargs):
-    locked = kwargs.get("locked", [])
+def parse_priority(caller, raw_string, **kwargs):
+    unlocked = kwargs.get("unlocked", stats.MAIN_STATS)
+    count = kwargs.get("count", 3)
     parts = raw_string.strip().lower().split()
-    if len(parts) != 3:
-        caller.msg("Enter exactly three stat names in order, e.g. 'Corpus Genius Animus'.")
+    if len(parts) != count:
+        caller.msg(f"Enter exactly {count} stat name{'s' if count > 1 else ''} in order.")
         return None
 
-    # Validate and normalise.
     valid = []
     for p in parts:
         if p not in stats.MAIN_STATS:
             caller.msg(f"Unknown stat '{p}'. Use Corpus, Genius, or Animus.")
+            return None
+        if p not in unlocked:
+            caller.msg(f"{p.title()} is locked for your species.")
             return None
         if p in valid:
             caller.msg(f"You already chose {p.title()}.")
             return None
         valid.append(p)
 
+    points = _points_for_count(count)
     _store(caller, "stat_priorities", valid)
-    _store(caller, "_dist_remaining", list(valid))
-    _store(caller, "_dist_points", [6, 4, 2])
+    _store(caller, "_dist_points", points)
     _store(caller, "_dist_idx", 0)
     _store(caller, "_dist_values", {})
     return "node_stat_dist"
 
 
-# ── stat distribution (shared node, loops 3 times) ─────────────────────
+# ── stat distribution (shared node, loops per priority count) ──────────
 
 
 def node_stat_dist(caller, raw_string, **kwargs):
     idx = _load(caller, "_dist_idx", 0)
     priorities = _load(caller, "stat_priorities", [])
-    points_list = _load(caller, "_dist_points", [6, 4, 2])
+    points_list = _load(caller, "_dist_points", [9, 7, 5])
     values = _load(caller, "_dist_values", {})
     species_key = _load(caller, "species_key", "")
 
-    if idx >= 3:
-        # All three priorities distributed — go to review.
-        return "node_review"
+    if idx >= len(priorities):
+        return "", {"key": "_default", "goto": "node_review"}
 
     main = priorities[idx]
     points = points_list[idx]
     subs = stats.SUB_STATS
 
-    # Build sub-stat descriptions.
     sub_labels = {
         "potestas": "Power — raw output",
         "reflexus": "Speed — agility and recovery",
         "obsistis": "Resist — toughness and endurance",
     }
+    locked = species_data.is_locked(species_key, main)
     lines = []
     for sub in subs:
-        locked = species_data.is_locked(species_key, main)
         label = f"  {main.title()} {sub.title():10s} — {sub_labels[sub]}"
         if locked:
             label += " |x(LOCKED)|n"
         lines.append(label)
 
     text = (
-        f"|wStep 12 — Distribute {points} points: {main.title()}|n\n\n"
+        f"|wStep {12 + idx} — Distribute {points} points: {main.title()}|n\n\n"
         "Distribute your points across the three sub-stats. "
-        "Each starts at 1 and can reach 5. Enter three numbers "
-        f"that sum to {points}, e.g. |w2 2 2|n or |w3 2 1|n.\n\n"
+        f"Each starts at 1. Enter three numbers that sum to {points}, "
+        f"e.g. |w3 3 3|n or |w5 3 1|n.\n\n"
         + "\n".join(lines)
     )
 
-    locked = species_data.is_locked(species_key, main)
-    options = {"key": "_default", "goto": ("_parse_dist", {"main": main, "points": points, "locked": locked})}
+    options = {"key": "_default", "goto": (parse_dist, {"main": main, "points": points, "locked": locked})}
     return text, options
 
 
-def _parse_dist(caller, raw_string, **kwargs):
+def parse_dist(caller, raw_string, **kwargs):
     main = kwargs["main"]
     points = kwargs["points"]
     locked = kwargs["locked"]
@@ -512,36 +490,46 @@ def _parse_dist(caller, raw_string, **kwargs):
             caller.msg("No negative numbers.")
             return None
 
-    # Check max 5 per sub-stat (base 1 + distributed).
-    base = 1
     for v in vals:
-        if base + v > 5:
-            caller.msg(f"No sub-stat can exceed 5 at creation (base 1 + {v} = {base + v}).")
+        if v > 5:
+            caller.msg(f"No sub-stat can exceed 5 at creation (you entered {v}).")
             return None
 
     if locked:
-        caller.msg(
-            f"|w{main.title()}|n is locked at 0 for your species — "
-            "any points placed there are wasted. Are you sure? Type |wyes|n "
-            "to confirm or anything else to re-enter."
-        )
         _store(caller, "_pending_dist", {"main": main, "vals": vals})
-        options = {"key": "_default", "goto": "_confirm_locked_dist"}
-        return "", options
+        return "node_locked_confirm"
 
-    # Store the values.
     values = _load(caller, "_dist_values", {})
     for i, sub in enumerate(subs):
-        values[f"{main}_{sub}"] = 1 + vals[i]
+        values[f"{main}_{sub}"] = vals[i]
     _store(caller, "_dist_values", values)
 
-    # Advance to next priority.
     idx = _load(caller, "_dist_idx", 0) + 1
     _store(caller, "_dist_idx", idx)
+    priorities = _load(caller, "stat_priorities", [])
+    if idx >= len(priorities):
+        return "node_review"
     return "node_stat_dist"
 
 
-def _confirm_locked_dist(caller, raw_string, **kwargs):
+# ── locked stat confirmation ──────────────────────────────────────────
+
+
+def node_locked_confirm(caller, raw_string, **kwargs):
+    pending = _load(caller, "_pending_dist")
+    main = pending["main"] if pending else "???"
+    text = (
+        f"|w{main.title()}|n is locked at 0 for your species — "
+        "any points placed there are wasted. Are you sure?"
+    )
+    options = [
+        {"key": "1", "desc": "Yes, I understand", "goto": confirm_locked_dist},
+        {"key": "2", "desc": "No, let me re-enter", "goto": "node_stat_dist"},
+    ]
+    return text, options
+
+
+def confirm_locked_dist(caller, raw_string, **kwargs):
     raw = raw_string.strip().lower()
     pending = _load(caller, "_pending_dist")
     if not pending:
@@ -557,11 +545,14 @@ def _confirm_locked_dist(caller, raw_string, **kwargs):
 
     values = _load(caller, "_dist_values", {})
     for i, sub in enumerate(subs):
-        values[f"{main}_{sub}"] = 1 + vals[i]
+        values[f"{main}_{sub}"] = vals[i]
     _store(caller, "_dist_values", values)
 
     idx = _load(caller, "_dist_idx", 0) + 1
     _store(caller, "_dist_idx", idx)
+    priorities = _load(caller, "stat_priorities", [])
+    if idx >= len(priorities):
+        return "node_review"
     return "node_stat_dist"
 
 
@@ -582,6 +573,7 @@ def node_review(caller, raw_string, **kwargs):
     hair = _load(caller, "hair", "none")
     hair_color = _load(caller, "hair_color", "none")
     priorities = _load(caller, "stat_priorities", [])
+    points_list = _load(caller, "_dist_points", [9, 7, 5])
     dist_values = _load(caller, "_dist_values", {})
 
     lines = [
@@ -607,7 +599,7 @@ def node_review(caller, raw_string, **kwargs):
         "  |wStat Priorities|n",
     ]
     for i, main in enumerate(priorities):
-        pts = [6, 4, 2][i]
+        pts = points_list[i]
         subs = []
         for sub in stats.SUB_STATS:
             val = dist_values.get(f"{main}_{sub}", 1)
@@ -671,9 +663,9 @@ def node_finalize(caller, raw_string, **kwargs):
     if hair_color:
         char.appearance_hair_color = hair_color
 
-    # Set sub-stats.
+    # Set sub-stats via Evennia attribute API for persistence.
     for attr, val in dist_values.items():
-        setattr(char, attr, val)
+        char.attributes.add(attr, val, category="stat")
 
     # Store priorities for future progression curves.
     char.db.stat_priorities = priorities

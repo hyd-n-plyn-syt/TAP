@@ -54,6 +54,7 @@ class CmdCharCreate(Command):
             return
 
         self.msg(f"Creating {new_char.key}...")
+        self.caller.ndb._chargen_character = new_char
         EvMenu(
             self.caller,
             "commands.account.chargen_menu",
