@@ -96,8 +96,12 @@ class Room(ObjectParent, DefaultRoom):
                     for candidate in candidates:
                         if candidate.typeclass_path != "typeclasses.rooms.Room":
                             continue
-                        
-                        cs = str(candidate.tags.get(category="planetary_site", return_list=False)).lower()
+
+                        cb = str(candidate.tags.get(category="planetary_body", return_list=False) or "").lower()
+                        if cb != body_str:
+                            continue
+
+                        cs = str(candidate.tags.get(category="planetary_site", return_list=False) or "").lower()
                         if cs != site_str:
                             continue
 
@@ -121,16 +125,40 @@ class Room(ObjectParent, DefaultRoom):
                         cardinal_matches[direction] = f"{room_key_name} to the {direction}"
 
             # --- PART B: SCAN VISIBLE PORTAL EXITS IN ROOM CONTENTS ---
+            cardinal_exit_directions = {
+                "north": "north", "n": "north",
+                "south": "south", "s": "south",
+                "east": "east", "e": "east",
+                "west": "west", "w": "west",
+                "northeast": "northeast", "ne": "northeast",
+                "northwest": "northwest", "nw": "northwest",
+                "southeast": "southeast", "se": "southeast",
+                "southwest": "southwest", "sw": "southwest",
+                "up": "up", "down": "down",
+            }
             for obj in self.contents:
                 if obj.destination:
                     key_lower = obj.key.lower()
                     dest = obj.destination
                     dest_name = dest.key.lower() if dest.key.islower() else dest.key
-                    
+                    is_door = getattr(obj.db, "is_door", False)
+                    door_status = ""
+                    if is_door:
+                        if getattr(obj.db, "is_locked", False):
+                            door_status = "locked "
+                        elif not getattr(obj.db, "is_open", False):
+                            door_status = "closed "
+                        else:
+                            door_status = "open "
+
                     if key_lower in ("enter", "in"):
-                        inward_portals.append(dest_name)
+                        inward_portals.append((dest_name, door_status))
                     elif key_lower in ("leave", "out", "exit"):
-                        outward_portals.append(dest_name)
+                        outward_portals.append((dest_name, door_status))
+                    elif key_lower in cardinal_exit_directions:
+                        direction = cardinal_exit_directions[key_lower]
+                        if direction not in cardinal_matches:
+                            cardinal_matches[direction] = f"{dest_name} to the {direction}"
 
             # --- PART C: STITCH UNIFORM ORDER SENTENCE PIECES ---
             neighbor_sentences = []
@@ -143,22 +171,28 @@ class Room(ObjectParent, DefaultRoom):
             # Add inward entrances cleanly grouped together (without trailing 'here')
             if inward_portals:
                 if len(inward_portals) == 1:
-                    neighbor_sentences.append(f"an entrance to {inward_portals[0]}")
+                    name, status = inward_portals[0]
+                    neighbor_sentences.append(f"the {status}entrance to {name}")
                 elif len(inward_portals) == 2:
-                    neighbor_sentences.append(f"entrances to {inward_portals[0]} and {inward_portals[1]}")
+                    n1, s1 = inward_portals[0]
+                    n2, s2 = inward_portals[1]
+                    neighbor_sentences.append(f"the {s1}entrance to {n1} and the {s2}entrance to {n2}")
                 else:
-                    numbered_in = [f"密[{i+1}] {name}" for i, name in enumerate(inward_portals)]
-                    neighbor_sentences.append(f"entrances to {', '.join(numbered_in[:-1])}, and {numbered_in[-1]}")
+                    parts = [f"the {s}entrance to {n}" for n, s in inward_portals]
+                    neighbor_sentences.append(f"entrances to {', '.join(parts[:-1])}, and {parts[-1]}")
 
             # Add outward exits cleanly grouped together (without trailing 'here')
             if outward_portals:
                 if len(outward_portals) == 1:
-                    neighbor_sentences.append(f"an exit out to {outward_portals[0]}")
+                    name, status = outward_portals[0]
+                    neighbor_sentences.append(f"the {status}exit to {name}")
                 elif len(outward_portals) == 2:
-                    neighbor_sentences.append(f"exits out to {outward_portals[0]} and {outward_portals[1]}")
+                    n1, s1 = outward_portals[0]
+                    n2, s2 = outward_portals[1]
+                    neighbor_sentences.append(f"the {s1}exit to {n1} and the {s2}exit to {n2}")
                 else:
-                    numbered_out = [f"[{i+1}] {name}" for i, name in enumerate(outward_portals)]
-                    neighbor_sentences.append(f"exits out to {', '.join(numbered_out[:-1])}, and {numbered_out[-1]}")
+                    parts = [f"the {s}exit to {n}" for n, s in outward_portals]
+                    neighbor_sentences.append(f"exits to {', '.join(parts[:-1])}, and {parts[-1]}")
 
             # --- PART D: BUILD STITCHED LAYOUT WITH SINGLE FINAL 'HERE' ---
             if neighbor_sentences:
@@ -234,6 +268,15 @@ class Room(ObjectParent, DefaultRoom):
         for ex in sorted_exits:
             key_lower = ex.key.lower()
             display_name = ex.get_display_name(looker, **kwargs)
+
+            is_door = getattr(ex.db, "is_door", False)
+            if is_door:
+                if getattr(ex.db, "is_locked", False):
+                    display_name += " |w[|rlocked|w]|n"
+                elif not getattr(ex.db, "is_open", False):
+                    display_name += " |w[|yclosed|w]|n"
+                else:
+                    display_name += " |w[|gopen|w]|n"
 
             # Case A: Handle grouped inward entries if multiples exist
             if key_lower in ("enter", "in"):

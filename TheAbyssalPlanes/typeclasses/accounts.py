@@ -27,6 +27,18 @@ from evennia.accounts.accounts import DefaultAccount, DefaultGuest
 from world.data import changes
 
 
+def _perm_color(account):
+    """Return a Truecolor hex string for *account* based on permission level."""
+    if account.is_superuser:
+        return "e67e22"
+    perms = account.permissions.all()
+    if "developer" in perms:
+        return "e67e22"
+    if "builder" in perms:
+        return "a84300"
+    return "1abc9c"
+
+
 class Account(DefaultAccount):
     """
     An Account is the actual OOC player entity. It doesn't exist in the game,
@@ -146,6 +158,24 @@ class Account(DefaultAccount):
         alert = changes.alert_text(self.changes_seen)
         if alert:
             self.msg(alert)
+
+    def at_pre_channel_msg(self, message, channel, senders=None, **kwargs):
+        if senders:
+            parts = []
+            for sender in senders:
+                colour = _perm_color(sender)
+                parts.append(f"|#{colour}{sender.key}|n")
+            sender_string = ", ".join(parts)
+            message_lstrip = message.lstrip()
+            if message_lstrip.startswith((":", ";")):
+                spacing = "" if message_lstrip[1:].startswith((":", "'", ",")) else " "
+                message = f"{sender_string}{spacing}{message_lstrip[1:]}"
+            else:
+                message = f"{sender_string}: {message}"
+
+        if not kwargs.get("no_prefix") and not kwargs.get("emit"):
+            message = channel.channel_prefix() + message
+        return message
 
 
 class Guest(DefaultGuest):

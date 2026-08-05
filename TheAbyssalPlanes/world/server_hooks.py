@@ -12,6 +12,7 @@ import evennia
 from evennia.server.models import ServerConfig
 
 from world.data import changes
+from world.discord_integration import start_discord_bot, stop_discord_bot
 
 
 def _broadcast_newest():
@@ -41,8 +42,20 @@ def announce_new():
 def at_server_start():
     """Called on every server startup (cold, reload, reset)."""
     announce_new()
+    try:
+        start_discord_bot()
+    except Exception as err:
+        evennia.logger.log_trace(f"Error starting Discord bot: {err}")
 
 
 def at_server_reload_start():
     """Called when a reload begins."""
     announce_new()
+
+
+def at_server_stop():
+    """Called on server shutdown."""
+    try:
+        stop_discord_bot()
+    except Exception as err:
+        evennia.logger.log_trace(f"Error stopping Discord bot: {err}")

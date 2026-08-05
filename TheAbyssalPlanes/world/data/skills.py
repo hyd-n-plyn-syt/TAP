@@ -169,6 +169,31 @@ SKILLS = {
         "requires": {"pray": 400},
         "desc": "Sustained prayer that steadies the spirit.",
     },
+    # --- Interaction ---
+    "lockpick": {
+        "key": "lockpick",
+        "name": "Lockpick",
+        "category": "meta",
+        "stats": {"genius_reflexus": 0.7, "corpus_reflexus": 0.3},
+        "requires": {},
+        "desc": "Manipulating a lock mechanism without the proper key.",
+    },
+    "bash": {
+        "key": "bash",
+        "name": "Bash",
+        "category": "combat",
+        "stats": {"corpus_potestas": 0.8, "corpus_obsistis": 0.2},
+        "requires": {},
+        "desc": "Blunt force applied to doors, walls, and obstacles.",
+    },
+    "awareness": {
+        "key": "awareness",
+        "name": "Awareness",
+        "category": "meta",
+        "stats": {"genius_obsistis": 0.6, "genius_reflexus": 0.4},
+        "requires": {},
+        "desc": "Noticing what is hidden, concealed, or out of place.",
+    },
 }
 
 

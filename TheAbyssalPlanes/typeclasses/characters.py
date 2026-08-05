@@ -20,6 +20,13 @@ from world.systems import stats
 
 from .objects import ObjectParent
 
+_DIRECTION_ALIASES = {
+    "north", "south", "east", "west",
+    "northeast", "northwest", "southeast", "southwest",
+    "n", "s", "e", "w", "ne", "nw", "se", "sw",
+    "up", "down", "in", "out", "enter", "leave",
+}
+
 # Bar fill gradient (matches display_meter's default) and the "empty"
 # background used when a pool is damaged: dark gray via the xterm256
 # grayscale code |=e (index 235), near black but still visible.
@@ -119,6 +126,42 @@ class Character(ObjectParent, DefaultCharacter):
     @property
     def mens_regen(self):
         return stats.derived_pools(self)["mens_regen"]
+
+    def basetype_setup(self):
+        super().basetype_setup()
+        self.locks.add("teleport:perm(Builder); teleport_here:perm(Builder)")
+
+    def at_cmdset_get(self, **kwargs):
+        super().at_cmdset_get(**kwargs)
+        if not self.location:
+            return
+        self.cmdset.remove("DirectionFallbackCmdSet")
+        exit_keys = set()
+        exit_aliases = set()
+        for obj in self.location.contents:
+            if not obj.destination:
+                continue
+            exit_keys.add(obj.key.lower())
+            for alias in (obj.aliases.all() or []):
+                exit_aliases.add(alias.lower())
+        all_exit_names = exit_keys | exit_aliases
+        missing = _DIRECTION_ALIASES - all_exit_names
+        if not missing:
+            return
+        from evennia import CmdSet
+        from commands.player.movement import CmdDirectionFallback
+
+        class _FallbackCmdSet(CmdSet):
+            key = "DirectionFallbackCmdSet"
+            priority = 0
+            def at_cmdset_creation(self):
+                for direction in missing:
+                    cmd = type("CmdFallback_" + direction, (CmdDirectionFallback,), {
+                        "key": direction,
+                        "aliases": [direction],
+                    })
+                    self.add(cmd)
+        self.cmdset.add(_FallbackCmdSet(), persistent=False)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -442,6 +485,38 @@ class Character(ObjectParent, DefaultCharacter):
             return False
         self.pose = pose
         return True
+
+    def announce_move_from(self, destination, msg=None, mapping=None, move_type="move", **kwargs):
+        if move_type == "teleport":
+            if self.location:
+                phrase = self.appearance_name
+                self.location.msg_contents(
+                    f"{phrase}({self.name}) folds into herself and blinks out of existence.",
+                    exclude=(self,),
+                )
+                self.msg(
+                    f"{phrase}(You) is teleporting from "
+                    f"{self.location.key} and heading to {destination.key}."
+                )
+            return
+        super().announce_move_from(destination, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
+
+    def announce_move_to(self, source_location, msg=None, mapping=None, move_type="move", **kwargs):
+        if move_type == "teleport":
+            if self.location:
+                phrase = self.appearance_name
+                self.location.msg_contents(
+                    f"{phrase}({self.name}) flickers into existence.",
+                    exclude=(self,),
+                )
+            if source_location and self.location:
+                phrase = self.appearance_name
+                self.msg(
+                    f"{phrase}(You) is teleporting from "
+                    f"{source_location.key} and heading to {self.location.key}."
+                )
+            return
+        super().announce_move_to(source_location, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
 
     def use_skill(self, key, difficulty="medium", times=1):
         """

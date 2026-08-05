@@ -30,6 +30,8 @@ class GridDig(CmdDig):
        # Linking an exit back out to the pre-existing planet surface room:
        dig planetary_body = leave;out
     """
+    key = "dig"
+    locks = "cmd:perm(Builder)"
 
     def func(self):
         """ Do the digging, calculate coordinates, and apply tags. """
@@ -52,6 +54,7 @@ class GridDig(CmdDig):
             string = "Usage: dig[/teleport] <roomname>[;alias;alias...][:parent] [= <exit_there>"
             string += "[;alias;alias..][:parent]] "
             string += "[, <exit_back_here>[;alias;alias..][:parent]]"
+            string += "\nTIP: For a guided builder menu, use |wdigmenu|n (alias |wdigm|n)."
             caller.msg(string)
             return
 

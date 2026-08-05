@@ -55,6 +55,64 @@ DEFAULT_HOME = "#3"
 # themselves to connected players (see world/server_hooks.py).
 AT_SERVER_STARTSTOP_MODULE = "world.server_hooks"
 
+######################################################################
+# Channels
+######################################################################
+
+DEFAULT_CHANNELS = [
+    {
+        "key": "OOC",
+        "aliases": ("ooc",),
+        "desc": "Out-of-character discussion",
+        "locks": "control:perm(Admin);listen:all();send:all()",
+        "typeclass": "typeclasses.channels.Channel",
+    }
+]
+
+
+######################################################################
+# Discord Integration
+######################################################################
+
+DISCORD_WEBHOOK_URL = (
+    "https://discord.com/api/webhooks/"
+    "1534640243402342600/"
+    "VNoplaL6JMQnBH_orLAr3p9wrvudicXYw132UHIcvt0y1AqSlbxVVlGnIVkDhte6FIiU"
+)
+
+DISCORD_BOT_TOKEN = (
+    "MTUzNDY0MjYzMjY5OTk0MDg5OA."
+    "GfTOhm."
+    "NNrXE4clpGbaow84GDNocgpPZ-c5VaTxwFynj0"
+)
+
+DISCORD_GUILD_ID = 1534561602924187748
+DISCORD_OOC_CHANNEL_ID = 1534638558965665985
+
+DISCORD_ALLOWED_ROLE_IDS = [
+    1534635220903395478,  # lead dev
+    1534661313538555994,  # dev
+    1534635832764268654,  # builder
+    1534643991788912760,  # adventurer
+]
+
+# Discord role → Truecolor hex for colouring sender names in-game.
+# Higher-priority roles listed first; first match wins.
+DISCORD_ROLE_COLORS = {
+    1534635220903395478: "e67e22",  # lead dev — orange
+    1534661313538555994: "e67e22",  # dev — orange
+    1534635832764268654: "a84300",  # builder — dark orange
+    1534649538671804548: "e74c3c",  # automatons — red (bot colour)
+    1534643991788912760: "1abc9c",  # adventurer — teal
+}
+DISCORD_ROLE_PRIORITY = [
+    1534635220903395478,  # lead dev
+    1534661313538555994,  # dev
+    1534635832764268654,  # builder
+    1534643991788912760,  # adventurer
+]
+DISCORD_BOT_COLOR = "e74c3c"
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

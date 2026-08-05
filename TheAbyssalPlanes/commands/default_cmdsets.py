@@ -16,6 +16,7 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 
 from evennia import default_cmds
 from commands.building.dig import GridDig
+from commands.building.dig_menu import CmdDigMenu
 from commands.building.setorigin import CmdSetOrigin
 from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
@@ -23,6 +24,7 @@ from commands.building.settrainer import CmdSetTrainer
 from commands.building.setnature import CmdSetNature
 from commands.building.setgender import CmdSetGender
 from commands.building.force import CmdForce
+from commands.building.teleport import CmdBuilderTeleport
 from commands.building.addchange import CmdAddChange
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
@@ -45,6 +47,17 @@ from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
 from commands.player.emote import CmdEmote
 from commands.player.setpose import CmdSetPose
+from commands.player.door_commands import CmdOpen, CmdClose, CmdLock, CmdUnlock, CmdAutoOpen
+from commands.player.movement import CmdDirectionFallback
+from evennia import CmdSet
+
+
+class DirectionFallbackCmdSet(CmdSet):
+    key = "DirectionFallbackCmdSet"
+    priority = 50
+
+    def at_cmdset_creation(self):
+        self.add(CmdDirectionFallback)
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -68,7 +81,9 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         # a position; replace it with the whitelisted builder 'setpose'.
         self.remove("pose")
         self.add(GridDig)  # This replaces the default engine @dig globally
+        self.add(CmdDigMenu)  # Interactive build menu for rooms and exits
         self.add(CmdForce)  # Replaces the default 'force' (global, plane-agnostic)
+        self.add(CmdBuilderTeleport)  # Lowers default teleport from Admin to Builder
         self.add(CmdSetOrigin)
         self.add(CmdAttSet)
         self.add(CmdSetSkill)
@@ -95,6 +110,11 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
         self.add(CmdEmote)
+        self.add(CmdOpen)
+        self.add(CmdClose)
+        self.add(CmdLock)
+        self.add(CmdUnlock)
+        self.add(CmdAutoOpen)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
@@ -112,6 +132,7 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         Populates the cmdset
         """
         super().at_cmdset_creation()
+        self.remove("ooc")
         from commands.account.chargen import CmdCharCreate
         from commands.account.mychars import CmdMyChars
         self.add(CmdCharCreate)

@@ -225,6 +225,67 @@ CHANGES = [
             "on your account."
         ),
     },
+    {
+        "number": 16,
+        "date": "2026-08-05",
+        "title": "Builder teleport & custom messages",
+        "body": (
+            "The teleport command was lowered to Builder permission. Characters "
+            "now have teleport locks that control who can teleport to or from them, "
+            "defaulting to Admin and above. A new builder 'teleport' command "
+            "delivers custom source, destination, and self messages when moving "
+            "characters between rooms."
+        ),
+    },
+    {
+        "number": 17,
+        "date": "2026-08-05",
+        "title": "Doors, locks, hidden exits & the build menu",
+        "body": (
+            "Exits gained a full door system: open, close, lock, unlock, and an "
+            "autoopen toggle. Locked doors require a matching key; each locked "
+            "door creates one key shared between its two sides. Hidden exits are "
+            "invisible until spotted, gated by the new 'awareness' skill. Doors "
+            "can be breakable, gated by the new 'bash' skill. The new 'digm' "
+            "(digmenu) command launches an interactive build menu for creating "
+            "rooms and exits with all these options step by step."
+        ),
+    },
+    {
+        "number": 18,
+        "date": "2026-08-05",
+        "title": "Direction fallbacks",
+        "body": (
+            "Typing a cardinal direction where no exit exists now attempts to find "
+            "and use an exit in that direction, rather than just saying 'no exit'. "
+            "Exits named 'north', 'south', etc. (or their aliases 'n', 's', etc.) "
+            "are detected dynamically and offered to the player."
+        ),
+    },
+    {
+        "number": 19,
+        "date": "2026-08-05",
+        "title": "Discord ↔ game OOC integration",
+        "body": (
+            "The OOC channel is now two-way with Discord. In-game OOC messages "
+            "appear in the Discord #OOC channel, and messages sent in Discord "
+            "appear in-game with a [Discord] tag. Sender names are coloured by "
+            "permission level both ways: orange for developers, dark orange for "
+            "builders, teal for players. The OOC command was removed; use 'ooc "
+            "<message>' or the channel alias instead."
+        ),
+    },
+    {
+        "number": 20,
+        "date": "2026-08-05",
+        "title": "New skills: lockpick, bash, awareness",
+        "body": (
+            "Three new skills were added to support the door system. 'lockpick' "
+            "lets you try to pick a locked door. 'bash' lets you force a door "
+            "open by brute strength. 'awareness' lets you detect hidden exits "
+            "in a room. All three gate their respective door interactions."
+        ),
+    },
 ]
 
 
