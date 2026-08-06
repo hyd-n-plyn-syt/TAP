@@ -323,6 +323,16 @@ CHANGES = [
             "permissions."
         ),
     },
+    {
+        "number": 25,
+        "date": "2026-08-06",
+        "title": "SKILLS ALL added to the SKILLS command",
+        "body": (
+            "The new SKILLS ALL option of the SKILLS command will list all skills that "
+            "are coded, or at the very least defined in the game. Not all of them have "
+            "function yet, and there are still an absolute ton to come."
+        ),
+    },
 ]
 
 

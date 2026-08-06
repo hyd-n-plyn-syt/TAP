@@ -547,38 +547,4 @@ and shown at |wlogin|n until read, so nothing is missed.
 See also: |whelp|n.
 """.strip(),
     },
-    {
-        "key": "addchange",
-        "category": "Admin",
-        "aliases": ["addchangelog"],
-        "text": """
-|wAdd Change|n
-
-|waddchange <title> = <body>|n appends a new entry to the changelog
-(see |wchanges|n). It is numbered one above the latest and dated today,
-then written into the game's changelog data file so it survives a server
-restart. The change is announced immediately to everyone connected, and
-players who miss it get it shown at |wlogin|n until they read it.
-
-Admins and above. To remove a change entry, use |wremovechange <number>|n.
-
-See also: |wremovechange|n, |wchanges|n.
-""".strip(),
-    },
-    {
-        "key": "removechange",
-        "category": "Admin",
-        "aliases": ["removechangelog", "delchange"],
-        "text": """
-|wRemove Change|n
-
-|wremovechange <number>|n removes the specified entry from the changelog
-and automatically re-indexes all subsequent entries so that numbering
-remains continuous. The updated changelog is written back to the data file.
-
-Admins and above.
-
-See also: |waddchange|n, |wchanges|n.
-""".strip(),
-    },
 ]
