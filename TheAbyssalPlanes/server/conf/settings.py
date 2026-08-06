@@ -76,11 +76,6 @@ DEFAULT_CHANNELS = [
     },
 ]
 
-# Disable Evennia's default built-in core log / connect info channels
-# so they don't post duplicate or default connection messages.
-CHANNEL_MUDINFO = None
-CHANNEL_CONNECTINFO = None
-
 
 ######################################################################
 # Discord Integration

@@ -236,11 +236,18 @@ def connect_signals():
         SIGNAL_ACCOUNT_POST_LAST_LOGOUT,
     )
 
-    def _on_login(sender, **kwargs):
+    def _on_first_login(sender, **kwargs):
         send_to_mudinfo(f"{sender.key} connected")
 
+    def _on_login(sender, **kwargs):
+        pass
+
     def _on_logout(sender, **kwargs):
+        pass
+
+    def _on_last_logout(sender, **kwargs):
         send_to_mudinfo(f"{sender.key} disconnected")
 
-    SIGNAL_ACCOUNT_POST_LOGIN.connect(_on_login, sender=None)
+    SIGNAL_ACCOUNT_POST_FIRST_LOGIN.connect(_on_first_login, sender=None)
     SIGNAL_ACCOUNT_POST_LOGOUT.connect(_on_logout, sender=None)
+    SIGNAL_ACCOUNT_POST_LAST_LOGOUT.connect(_on_last_logout, sender=None)
