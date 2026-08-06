@@ -325,6 +325,27 @@ CHANGES = [
             "coloured by permission level in-game."
         ),
     },
+    {
+        "number": 24,
+        "date": "2026-08-05",
+        "title": "Discord announcements channel",
+        "body": (
+            "Server and system announcements now go to a dedicated Discord "
+            "channel via its own webhook. Server start, shutdown, player "
+            "connect, and player disconnect messages are all posted there "
+            "with colour-coded emoji indicators."
+        ),
+    },
+    {
+        "number": 25,
+        "date": "2026-08-05",
+        "title": "MudInfo channel Discord routing",
+        "body": (
+            "Connect and disconnect messages from the MudInfo channel now "
+            "correctly route to the Discord announcements channel instead "
+            "of the OOC channel."
+        ),
+    },
 ]
 
 
