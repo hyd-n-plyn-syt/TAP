@@ -4,6 +4,7 @@ creation menu.
 """
 
 from evennia import Command
+from evennia.objects.models import ObjectDB
 from evennia.utils.evmenu import EvMenu
 
 
@@ -28,7 +29,6 @@ class CmdCharCreate(Command):
             self.msg("Usage: charcreate <name>")
             return
 
-        # Support "name = desc" syntax from stock, but ignore desc.
         name = args.split("=")[0].strip()
         if not name:
             self.msg("You must provide a name for your character.")
@@ -39,22 +39,16 @@ class CmdCharCreate(Command):
             self.msg("You must be logged in to create a character.")
             return
 
-        # Check if this name is already taken by one of the account's characters.
-        for char in account.characters:
-            if char.key.lower() == name.lower():
+        existing = ObjectDB.objects.filter(
+            db_account=account, db_typeclass_path__contains="characters"
+        ).values_list("db_key", flat=True)
+        for char_name in existing:
+            if char_name.lower() == name.lower():
                 self.msg(f"You already have a character named '{name}'.")
                 return
 
-        new_char, errors = account.create_character(
-            key=name, description="This is a character.", ip=self.session.address
-        )
-        if errors:
-            self.msg(errors)
-        if not new_char:
-            return
-
-        self.msg(f"Creating {new_char.key}...")
-        self.caller.ndb._chargen_character = new_char
+        self.caller.ndb._chargen_name = name
+        self.msg(f"Creating {name}...")
         EvMenu(
             self.caller,
             "commands.account.chargen_menu",

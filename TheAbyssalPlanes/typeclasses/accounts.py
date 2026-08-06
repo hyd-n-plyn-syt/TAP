@@ -159,6 +159,13 @@ class Account(DefaultAccount):
         if alert:
             self.msg(alert)
 
+    def get_character_slots(self):
+        if self.is_superuser or "developer" in self.permissions.all():
+            return 4
+        if "builder" in self.permissions.all():
+            return 4
+        return 3
+
     def at_pre_channel_msg(self, message, channel, senders=None, **kwargs):
         if senders:
             parts = []

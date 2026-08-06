@@ -8,19 +8,14 @@ and stat point allocation before they enter the game.
 
 from world.data import appearance, species as species_data
 from world.systems import stats
+from evennia.utils.ansi import strip_ansi
 
 # ── helpers ────────────────────────────────────────────────────────────
 
 
 def _get_char(caller):
-    """Return the character being created, or the last one on the account."""
-    char = caller.ndb._chargen_character
-    if not char and caller.account:
-        chars = caller.account.characters.all()
-        if chars:
-            char = chars[-1]
-            caller.ndb._chargen_character = char
-    return char
+    """Return the character being created, or None if not yet created."""
+    return caller.ndb._chargen_character
 
 
 def _store(caller, key, value):
@@ -52,17 +47,18 @@ def _options_list(items, handler):
 
 
 def node_welcome(caller, raw_string, **kwargs):
-    char = _get_char(caller)
-    if not char:
-        caller.msg("Something went wrong — no character found. Try 'charcreate <name>' again.")
+    name = caller.ndb._chargen_name
+    if not name:
+        caller.msg("Something went wrong — no character name found. Try 'charcreate <name>' again.")
         return None
 
     text = (
-        f"|wWelcome, {char.key}.|n\n\n"
+        f"|wWelcome, {name}.|n\n\n"
         "We will walk through your character's identity, appearance, "
         "and starting attributes step by step. You can type |wquit|n at "
         "any time to abandon this process.\n\n"
-        f"Your character's name will be |w{char.key}|n. Let's begin."
+        f"Your character's name will be |w{name}|n. Let's begin.\n\n"
+        "|xPress Enter to continue...|n"
     )
     options = (
         {"key": "_default", "goto": "node_gender"},
@@ -99,26 +95,83 @@ def set_gender(caller, raw_string, **kwargs):
 
 
 def node_species(caller, raw_string, **kwargs):
+    keys = _load(caller, "_species_keys") or list(species_data.species_keys())
+    items = _load(caller, "_species_items")
+    if not items:
+        items = []
+        for key in keys:
+            data = species_data.get_species(key)
+            if data:
+                items.append(f"{data['name']:12s}  {data['archetype']} ({data['visarial_nature'].replace('_', '-')})")
+        _store(caller, "_species_keys", keys)
+        _store(caller, "_species_items", items)
     text = (
         "|wStep 2 — Species|n\n\n"
         "Choose your character's species. Each species has a unique "
-        "visarial nature, stat bonuses, and locked attributes."
+        "visarial nature, stat bonuses, and locked attributes.\n\n"
+        "Type |w?N|n to read about a species (e.g. |w?1|n, |w?3|n)."
     )
-    items = []
-    for key in species_data.species_keys():
-        data = species_data.get_species(key)
-        if data:
-            items.append(f"{data['name']:12s}  {data['archetype']} ({data['visarial_nature'].replace('_', '-')})")
     options = _options_list(items, set_species)
+    options.append({"key": "_default", "goto": (parse_species_input, {"keys": keys, "items": items})})
     return text, options
 
 
-def set_species(caller, raw_string, **kwargs):
-    value = kwargs["value"]
+def parse_species_input(caller, raw_string, **kwargs):
+    keys = kwargs.get("keys", [])
+    items = kwargs.get("items", [])
+    raw = raw_string.strip()
 
-    # Extract the species key from the display string.
+    if not raw:
+        return "node_species"
+
+    if raw.startswith("?"):
+        try:
+            idx = int(raw[1:]) - 1
+        except ValueError:
+            caller.msg("Type a number after ?, e.g. ?1")
+            return "node_species"
+        if idx < 0 or idx >= len(keys):
+            caller.msg(f"Pick a number between 1 and {len(keys)}.")
+            return "node_species"
+        key = keys[idx]
+        data = species_data.get_species(key)
+        if data:
+            bonus = ", ".join(
+                f"+{v} {n.replace('_', ' ').title()}"
+                for n, v in data["stat_bonuses"].items()
+            )
+            traits = []
+            if data["locked_main_stats"]:
+                traits.append("Locked: " + ", ".join(m.capitalize() for m in data["locked_main_stats"]) + " at 0.")
+            if data["zeroed_pools"]:
+                traits.append("No pool: " + ", ".join(p.capitalize() for p in data["zeroed_pools"]) + ".")
+            nature = data["visarial_nature"].replace("_", "-")
+            _store(caller, "_species_keys", keys)
+            _store(caller, "_species_items", items)
+            text = (
+                f"|w{data['name']} — {data['archetype']}|n\n\n"
+                f"{data['description']}\n\n"
+                f"|wNature|n: {nature}\n"
+                f"|wStat bonus|n: {bonus}\n"
+                + ("\n".join(traits) if traits else "")
+            )
+            return ("node_species_help", {"help_text": text})
+        return "node_species"
+
+    if raw.isdigit() and 0 < int(raw) <= len(items):
+        return set_species(caller, raw_string, value=items[int(raw) - 1])
+
+    caller.msg("Invalid choice. Type a number or ?N for info.")
+    return "node_species"
+
+
+def set_species(caller, raw_string, **kwargs):
+    value = kwargs.get("value", raw_string.strip())
+    if not value:
+        caller.msg("Invalid species. Try again.")
+        return "node_species"
+
     species_name = value.split()[0].lower()
-    # Map display names to keys.
     key_map = {data["name"].lower(): data["key"] for key in species_data.species_keys()
                if (data := species_data.get_species(key))}
     species_key = key_map.get(species_name)
@@ -126,12 +179,15 @@ def set_species(caller, raw_string, **kwargs):
         caller.msg("Invalid species. Try again.")
         return "node_species"
 
-    char = _get_char(caller)
-    if char:
-        char.apply_species(species_key)
     _store(caller, "species_key", species_key)
     _store(caller, "species_name", species_data.species_name(species_key))
     return "node_height"
+
+
+def node_species_help(caller, raw_string, **kwargs):
+    text = kwargs.get("help_text", "") + "\n\n|wPress ENTER to return to species selection...|n"
+    options = ({"key": "_default", "goto": "node_species"},)
+    return text, options
 
 
 # ── height ─────────────────────────────────────────────────────────────
@@ -226,18 +282,24 @@ def node_skin(caller, raw_string, **kwargs):
         "Choose a skin tone from your species' palette."
     )
     skins = appearance.skins_for_species(species_key)
-    items = list(skins)
+    items = []
+    for s in skins:
+        h = appearance.hex_for_name(s)
+        if h:
+            items.append(f"|#{h.lstrip('#')}{s}|n")
+        else:
+            items.append(s)
     options = _options_list(items, set_skin)
     return text, options
 
 
 def set_skin(caller, raw_string, **kwargs):
-    value = kwargs["value"]
+    value = strip_ansi(kwargs["value"]).strip().lower()
 
     char = _get_char(caller)
     if char:
-        char.appearance_skin = value.lower()
-    _store(caller, "skin", value.lower())
+        char.appearance_skin = value
+    _store(caller, "skin", value)
     return "node_eyes"
 
 
@@ -276,18 +338,24 @@ def node_eye_color(caller, raw_string, **kwargs):
         "Choose an eye colour from your species' palette."
     )
     colors = appearance.eye_color_options(species_key)
-    items = list(colors)
+    items = []
+    for c in colors:
+        h = appearance.hex_for_name(c)
+        if h:
+            items.append(f"|#{h.lstrip('#')}{c}|n")
+        else:
+            items.append(c)
     options = _options_list(items, set_eye_color)
     return text, options
 
 
 def set_eye_color(caller, raw_string, **kwargs):
-    value = kwargs["value"]
+    value = strip_ansi(kwargs["value"]).strip().lower()
 
     char = _get_char(caller)
     if char:
-        char.appearance_eye_color = value.lower()
-    _store(caller, "eye_color", value.lower())
+        char.appearance_eye_color = value
+    _store(caller, "eye_color", value)
     return "node_hair"
 
 
@@ -331,18 +399,24 @@ def node_hair_color(caller, raw_string, **kwargs):
         "Choose a hair colour from your species' palette."
     )
     colors = appearance.hair_color_options(species_key)
-    items = list(colors)
+    items = []
+    for c in colors:
+        h = appearance.hex_for_name(c)
+        if h:
+            items.append(f"|#{h.lstrip('#')}{c}|n")
+        else:
+            items.append(c)
     options = _options_list(items, set_hair_color)
     return text, options
 
 
 def set_hair_color(caller, raw_string, **kwargs):
-    value = kwargs["value"]
+    value = strip_ansi(kwargs["value"]).strip().lower()
 
     char = _get_char(caller)
     if char:
-        char.appearance_hair_color = value.lower()
-    _store(caller, "hair_color", value.lower())
+        char.appearance_hair_color = value
+    _store(caller, "hair_color", value)
     return "node_stat_priority"
 
 
@@ -560,7 +634,7 @@ def confirm_locked_dist(caller, raw_string, **kwargs):
 
 
 def node_review(caller, raw_string, **kwargs):
-    char = _get_char(caller)
+    name = caller.ndb._chargen_name or "?"
     species_key = _load(caller, "species_key", "")
     species_name = _load(caller, "species_name", "")
     gender = _load(caller, "gender", "neuter")
@@ -578,7 +652,7 @@ def node_review(caller, raw_string, **kwargs):
 
     lines = [
         "|w═══ Character Review ═══|n\n",
-        f"  |wName:|n      {char.key if char else '?'}",
+        f"  |wName:|n      {name}",
         f"  |wGender:|n    {gender.title()}",
         f"  |wSpecies:|n   {species_name}",
         "",
@@ -623,12 +697,26 @@ def node_review(caller, raw_string, **kwargs):
 
 
 def node_finalize(caller, raw_string, **kwargs):
-    char = _get_char(caller)
-    if not char:
+    name = caller.ndb._chargen_name
+    if not name:
         caller.msg("Something went wrong. Try 'charcreate <name>' again.")
         return None
 
-    # Apply all stored values.
+    account = caller.account
+    if not account:
+        caller.msg("You must be logged in.")
+        return None
+
+    new_char, errors = account.create_character(
+        key=name, description="This is a character."
+    )
+    if errors:
+        caller.msg(errors)
+    if not new_char:
+        return None
+
+    caller.ndb._chargen_character = new_char
+
     gender = _load(caller, "gender")
     species_key = _load(caller, "species_key")
     height = _load(caller, "height")
@@ -643,38 +731,34 @@ def node_finalize(caller, raw_string, **kwargs):
     dist_values = _load(caller, "_dist_values", {})
 
     if gender:
-        char.gender = gender
+        new_char.gender = gender
     if species_key:
-        char.apply_species(species_key)
+        new_char.apply_species(species_key)
     if height:
-        char.appearance_height = height
+        new_char.appearance_height = height
     if build:
-        char.appearance_build = build
+        new_char.appearance_build = build
     if adjective:
-        char.appearance_adjective = adjective
+        new_char.appearance_adjective = adjective
     if skin:
-        char.appearance_skin = skin
+        new_char.appearance_skin = skin
     if eyes:
-        char.appearance_eyes = eyes
+        new_char.appearance_eyes = eyes
     if eye_color:
-        char.appearance_eye_color = eye_color
+        new_char.appearance_eye_color = eye_color
     if hair:
-        char.appearance_hair = hair
+        new_char.appearance_hair = hair
     if hair_color:
-        char.appearance_hair_color = hair_color
+        new_char.appearance_hair_color = hair_color
 
-    # Set sub-stats via Evennia attribute API for persistence.
     for attr, val in dist_values.items():
-        char.attributes.add(attr, val, category="stat")
+        new_char.attributes.add(attr, val, category="stat")
 
-    # Store priorities for future progression curves.
-    char.db.stat_priorities = priorities
-
-    # Reset pools to derived maximums.
-    char.reset_pools()
+    new_char.db.stat_priorities = priorities
+    new_char.reset_pools()
 
     caller.msg(
-        f"\n|gYour character |w{char.key}|g is ready!|n\n"
-        f"Type |wic {char.key}|n to enter the game."
+        f"\n|gYour character |w{name}|g is ready!|n\n"
+        f"Type |wic {name}|n to enter the game."
     )
     return None

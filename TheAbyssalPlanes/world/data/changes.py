@@ -286,6 +286,45 @@ CHANGES = [
             "in a room. All three gate their respective door interactions."
         ),
     },
+    {
+        "number": 21,
+        "date": "2026-08-05",
+        "title": "Appearance-based targeting",
+        "body": (
+            "Any word from a character's appearance description can now be "
+            "used to target them. When multiple characters share the same "
+            "description, Evennia shows numbered labels like [virentes-1] "
+            "and [virentes-2] so you can select a specific one. The search "
+            "checks name, aliases, then appearance paragraph words in order."
+        ),
+    },
+    {
+        "number": 22,
+        "date": "2026-08-05",
+        "title": "Character creation improvements",
+        "body": (
+            "The chargen menu now shows a welcome screen with 'Press ENTER "
+            "to continue...' before starting. Skin, eye, and hair colour "
+            "options are displayed in their actual colour so you can see "
+            "what you're choosing. Species help entries can be browsed with "
+            "the '?N' command at any species prompt, showing a full "
+            "description, nature, stat bonus, and locked traits."
+        ),
+    },
+    {
+        "number": 23,
+        "date": "2026-08-05",
+        "title": "Account and permission fixes",
+        "body": (
+            "Character slots were overridden: players get 3, builders and "
+            "above get 4. The 'mychars' command was fixed to work with "
+            "the account system. The 'charcreate' command now defers "
+            "character creation until the final step. Permission checks "
+            "now use lowercase strings and account-level lookups. The OOC "
+            "channel name is displayed in white, and sender names are "
+            "coloured by permission level in-game."
+        ),
+    },
 ]
 
 

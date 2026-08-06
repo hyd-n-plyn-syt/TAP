@@ -8,7 +8,11 @@ with a location in the game world (like Characters, Rooms, Exits).
 
 """
 
+import re
+
 from evennia.objects.objects import DefaultObject
+
+_MULTIMATCH_RE = re.compile(r"^(?P<name>.*?)-(?P<number>[0-9]+)(?P<args>(?:\s.*)?)$")
 
 
 class ObjectParent:
@@ -222,6 +226,72 @@ class ObjectParent:
             if obj.visible_to(self):
                 filtered.append(obj)
         return filtered
+
+    def get_search_result(
+        self,
+        searchdata,
+        attribute_name=None,
+        typeclass=None,
+        candidates=None,
+        exact=False,
+        use_dbref=None,
+        tags=None,
+        **kwargs,
+    ):
+        results = super().get_search_result(
+            searchdata, attribute_name=attribute_name, typeclass=typeclass,
+            candidates=candidates, exact=exact, use_dbref=use_dbref, tags=tags, **kwargs,
+        )
+        if results:
+            return results
+        if not isinstance(searchdata, str) or not searchdata.strip():
+            return results
+        search_clean = searchdata.strip()
+        match = _MULTIMATCH_RE.match(search_clean)
+        if match:
+            base_word = match.group("name")
+            index = int(match.group("number"))
+        else:
+            base_word = search_clean
+            index = 0
+        if len(base_word) < 2:
+            return results
+        base_lower = base_word.lower()
+        cand_list = candidates or []
+        matches = []
+        for obj in cand_list:
+            if not hasattr(obj, "appearance_paragraph"):
+                continue
+            if not obj.visible_to(self):
+                continue
+            para = obj.appearance_paragraph(self).lower()
+            for word in para.split():
+                clean = word.strip(".,;:!?\"'()-")
+                if clean == base_lower:
+                    matches.append(obj)
+                    break
+        if not matches:
+            return results
+        if index:
+            if index < 1 or index > len(matches):
+                return results
+            return [matches[index - 1]]
+        return matches
+
+    def handle_search_results(self, searchdata, results, **kwargs):
+        if kwargs.get("quiet"):
+            return list(results)
+        if len(results) <= 1:
+            return super().handle_search_results(searchdata, results, **kwargs)
+        query = searchdata.strip()
+        error = "More than one match for '{query}' (please narrow target):\n".format(query=query)
+        for num, obj in enumerate(results):
+            name = obj.get_display_name(self) if hasattr(obj, "get_display_name") else str(obj)
+            error += " {name} [{query}-{num}]\n".format(
+                name=name, query=query, num=num + 1,
+            )
+        self.msg(error.strip())
+        return None
 
 
 class Object(ObjectParent, DefaultObject):
