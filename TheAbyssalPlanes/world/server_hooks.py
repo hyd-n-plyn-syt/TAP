@@ -12,7 +12,12 @@ import evennia
 from evennia.server.models import ServerConfig
 
 from world.data import changes
-from world.discord_integration import start_discord_bot, stop_discord_bot
+from world.discord_integration import (
+    send_announcement,
+    start_discord_bot,
+    stop_discord_bot,
+    connect_signals,
+)
 
 
 def _broadcast_newest():
@@ -46,6 +51,11 @@ def at_server_start():
         start_discord_bot()
     except Exception as err:
         evennia.logger.log_trace(f"Error starting Discord bot: {err}")
+    try:
+        connect_signals()
+        send_announcement(":green_circle: **Server started**")
+    except Exception as err:
+        evennia.logger.log_trace(f"Error sending startup announcement: {err}")
 
 
 def at_server_reload_start():
@@ -55,6 +65,10 @@ def at_server_reload_start():
 
 def at_server_stop():
     """Called on server shutdown."""
+    try:
+        send_announcement(":red_circle: **Server shutting down**")
+    except Exception as err:
+        evennia.logger.log_trace(f"Error sending shutdown announcement: {err}")
     try:
         stop_discord_bot()
     except Exception as err:

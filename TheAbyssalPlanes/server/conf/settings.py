@@ -113,6 +113,12 @@ DISCORD_ROLE_PRIORITY = [
 ]
 DISCORD_BOT_COLOR = "e74c3c"
 
+DISCORD_ANNOUNCEMENTS_WEBHOOK_URL = (
+    "https://discord.com/api/webhooks/"
+    "1534758576348860530/"
+    "SkKaqPr8wiKYL4N9iBwJ62_XtfIf3uJel9OLeMCO_r3T2SbowP-hMNQVu68g-2_y6x4x"
+)
+
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

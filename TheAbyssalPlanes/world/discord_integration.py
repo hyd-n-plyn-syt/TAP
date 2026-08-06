@@ -1,11 +1,14 @@
 """
-Discord integration for the OOC channel.
+Discord integration for the OOC channel and system announcements.
 
 Sends in-game OOC messages to a Discord channel via webhook, and
 receives Discord messages via a bot, relaying them to the OOC channel.
+System announcements (server lifecycle, player connections) are sent
+to a separate announcements channel via its own webhook.
 
 Configuration lives in settings.py:
     DISCORD_WEBHOOK_URL
+    DISCORD_ANNOUNCEMENTS_WEBHOOK_URL
     DISCORD_BOT_TOKEN
     DISCORD_GUILD_ID
     DISCORD_OOC_CHANNEL_ID
@@ -57,6 +60,40 @@ def send_to_discord(message, username="Server", hex_color=None):
             urllib.request.urlopen(req, timeout=10)
         except Exception as err:
             evennia.logger.log_err(f"Discord webhook error: {err}")
+
+    threading.Thread(target=_post, daemon=True).start()
+
+
+def send_announcement(message, username="Server"):
+    """POST a message to the Discord announcements webhook. Runs in a
+    thread to avoid blocking the Evennia server loop.
+
+    Args:
+        message (str): The message text.
+        username (str): Sender name for the webhook avatar.
+    """
+    url = getattr(settings, "DISCORD_ANNOUNCEMENTS_WEBHOOK_URL", None)
+    if not url:
+        return
+
+    def _post():
+        payload = {
+            "content": message,
+            "username": username,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data,
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "EvenniaBot/1.0",
+            },
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=10)
+        except Exception as err:
+            evennia.logger.log_err(f"Discord announcements webhook error: {err}")
 
     threading.Thread(target=_post, daemon=True).start()
 
@@ -168,3 +205,38 @@ def stop_discord_bot():
             future.result(timeout=5)
         except Exception:
             pass
+
+
+_signals_connected = False
+
+
+def connect_signals():
+    """Connect Evennia account signals to Discord announcement callbacks.
+    Safe to call multiple times; only connects once."""
+    global _signals_connected
+    if _signals_connected:
+        return
+    _signals_connected = True
+
+    from evennia.server.signals import (
+        SIGNAL_ACCOUNT_POST_FIRST_LOGIN,
+        SIGNAL_ACCOUNT_POST_LOGIN,
+        SIGNAL_ACCOUNT_POST_LOGOUT,
+        SIGNAL_ACCOUNT_POST_LAST_LOGOUT,
+    )
+
+    def _on_first_login(sender, **kwargs):
+        send_announcement(f":green_circle: **{sender.key}** connected")
+
+    def _on_login(sender, **kwargs):
+        pass
+
+    def _on_logout(sender, **kwargs):
+        pass
+
+    def _on_last_logout(sender, **kwargs):
+        send_announcement(f":red_circle: **{sender.key}** disconnected")
+
+    SIGNAL_ACCOUNT_POST_FIRST_LOGIN.connect(_on_first_login, sender=None)
+    SIGNAL_ACCOUNT_POST_LOGOUT.connect(_on_logout, sender=None)
+    SIGNAL_ACCOUNT_POST_LAST_LOGOUT.connect(_on_last_logout, sender=None)
