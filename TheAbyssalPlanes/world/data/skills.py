@@ -62,11 +62,11 @@ DIFFICULTY_XP = {
 }
 
 SKILLS = {
-    # --- Combat fundamentals ---
+    # --- Corpus ---
     "dodge": {
         "key": "dodge",
         "name": "Dodge",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_reflexus": 1.0},
         "requires": {},
         "desc": "Slipping out of harm's way.",
@@ -74,7 +74,7 @@ SKILLS = {
     "parry": {
         "key": "parry",
         "name": "Parry",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_reflexus": 1.0},
         "requires": {},
         "desc": "Deflecting an incoming blow with a held weapon.",
@@ -82,7 +82,7 @@ SKILLS = {
     "attack": {
         "key": "attack",
         "name": "Attack",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_potestas": 1.0},
         "requires": {},
         "desc": "Striking with intent to harm, weapon in hand.",
@@ -90,7 +90,7 @@ SKILLS = {
     "block": {
         "key": "block",
         "name": "Block",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_obsistis": 1.0},
         "requires": {},
         "desc": "Shielding with a held object or an arm.",
@@ -98,7 +98,7 @@ SKILLS = {
     "punch": {
         "key": "punch",
         "name": "Punch",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_potestas": 0.6, "corpus_reflexus": 0.4},
         "requires": {},
         "desc": "An unarmed, clubbing blow.",
@@ -106,7 +106,7 @@ SKILLS = {
     "kick": {
         "key": "kick",
         "name": "Kick",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_potestas": 0.7, "corpus_reflexus": 0.3},
         "requires": {},
         "desc": "A heavy leg strike.",
@@ -114,33 +114,15 @@ SKILLS = {
     "headbutt": {
         "key": "headbutt",
         "name": "Headbutt",
-        "category": "combat",
-        "stats": {"corpus_potestas": 0.5, "corpus_obsistis": 0.5},
+        "category": "corpus",
+        "stats": {"corpus_potestas": 0.55, "corpus_obsistis": 0.45},
         "requires": {},
         "desc": "Driving your skull into the foe.",
     },
-    # --- Meta ---
-    "meditate": {
-        "key": "meditate",
-        "name": "Meditate",
-        "category": "meta",
-        "stats": {"genius_reflexus": 0.6, "genius_obsistis": 0.4},
-        "requires": {},
-        "desc": "Centering the mind; deepens rest.",
-    },
-    "pray": {
-        "key": "pray",
-        "name": "Pray",
-        "category": "meta",
-        "stats": {"animus_potestas": 0.5, "animus_obsistis": 0.5},
-        "requires": {},
-        "desc": "Communion with something greater; deepens rest.",
-    },
-    # --- Advanced (prerequisite-gated) ---
     "power_strike": {
         "key": "power_strike",
         "name": "Power Strike",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_potestas": 0.8, "corpus_obsistis": 0.2},
         "requires": {"attack": 300, "punch": 300},
         "desc": "A telegraphed, crushing swing.",
@@ -148,51 +130,68 @@ SKILLS = {
     "feint": {
         "key": "feint",
         "name": "Feint",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_reflexus": 0.7, "genius_reflexus": 0.3},
         "requires": {"dodge": 300, "parry": 300},
         "desc": "A false opening that baits an overcommit.",
     },
-    "focused_meditation": {
-        "key": "focused_meditation",
-        "name": "Focused Meditation",
-        "category": "meta",
-        "stats": {"genius_obsistis": 0.7, "genius_reflexus": 0.3},
-        "requires": {"meditate": 400},
-        "desc": "Meditation refined into near-trance.",
-    },
-    "devoted_prayer": {
-        "key": "devoted_prayer",
-        "name": "Devoted Prayer",
-        "category": "meta",
-        "stats": {"animus_obsistis": 0.7, "animus_potestas": 0.3},
-        "requires": {"pray": 400},
-        "desc": "Sustained prayer that steadies the spirit.",
-    },
-    # --- Interaction ---
-    "lockpick": {
-        "key": "lockpick",
-        "name": "Lockpick",
-        "category": "meta",
-        "stats": {"genius_reflexus": 0.7, "corpus_reflexus": 0.3},
-        "requires": {},
-        "desc": "Manipulating a lock mechanism without the proper key.",
-    },
     "bash": {
         "key": "bash",
         "name": "Bash",
-        "category": "combat",
+        "category": "corpus",
         "stats": {"corpus_potestas": 0.8, "corpus_obsistis": 0.2},
         "requires": {},
         "desc": "Blunt force applied to doors, walls, and obstacles.",
     },
+    # --- Genius ---
+    "meditate": {
+        "key": "meditate",
+        "name": "Meditate",
+        "category": "genius",
+        "stats": {"genius_reflexus": 0.6, "genius_obsistis": 0.4},
+        "requires": {},
+        "desc": "Centering the mind; deepens rest.",
+    },
+    "focused_meditation": {
+        "key": "focused_meditation",
+        "name": "Focused Meditation",
+        "category": "genius",
+        "stats": {"genius_obsistis": 0.7, "genius_reflexus": 0.3},
+        "requires": {"meditate": 400},
+        "desc": "Meditation refined into near-trance.",
+    },
+    "lockpick": {
+        "key": "lockpick",
+        "name": "Lockpick",
+        "category": "genius",
+        "stats": {"genius_reflexus": 0.7, "corpus_reflexus": 0.3},
+        "requires": {},
+        "desc": "Manipulating a lock mechanism without the proper key.",
+    },
     "awareness": {
         "key": "awareness",
         "name": "Awareness",
-        "category": "meta",
+        "category": "genius",
         "stats": {"genius_obsistis": 0.6, "genius_reflexus": 0.4},
         "requires": {},
         "desc": "Noticing what is hidden, concealed, or out of place.",
+    },
+    # --- Animus ---
+    "pray": {
+        "key": "pray",
+        "name": "Pray",
+        "category": "animus",
+        "stats": {"animus_potestas": 0.55, "animus_obsistis": 0.45},
+        "requires": {},
+        "desc": "Communion with something greater; deepens rest.",
+    },
+    "devoted_prayer": {
+        "key": "devoted_prayer",
+        "name": "Devoted Prayer",
+        "category": "animus",
+        "stats": {"animus_obsistis": 0.7, "animus_potestas": 0.3},
+        "requires": {"pray": 400},
+        "desc": "Sustained prayer that steadies the spirit.",
     },
 }
 

@@ -58,8 +58,25 @@ class SkillCatalogTest(SimpleTestCase):
 
     def test_categories_present(self):
         cats = skills.categories()
-        self.assertIn("combat", cats)
-        self.assertIn("meta", cats)
+        self.assertEqual(cats, ["animus", "corpus", "genius"])
+
+    def test_skill_weight_rules(self):
+        for key, skill in skills.SKILLS.items():
+            stats = skill["stats"]
+            self.assertTrue(stats)
+            self.assertLessEqual(len(stats), 3)
+            self.assertAlmostEqual(sum(stats.values()), 1.0)
+            sorted_stats = sorted(stats.items(), key=lambda x: x[1], reverse=True)
+            major_stat, major_weight = sorted_stats[0]
+            if len(stats) == 1:
+                self.assertEqual(major_weight, 1.0)
+            elif len(stats) == 2:
+                self.assertGreaterEqual(major_weight, 0.55)
+            elif len(stats) == 3:
+                self.assertGreaterEqual(major_weight, 0.40)
+                self.assertGreater(major_weight, sorted_stats[1][1])
+            expected_cat = major_stat.split("_")[0]
+            self.assertEqual(skill["category"], expected_cat)
 
 
 class SpeciesCatalogTest(SimpleTestCase):
