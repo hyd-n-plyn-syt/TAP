@@ -53,7 +53,7 @@ def at_server_start():
         evennia.logger.log_trace(f"Error starting Discord bot: {err}")
     try:
         connect_signals()
-        send_to_mudinfo("Server started")
+        send_to_mudinfo(":ballot_box_with_check: **The server has started!** :desktop:")
     except Exception as err:
         evennia.logger.log_trace(f"Error sending startup announcement: {err}")
 
@@ -61,12 +61,21 @@ def at_server_start():
 def at_server_reload_start():
     """Called when a reload begins."""
     announce_new()
+    try:
+        send_to_mudinfo(":repeat: **The server is restarting!** :desktop:")
+    except Exception as err:
+        evennia.logger.log_trace(f"Error sending shutdown announcement: {err}")
+    try:
+        stop_discord_bot()
+    except Exception as err:
+        evennia.logger.log_trace(f"Error stopping Discord bot: {err}")
 
 
 def at_server_stop():
     """Called on server shutdown."""
+    announce_new()
     try:
-        send_to_mudinfo("Server shutting down")
+        send_to_mudinfo(":scream: **The server is shutting down.** :desktop:")
     except Exception as err:
         evennia.logger.log_trace(f"Error sending shutdown announcement: {err}")
     try:
