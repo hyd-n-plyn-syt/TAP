@@ -509,12 +509,6 @@ class Character(ObjectParent, DefaultCharacter):
                     f"{phrase}({self.name}) flickers into existence.",
                     exclude=(self,),
                 )
-            if source_location and self.location:
-                phrase = self.appearance_name
-                self.msg(
-                    f"{phrase}(You) is teleporting from "
-                    f"{source_location.key} and heading to {self.location.key}."
-                )
             return
         super().announce_move_to(source_location, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
 

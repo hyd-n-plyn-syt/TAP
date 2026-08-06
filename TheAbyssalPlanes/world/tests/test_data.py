@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+import ast
 from unittest import mock
 
 from django.test import SimpleTestCase
@@ -196,7 +197,7 @@ class ChangesCatalogTest(SimpleTestCase):
         latest = changes.latest_number()
         self.assertIsNone(changes.alert_text(latest))
         alert = changes.alert_text(latest - 1)
-        self.assertIn("#10", alert)
+        self.assertIn(f"#{latest}", alert)
         self.assertIn("changes", alert)
         self.assertNotIn("more", alert)
 
@@ -245,3 +246,36 @@ class ChangesCatalogTest(SimpleTestCase):
             changes.append_entry("   ", "body")
         with self.assertRaises(ValueError):
             changes.append_entry("title", "   ")
+
+    def test_remove_entry_renumbers_and_writes_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "changes.py")
+            with open(changes.CHANGES_FILE, encoding="utf-8") as f:
+                source = f.read()
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(source)
+            fake_changes = [
+                {"number": 1, "date": "2026-08-01", "title": "First", "body": "One"},
+                {"number": 2, "date": "2026-08-02", "title": "Second", "body": "Two"},
+                {"number": 3, "date": "2026-08-03", "title": "Third", "body": "Three"},
+            ]
+            with mock.patch.object(changes, "CHANGES", fake_changes), \
+                    mock.patch.object(changes, "CHANGES_FILE", path):
+                removed = changes.remove_entry(2, filepath=path)
+                self.assertEqual(removed["title"], "Second")
+                self.assertEqual(len(changes.CHANGES), 2)
+                self.assertEqual(changes.CHANGES[0]["number"], 1)
+                self.assertEqual(changes.CHANGES[0]["title"], "First")
+                self.assertEqual(changes.CHANGES[1]["number"], 2)
+                self.assertEqual(changes.CHANGES[1]["title"], "Third")
+            with open(path, encoding="utf-8") as f:
+                new_source = f.read()
+            ast.parse(new_source)
+            self.assertIn("First", new_source)
+            self.assertIn("Third", new_source)
+            self.assertNotIn("Second", new_source)
+
+    def test_remove_entry_missing_raises_value_error(self):
+        with mock.patch.object(changes, "CHANGES", [{"number": 1, "date": "2026-08-01", "title": "T", "body": "B"}]):
+            with self.assertRaises(ValueError):
+                changes.remove_entry(99)

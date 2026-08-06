@@ -16,7 +16,8 @@ from commands.player.manifest import CmdManifest
 from commands.player.changes import CmdChanges
 from commands.building.setnature import CmdSetNature
 from commands.building.force import CmdForce
-from commands.building.addchange import CmdAddChange
+from commands.admin.addchange import CmdAddChange
+from commands.admin.removechange import CmdRemoveChange
 from commands.player.appearance import (
     CmdSetEyes,
     CmdSetEyeColor,
@@ -54,6 +55,13 @@ class SkillsCommandTest(EvenniaCommandTest):
         out = self.call(CmdSkills(), "power strike")
         self.assertIn("Power Strike", out)
         self.assertIn("Requires", out)
+
+    def test_skills_all_listing(self):
+        self.char1.skills = {"attack": 100}
+        out = self.call(CmdSkills(), "all")
+        self.assertIn("Attack", out)
+        self.assertIn("Unlearned", out)
+
 
 
 class TrainCommandTest(EvenniaCommandTest):
@@ -576,6 +584,41 @@ class AddChangeCommandTest(EvenniaCommandTest):
             new_source = f.read()
         ast.parse(new_source)
         self.assertIn("A spiffy new feature", new_source)
+
+
+class RemoveChangeCommandTest(EvenniaCommandTest):
+    def _fake_file(self):
+        tmp = tempfile.TemporaryDirectory()
+        path = os.path.join(tmp.name, "changes.py")
+        with open(changes.CHANGES_FILE, encoding="utf-8") as f:
+            source = f.read()
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(source)
+        self.addCleanup(tmp.cleanup)
+        return path
+
+    def test_missing_arg_shows_usage(self):
+        out = self.call(CmdRemoveChange(), "")
+        self.assertTrue(out.startswith("Usage"))
+
+    def test_invalid_arg_shows_usage(self):
+        out = self.call(CmdRemoveChange(), "abc")
+        self.assertTrue(out.startswith("Usage"))
+
+    def test_remove_change_success(self):
+        path = self._fake_file()
+        fake_changes = [
+            {"number": 1, "date": "2026-08-01", "title": "First", "body": "One"},
+            {"number": 2, "date": "2026-08-02", "title": "Second", "body": "Two"},
+        ]
+        with mock.patch.object(changes, "CHANGES", fake_changes), \
+                mock.patch.object(changes, "CHANGES_FILE", path):
+            out = self.call(CmdRemoveChange(), "1")
+            self.assertIn("Removed change #1", out)
+            self.assertEqual(len(changes.CHANGES), 1)
+            self.assertEqual(changes.CHANGES[0]["number"], 1)
+            self.assertEqual(changes.CHANGES[0]["title"], "Second")
+
 
 
 class EmoteCommandTest(EvenniaCommandTest):

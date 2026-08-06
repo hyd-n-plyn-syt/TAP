@@ -1,5 +1,5 @@
 """
-Builder command to add an entry to the in-game changelog.
+Admin command to add an entry to the in-game changelog.
 """
 from commands.command import Command
 from world.data import changes
@@ -20,8 +20,8 @@ class CmdAddChange(Command):
     """
     key = "addchange"
     aliases = ["addchangelog"]
-    locks = "cmd:perm(Builder)"
-    help_category = "Building"
+    locks = "cmd:perm(Admin)"
+    help_category = "Admin"
 
     def func(self):
         caller = self.caller
@@ -34,9 +34,9 @@ class CmdAddChange(Command):
         except ValueError as err:
             caller.msg(f"|r{err}|n")
             return
+        announce_new()
         caller.msg(
             f"|gAdded change #{entry['number']} \"{entry['title']}\".|n\n"
             "It is now announced to everyone connected and will appear in "
             "'changes' until read."
         )
-        announce_new()

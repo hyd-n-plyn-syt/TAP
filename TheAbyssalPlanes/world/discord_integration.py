@@ -64,6 +64,17 @@ def send_to_discord(message, username="Server", hex_color=None):
     threading.Thread(target=_post, daemon=True).start()
 
 
+def send_to_mudinfo(message):
+    """Send a message through the MudInfo channel in-game.
+
+    This is the single entry point for system announcements.  The channel's
+    ``at_post_msg`` hook relays the message to Discord automatically.
+    """
+    ch = evennia.search_channel("MudInfo")
+    if ch:
+        ch[0].msg(message)
+
+
 def send_announcement(message, username="Server"):
     """POST a message to the Discord announcements webhook. Runs in a
     thread to avoid blocking the Evennia server loop.
@@ -226,7 +237,7 @@ def connect_signals():
     )
 
     def _on_first_login(sender, **kwargs):
-        send_announcement(f":green_circle: **{sender.key}** connected")
+        send_to_mudinfo(f"{sender.key} connected")
 
     def _on_login(sender, **kwargs):
         pass
@@ -235,7 +246,7 @@ def connect_signals():
         pass
 
     def _on_last_logout(sender, **kwargs):
-        send_announcement(f":red_circle: **{sender.key}** disconnected")
+        send_to_mudinfo(f"{sender.key} disconnected")
 
     SIGNAL_ACCOUNT_POST_FIRST_LOGIN.connect(_on_first_login, sender=None)
     SIGNAL_ACCOUNT_POST_LOGOUT.connect(_on_logout, sender=None)

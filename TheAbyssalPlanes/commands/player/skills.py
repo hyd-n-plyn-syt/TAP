@@ -9,17 +9,19 @@ from world.systems import skills
 
 class CmdSkills(Command):
     """
-    View the skills you know.
+    View the skills you know or all available skills.
 
     Usage:
       skills
+      skills all
       skills <skill>
 
     Lists every skill you have learned, grouped by category, with its value
     (0-1000), progress within the current tier, and XP until the next point.
-    With a skill name, shows the detail for that skill, including which
-    statistics it exercises for you. Skills you have not learned are not
-    shown; seek out a trainer to learn them.
+    'skills all' lists every skill available in the game, showing unlearned
+    ones as well. With a skill name, shows the detail for that skill, including
+    which statistics it exercises for you. Skills you have not learned are not
+    shown in the normal list; seek out a trainer to learn them.
     """
     key = "skills"
     aliases = ["skill"]
@@ -29,6 +31,19 @@ class CmdSkills(Command):
     def func(self):
         caller = self.caller
         arg = self.args.strip()
+
+        if arg.lower() == "all":
+            all_dict = data.all_skills()
+            lines = ["|w=== All Skills ===|n"]
+            for cat in data.categories():
+                in_cat = [k for k, s in all_dict.items() if s["category"] == cat]
+                if not in_cat:
+                    continue
+                lines.append(f"|w{cat.capitalize()}|n")
+                for key in in_cat:
+                    lines.append(self._line(caller, key))
+            caller.msg("\n".join(lines))
+            return
 
         if arg:
             self._show_detail(caller, arg)
@@ -54,8 +69,10 @@ class CmdSkills(Command):
         caller.msg("\n".join(lines))
 
     def _line(self, caller, key):
-        """One listing line for a known skill."""
+        """One listing line for a skill (known or unlearned)."""
         skill = data.get_skill(key)
+        if not caller.skills or key not in caller.skills:
+            return f"  |w{skill['name']:16}|n  |xUnlearned|n"
         value = skills.skill_value(caller, key)
         pct = skills.within_tier(value)
         xpnext = skills.xp_to_next(caller, key)

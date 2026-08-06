@@ -13,7 +13,7 @@ from evennia.server.models import ServerConfig
 
 from world.data import changes
 from world.discord_integration import (
-    send_announcement,
+    send_to_mudinfo,
     start_discord_bot,
     stop_discord_bot,
     connect_signals,
@@ -29,7 +29,7 @@ def _broadcast_newest():
     if announced >= latest:
         return
     entry = changes.get_change(latest)
-    evennia.SESSION_HANDLER.announce_all(
+    send_to_mudinfo(
         f"|y*** New change: #{entry['number']} |w{entry['title']}|n|n\n"
         f"Type |wchanges|n to read what's new."
     )
@@ -53,7 +53,7 @@ def at_server_start():
         evennia.logger.log_trace(f"Error starting Discord bot: {err}")
     try:
         connect_signals()
-        send_announcement(":green_circle: **Server started**")
+        send_to_mudinfo("Server started")
     except Exception as err:
         evennia.logger.log_trace(f"Error sending startup announcement: {err}")
 
@@ -66,7 +66,7 @@ def at_server_reload_start():
 def at_server_stop():
     """Called on server shutdown."""
     try:
-        send_announcement(":red_circle: **Server shutting down**")
+        send_to_mudinfo("Server shutting down")
     except Exception as err:
         evennia.logger.log_trace(f"Error sending shutdown announcement: {err}")
     try:

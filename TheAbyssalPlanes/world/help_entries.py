@@ -549,7 +549,7 @@ See also: |whelp|n.
     },
     {
         "key": "addchange",
-        "category": "General",
+        "category": "Admin",
         "aliases": ["addchangelog"],
         "text": """
 |wAdd Change|n
@@ -560,10 +560,25 @@ then written into the game's changelog data file so it survives a server
 restart. The change is announced immediately to everyone connected, and
 players who miss it get it shown at |wlogin|n until they read it.
 
-Builders only. There is no way to edit or remove an entry in-game; to
-correct a mistake, edit the entry in world/data/changes.py directly.
+Admins and above. To remove a change entry, use |wremovechange <number>|n.
 
-See also: |wchanges|n.
+See also: |wremovechange|n, |wchanges|n.
+""".strip(),
+    },
+    {
+        "key": "removechange",
+        "category": "Admin",
+        "aliases": ["removechangelog", "delchange"],
+        "text": """
+|wRemove Change|n
+
+|wremovechange <number>|n removes the specified entry from the changelog
+and automatically re-indexes all subsequent entries so that numbering
+remains continuous. The updated changelog is written back to the data file.
+
+Admins and above.
+
+See also: |waddchange|n, |wchanges|n.
 """.strip(),
     },
 ]

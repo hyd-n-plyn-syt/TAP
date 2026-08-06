@@ -23,12 +23,11 @@ CHANGES = [
         "date": "2026-07-29",
         "title": "The 5-D world grid",
         "body": (
-            "Rooms were stamped with a two-tier coordinate grid: a planetary "
-            "tier (planet_x / y / z) and a local subzone tier (site_x / y / z), "
-            "keyed by planetary body and site. Each new room knows exactly "
-            "where it sits in the world, which lets look, travel and future "
-            "(weather, astronomy) features read positions off a room instead "
-            "of tracking them by hand."
+            "Rooms were stamped with a two-tier coordinate grid: a planetary tier "
+            "(planet_x / y / z) and a local subzone tier (site_x / y / z), keyed by "
+            "planetary body and site. Each new room knows exactly where it sits in the "
+            "world, which lets look, travel and future (weather, astronomy) features "
+            "read positions off a room instead of tracking them by hand."
         ),
     },
     {
@@ -36,12 +35,11 @@ CHANGES = [
         "date": "2026-07-29",
         "title": "Exit descriptions & a clockwise direction matrix",
         "body": (
-            "Exits now carry descriptions so players and staff know where a "
-            "passage leads before stepping through. Room exits render in a "
-            "strict clockwise order (n, ne, e, se, s, sw, w, nw, up, down, "
-            "enter, leave) with multiple entrances grouped grammatically. The "
-            "cardinal-direction coordinate stepping behind 'dig' was fixed so "
-            "x, y, z map to the grid correctly."
+            "Exits now carry descriptions so players and staff know where a passage "
+            "leads before stepping through. Room exits render in a strict clockwise "
+            "order (n, ne, e, se, s, sw, w, nw, up, down, enter, leave) with multiple "
+            "entrances grouped grammatically. The cardinal-direction coordinate "
+            "stepping behind 'dig' was fixed so x, y, z map to the grid correctly."
         ),
     },
     {
@@ -49,13 +47,13 @@ CHANGES = [
         "date": "2026-07-30",
         "title": "Visarial meta-states, perception & manifestation",
         "body": (
-            "Objects and characters gained visarial meta-states so they can "
-            "exist in the physical world, the visarial world, or both at once. "
-            "Characters gained 'perceive' to be aware of the other plane from "
-            "where they stand, and 'manifest' to step fully across. When you "
-            "halve similar names in a room, look now only shows the ones on "
-            "planes you can actually see. A long-standing bug that stripped "
-            "color codes while re-capitalizing room listings was also fixed."
+            "Objects and characters gained visarial meta-states so they can exist in "
+            "the physical world, the visarial world, or both at once. Characters gained "
+            "'perceive' to be aware of the other plane from where they stand, and "
+            "'manifest' to step fully across. When you halve similar names in a room, "
+            "look now only shows the ones on planes you can actually see. A "
+            "long-standing bug that stripped color codes while re-capitalizing room "
+            "listings was also fixed."
         ),
     },
     {
@@ -63,14 +61,13 @@ CHANGES = [
         "date": "2026-08-01",
         "title": "Attributes, derived pools & the live prompt",
         "body": (
-            "Nine sub-attributes (Corpus / Genius / Animus across Power, "
-            "Speed and Resist) replaced a single stat line, feeding three "
-            "main attributes whose derived pools (Vigor, Vim, Mens) and "
-            "regen rates are computed on the fly and tracked per character. "
-            "A new live prompt shows your pools in numbers, percentages or "
-            "graphical bars, colored by how damaged the pools are, and "
-            "toggles with 'promptmode'. New 'stats' and builder 'attset' "
-            "commands were added for viewing and testing them."
+            "Nine sub-attributes (Corpus / Genius / Animus across Power, Speed and "
+            "Resist) replaced a single stat line, feeding three main attributes whose "
+            "derived pools (Vigor, Vim, Mens) and regen rates are computed on the fly "
+            "and tracked per character. A new live prompt shows your pools in numbers, "
+            "percentages or graphical bars, colored by how damaged the pools are, and "
+            "toggles with 'promptmode'. New 'stats' and builder 'attset' commands were "
+            "added for viewing and testing them."
         ),
     },
     {
@@ -78,15 +75,14 @@ CHANGES = [
         "date": "2026-08-02",
         "title": "Species, appearance phrases, poses & cosmic time",
         "body": (
-            "Nine playable species were added, each with its own visarial "
-            "nature, a persistent stat bonus, some permanently locked stat "
-            "columns and hidden pools. Characters are now described by a "
-            "three-word appearance phrase ('A tall and lean, refracting "
-            "Visarii standing here.') tunable with setheight / setbuild / "
-            "setadjective / setskin. A whitelisted pose system replaced the "
-            "stock pose, and a universal 23-hour day / 28-day month / "
-            "13-month year calendar with 13 ruling signs and 3 orbiting "
-            "planets brought the 'time' command alive."
+            "Nine playable species were added, each with its own visarial nature, a "
+            "persistent stat bonus, some permanently locked stat columns and hidden "
+            "pools. Characters are now described by a three-word appearance phrase ('A "
+            "tall and lean, refracting Visarii standing here.') tunable with setheight "
+            "/ setbuild / setadjective / setskin. A whitelisted pose system replaced "
+            "the stock pose, and a universal 23-hour day / 28-day month / 13-month year "
+            "calendar with 13 ruling signs and 3 orbiting planets brought the 'time' "
+            "command alive."
         ),
     },
     {
@@ -94,13 +90,12 @@ CHANGES = [
         "date": "2026-08-02",
         "title": "Skills, stat growth & rankings",
         "body": (
-            "A full progression layer arrived: thirteen skills spanning "
-            "categories, each tied to weighted sub-stats, with 0-1000 values "
-            "across ten tiers (Novice to Grandmaster). Skills grow through "
-            "'use' with diminishing returns that reward branching, and the "
-            "stats they feed also grow, capped by a 14-rank ladder from "
-            "'no rank' up to 'ungodly'. The 'skills' command shows what you "
-            "know; builders learn or set skills with 'setskill'."
+            "A full progression layer arrived: thirteen skills spanning categories, "
+            "each tied to weighted sub-stats, with 0-1000 values across ten tiers "
+            "(Novice to Grandmaster). Skills grow through 'use' with diminishing "
+            "returns that reward branching, and the stats they feed also grow, capped "
+            "by a 14-rank ladder from 'no rank' up to 'ungodly'. The 'skills' command "
+            "shows what you know; builders learn or set skills with 'setskill'."
         ),
     },
     {
@@ -108,14 +103,12 @@ CHANGES = [
         "date": "2026-08-02",
         "title": "Trainers, alternate stat mains, colored tiers & a spawning area",
         "body": (
-            "Trainer NPCs teach skills via the builder 'settrainer', and "
-            "players learn them with 'train' once prerequisites are met. "
-            "Species that lock out a main stat pivot that column to an "
-            "alternate (Visarii corpus→animus, Silex animus→corpus) so no "
-            "skill is wasted. Rank and tier names gained per-entry colors, "
-            "and new characters now home to the Center of Creation, where a "
-            "Keeper offers the fundamentals and sets the advanced skills as "
-            "goals."
+            "Trainer NPCs teach skills via the builder 'settrainer', and players learn "
+            "them with 'train' once prerequisites are met. Species that lock out a main "
+            "stat pivot that column to an alternate (Visarii corpus→animus, Silex "
+            "animus→corpus) so no skill is wasted. Rank and tier names gained per-entry "
+            "colors, and new characters now home to the Center of Creation, where a "
+            "Keeper offers the fundamentals and sets the advanced skills as goals."
         ),
     },
     {
@@ -123,15 +116,14 @@ CHANGES = [
         "date": "2026-08-02",
         "title": "Visarial plane & Vim-connection model",
         "body": (
-            "The engine for how things sit in the world was unified under a "
-            "single 'visarial nature' on every object, controlling both the "
-            "plane it occupies and its connection to Vim. Physical nature "
-            "(Silex, plain stones) is 'absolutely disconnected from Vim'; "
-            "visarial nature (Visarii) glows with a magenta Vim aura; "
-            "dual-natured beings carry both descriptions. Perception is now "
-            "per-entity and split between see and touch, so what you can "
-            "perceive and what you can reach are independent. Builders can "
-            "override a prop's nature with 'setnature'."
+            "The engine for how things sit in the world was unified under a single "
+            "'visarial nature' on every object, controlling both the plane it occupies "
+            "and its connection to Vim. Physical nature (Silex, plain stones) is "
+            "'absolutely disconnected from Vim'; visarial nature (Visarii) glows with a "
+            "magenta Vim aura; dual-natured beings carry both descriptions. Perception "
+            "is now per-entity and split between see and touch, so what you can "
+            "perceive and what you can reach are independent. Builders can override a "
+            "prop's nature with 'setnature'."
         ),
     },
     {
@@ -139,13 +131,12 @@ CHANGES = [
         "date": "2026-08-03",
         "title": "Realm-aware speech, unified states & staff tools",
         "body": (
-            "Speech now follows the planes: your words only land in the realm "
-            "you occupy, and a room's characters only hear you if they can "
-            "see that realm. Whispering to a named target still crosses the "
-            "fold. The internal state naming was unified so every creature's "
-            "home realm is represented consistently, and staff gained a "
-            "global 'force' that can command anyone on any plane, in any "
-            "room, whether or not they can see them."
+            "Speech now follows the planes: your words only land in the realm you "
+            "occupy, and a room's characters only hear you if they can see that realm. "
+            "Whispering to a named target still crosses the fold. The internal state "
+            "naming was unified so every creature's home realm is represented "
+            "consistently, and staff gained a global 'force' that can command anyone on "
+            "any plane, in any room, whether or not they can see them."
         ),
     },
     {
@@ -153,12 +144,11 @@ CHANGES = [
         "date": "2026-08-03",
         "title": "The 'changes' command",
         "body": (
-            "This command was added. 'changes' lists the changes you haven't "
-            "read yet; 'changes all' shows the full history; 'changes <number>' "
-            "(or 'changes latest') reads one entry and marks everything up to "
-            "it as read. When new changes land, they announce themselves here "
-            "and at login so nothing is missed. This is change #10, the one "
-            "you are reading now."
+            "This command was added. 'changes' lists the changes you haven't read yet; "
+            "'changes all' shows the full history; 'changes <number>' (or 'changes "
+            "latest') reads one entry and marks everything up to it as read. When new "
+            "changes land, they announce themselves here and at login so nothing is "
+            "missed. This is change #10, the one you are reading now."
         ),
     },
     {
@@ -205,10 +195,10 @@ CHANGES = [
             "auto-generated from stored attributes: height, build, species, gender, "
             "adjective, eyes, eye colour, hair, hair colour, and skin tone. Each "
             "attribute contributes a sentence; unset attributes are silently omitted. "
-            "Pose determines the opening line (e.g. 'Before you stands...' vs "
-            "'Before you sits...'). Four new builder commands were added: seteyes, "
-            "seteyecolor, sethair, and sethaircolor. The manual 'desc' is still "
-            "appended after the generated paragraph for extra player-written flair."
+            "Pose determines the opening line (e.g. 'Before you stands...' vs 'Before "
+            "you sits...'). Four new builder commands were added: seteyes, seteyecolor, "
+            "sethair, and sethaircolor. The manual 'desc' is still appended after the "
+            "generated paragraph for extra player-written flair."
         ),
     },
     {
@@ -216,13 +206,12 @@ CHANGES = [
         "date": "2026-08-04",
         "title": "Guided character creation system",
         "body": (
-            "New characters are now created through a step-by-step menu: choose "
-            "gender, species, then each appearance option (height, build, adjective, "
-            "skin colour, eyes, eye colour, hair, hair colour). Finally, you order "
-            "the three main attributes by priority and distribute bonus points "
-            "(6/4/2) across their sub-stats. The 'charcreate' command replaces the "
-            "stock Evennia flow, and a new 'mychars' command lists all characters "
-            "on your account."
+            "New characters are now created through a step-by-step menu: choose gender, "
+            "species, then each appearance option (height, build, adjective, skin "
+            "colour, eyes, eye colour, hair, hair colour). Finally, you order the three "
+            "main attributes by priority and distribute bonus points (6/4/2) across "
+            "their sub-stats. The 'charcreate' command replaces the stock Evennia flow, "
+            "and a new 'mychars' command lists all characters on your account."
         ),
     },
     {
@@ -230,11 +219,11 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Builder teleport & custom messages",
         "body": (
-            "The teleport command was lowered to Builder permission. Characters "
-            "now have teleport locks that control who can teleport to or from them, "
-            "defaulting to Admin and above. A new builder 'teleport' command "
-            "delivers custom source, destination, and self messages when moving "
-            "characters between rooms."
+            "The teleport command was lowered to Builder permission. Characters now "
+            "have teleport locks that control who can teleport to or from them, "
+            "defaulting to Admin and above. A new builder 'teleport' command delivers "
+            "custom source, destination, and self messages when moving characters "
+            "between rooms."
         ),
     },
     {
@@ -243,12 +232,12 @@ CHANGES = [
         "title": "Doors, locks, hidden exits & the build menu",
         "body": (
             "Exits gained a full door system: open, close, lock, unlock, and an "
-            "autoopen toggle. Locked doors require a matching key; each locked "
-            "door creates one key shared between its two sides. Hidden exits are "
-            "invisible until spotted, gated by the new 'awareness' skill. Doors "
-            "can be breakable, gated by the new 'bash' skill. The new 'digm' "
-            "(digmenu) command launches an interactive build menu for creating "
-            "rooms and exits with all these options step by step."
+            "autoopen toggle. Locked doors require a matching key; each locked door "
+            "creates one key shared between its two sides. Hidden exits are invisible "
+            "until spotted, gated by the new 'awareness' skill. Doors can be breakable, "
+            "gated by the new 'bash' skill. The new 'digm' (digmenu) command launches "
+            "an interactive build menu for creating rooms and exits with all these "
+            "options step by step."
         ),
     },
     {
@@ -256,10 +245,10 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Direction fallbacks",
         "body": (
-            "Typing a cardinal direction where no exit exists now attempts to find "
-            "and use an exit in that direction, rather than just saying 'no exit'. "
-            "Exits named 'north', 'south', etc. (or their aliases 'n', 's', etc.) "
-            "are detected dynamically and offered to the player."
+            "Typing a cardinal direction where no exit exists now attempts to find and "
+            "use an exit in that direction, rather than just saying 'no exit'. Exits "
+            "named 'north', 'south', etc. (or their aliases 'n', 's', etc.) are "
+            "detected dynamically and offered to the player."
         ),
     },
     {
@@ -267,12 +256,12 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Discord ↔ game OOC integration",
         "body": (
-            "The OOC channel is now two-way with Discord. In-game OOC messages "
-            "appear in the Discord #OOC channel, and messages sent in Discord "
-            "appear in-game with a [Discord] tag. Sender names are coloured by "
-            "permission level both ways: orange for developers, dark orange for "
-            "builders, teal for players. The OOC command was removed; use 'ooc "
-            "<message>' or the channel alias instead."
+            "The OOC channel is now two-way with Discord. In-game OOC messages appear "
+            "in the Discord #OOC channel, and messages sent in Discord appear in-game "
+            "with a [Discord] tag. Sender names are coloured by permission level both "
+            "ways: orange for developers, dark orange for builders, teal for players. "
+            "The OOC command was removed; use 'ooc <message>' or the channel alias "
+            "instead."
         ),
     },
     {
@@ -280,10 +269,10 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "New skills: lockpick, bash, awareness",
         "body": (
-            "Three new skills were added to support the door system. 'lockpick' "
-            "lets you try to pick a locked door. 'bash' lets you force a door "
-            "open by brute strength. 'awareness' lets you detect hidden exits "
-            "in a room. All three gate their respective door interactions."
+            "Three new skills were added to support the door system. 'lockpick' lets "
+            "you try to pick a locked door. 'bash' lets you force a door open by brute "
+            "strength. 'awareness' lets you detect hidden exits in a room. All three "
+            "gate their respective door interactions."
         ),
     },
     {
@@ -291,11 +280,11 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Appearance-based targeting",
         "body": (
-            "Any word from a character's appearance description can now be "
-            "used to target them. When multiple characters share the same "
-            "description, Evennia shows numbered labels like [virentes-1] "
-            "and [virentes-2] so you can select a specific one. The search "
-            "checks name, aliases, then appearance paragraph words in order."
+            "Any word from a character's appearance description can now be used to "
+            "target them. When multiple characters share the same description, Evennia "
+            "shows numbered labels like [virentes-1] and [virentes-2] so you can select "
+            "a specific one. The search checks name, aliases, then appearance paragraph "
+            "words in order."
         ),
     },
     {
@@ -303,12 +292,11 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Character creation improvements",
         "body": (
-            "The chargen menu now shows a welcome screen with 'Press ENTER "
-            "to continue...' before starting. Skin, eye, and hair colour "
-            "options are displayed in their actual colour so you can see "
-            "what you're choosing. Species help entries can be browsed with "
-            "the '?N' command at any species prompt, showing a full "
-            "description, nature, stat bonus, and locked traits."
+            "The chargen menu now shows a welcome screen with 'Press ENTER to "
+            "continue...' before starting. Skin, eye, and hair colour options are "
+            "displayed in their actual colour so you can see what you're choosing. "
+            "Species help entries can be browsed with the '?N' command at any species "
+            "prompt, showing a full description, nature, stat bonus, and locked traits."
         ),
     },
     {
@@ -316,34 +304,23 @@ CHANGES = [
         "date": "2026-08-05",
         "title": "Account and permission fixes",
         "body": (
-            "Character slots were overridden: players get 3, builders and "
-            "above get 4. The 'mychars' command was fixed to work with "
-            "the account system. The 'charcreate' command now defers "
-            "character creation until the final step. Permission checks "
-            "now use lowercase strings and account-level lookups. The OOC "
-            "channel name is displayed in white, and sender names are "
-            "coloured by permission level in-game."
+            "Character slots were overridden: players get 3, builders and above get 4. "
+            "The 'mychars' command was fixed to work with the account system. The "
+            "'charcreate' command now defers character creation until the final step. "
+            "Permission checks now use lowercase strings and account-level lookups. The "
+            "OOC channel name is displayed in white, and sender names are coloured by "
+            "permission level in-game."
         ),
     },
     {
         "number": 24,
-        "date": "2026-08-05",
-        "title": "Discord announcements channel",
+        "date": "2026-08-06",
+        "title": "Added REMOVECHANGE and added to Discord Bot",
         "body": (
-            "Server and system announcements now go to a dedicated Discord "
-            "channel via its own webhook. Server start, shutdown, player "
-            "connect, and player disconnect messages are all posted there "
-            "with colour-coded emoji indicators."
-        ),
-    },
-    {
-        "number": 25,
-        "date": "2026-08-05",
-        "title": "MudInfo channel Discord routing",
-        "body": (
-            "Connect and disconnect messages from the MudInfo channel now "
-            "correctly route to the Discord announcements channel instead "
-            "of the OOC channel."
+            "Successfully added the CHANGES command to the Discord announce bot. They "
+            "will now dump into the 'system' channel on the official Discord server. "
+            "Also added in a REMOVECHANGES command, and elevated both to admin level "
+            "permissions."
         ),
     },
 ]
@@ -492,3 +469,50 @@ def append_entry(title, body, filepath=None):
         f.write(_insert(_serialize(entry), source))
     CHANGES.append(entry)
     return entry
+
+
+def remove_entry(number, filepath=None):
+    """Remove change #number, renumber remaining entries sequentially from 1,
+    and persist changes to the changelog file and in-memory list.
+    Returns the removed entry."""
+    found = None
+    for entry in CHANGES:
+        if entry["number"] == number:
+            found = entry
+            break
+    if not found:
+        raise ValueError(f"There is no change #{number}.")
+
+    CHANGES.remove(found)
+    for i, entry in enumerate(CHANGES, start=1):
+        entry["number"] = i
+
+    path = filepath or CHANGES_FILE
+    with open(path, "r", encoding="utf-8") as f:
+        source = f.read()
+
+    tree = ast.parse(source)
+    assign_node = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "CHANGES" for t in node.targets
+        ):
+            assign_node = node
+            break
+    if assign_node is None:
+        raise ValueError("Could not locate the CHANGES list.")
+
+    entries_code = "\n".join([_serialize(e) for e in CHANGES])
+    new_changes_block = f"CHANGES = [\n{entries_code}\n]"
+
+    lines = source.splitlines()
+    start_line = assign_node.lineno - 1
+    end_line = assign_node.end_lineno
+    lines[start_line:end_line] = [new_changes_block]
+
+    new_source = "\n".join(lines) + "\n"
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new_source)
+
+    return found
+
