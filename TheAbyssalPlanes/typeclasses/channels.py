@@ -10,7 +10,7 @@ shown in white (|w).
 from evennia.comms.comms import DefaultChannel
 from evennia.utils.ansi import strip_ansi
 
-from world.discord_integration import send_to_discord
+from world.discord_integration import send_announcement, send_to_discord
 
 import evennia
 
@@ -44,8 +44,11 @@ class Channel(DefaultChannel):
         relayed = kwargs.get("relayed", False)
         if relayed:
             return
-        sender = senders[0] if senders else None
-        sender_name = sender.key if sender else "Server"
-        hex_color = _perm_hex(sender) if sender else None
         clean = strip_ansi(message).strip()
-        send_to_discord(clean, username=sender_name, hex_color=hex_color)
+        if self.key.lower() == "mudinfo":
+            send_announcement(clean)
+        else:
+            sender = senders[0] if senders else None
+            sender_name = sender.key if sender else "Server"
+            hex_color = _perm_hex(sender) if sender else None
+            send_to_discord(clean, username=sender_name, hex_color=hex_color)

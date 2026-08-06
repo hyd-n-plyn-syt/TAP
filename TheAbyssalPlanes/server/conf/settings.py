@@ -66,7 +66,14 @@ DEFAULT_CHANNELS = [
         "desc": "Out-of-character discussion",
         "locks": "control:perm(Admin);listen:all();send:all()",
         "typeclass": "typeclasses.channels.Channel",
-    }
+    },
+    {
+        "key": "mudinfo",
+        "aliases": (),
+        "desc": "Server system messages",
+        "locks": "control:perm(Admin);listen:all();send:all()",
+        "typeclass": "typeclasses.channels.Channel",
+    },
 ]
 
 
