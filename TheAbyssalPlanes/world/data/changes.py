@@ -333,6 +333,31 @@ CHANGES = [
             "function yet, and there are still an absolute ton to come."
         ),
     },
+    {
+        "number": 26,
+        "date": "2026-08-07",
+        "title": "Skill categories & strict weighting rules",
+        "body": (
+            "Skills were fully reorganized into three main categories: Corpus, "
+            "Genius, and Animus, determined by the major contributing sub-statistic. "
+            "Strict weighting rules were established: single-stat skills take 100%, "
+            "two-stat skills require a 55/45 minimum split favoring the major stat, "
+            "and three-stat skills require a 40%+ major stat that strictly outranks "
+            "minor and extra contributors, all summing to 100%."
+        ),
+    },
+    {
+        "number": 27,
+        "date": "2026-08-07",
+        "title": "Teleport fixes, MudInfo auto-subscriptions & custom reload",
+        "body": (
+            "Teleporting no longer triggers double announcement readouts. All "
+            "existing and newly created player accounts are now automatically "
+            "subscribed to the MudInfo channel by default so everyone receives "
+            "system announcements. A custom @reload/@restart command was added "
+            "to broadcast restart warnings immediately in real time."
+        ),
+    },
 ]
 
 

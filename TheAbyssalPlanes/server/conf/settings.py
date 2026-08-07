@@ -68,13 +68,17 @@ DEFAULT_CHANNELS = [
         "typeclass": "typeclasses.channels.Channel",
     },
     {
-        "key": "mudinfo",
-        "aliases": (),
+        "key": "MudInfo",
+        "aliases": ("mudinfo",),
         "desc": "Server system messages",
         "locks": "control:perm(Admin);listen:all();send:all()",
         "typeclass": "typeclasses.channels.Channel",
     },
 ]
+
+# Squelch Evennia's built-in session/connection logs so only custom announcements show
+CHANNEL_MUDINFO = None
+CHANNEL_CONNECTINFO = None
 
 
 ######################################################################
@@ -125,6 +129,10 @@ DISCORD_ANNOUNCEMENTS_WEBHOOK_URL = (
     "1534758576348860530/"
     "SkKaqPr8wiKYL4N9iBwJ62_XtfIf3uJel9OLeMCO_r3T2SbowP-hMNQVu68g-2_y6x4x"
 )
+
+# Suppress Evennia's default stock server restart/restarted messages
+SERVER_RELOAD_INITIATE_MSG = ""
+SERVER_RESTART_MSG = ""
 
 
 ######################################################################

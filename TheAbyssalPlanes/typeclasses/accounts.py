@@ -158,6 +158,23 @@ class Account(DefaultAccount):
         alert = changes.alert_text(self.changes_seen)
         if alert:
             self.msg(alert)
+        try:
+            from evennia import ChannelDB
+            from world.discord_integration import send_to_mudinfo
+            mudinfo = ChannelDB.objects.get_channel("MudInfo") or ChannelDB.objects.get_channel("mudinfo")
+            if mudinfo and not mudinfo.has_connection(self):
+                mudinfo.connect(self)
+            send_to_mudinfo(f"|000**|w{self.key} |100has entered |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100!|000**|n")
+        except Exception:
+            pass
+
+    def at_disconnect(self, reason=None, **kwargs):
+        super().at_disconnect(reason=reason, **kwargs)
+        try:
+            from world.discord_integration import send_to_mudinfo
+            send_to_mudinfo(f"|000**|w{self.key} |100has left |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100.|000**|n")
+        except Exception:
+            pass
 
     def get_character_slots(self):
         if self.is_superuser or "developer" in self.permissions.all():

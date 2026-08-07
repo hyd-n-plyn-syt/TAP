@@ -218,36 +218,4 @@ def stop_discord_bot():
             pass
 
 
-_signals_connected = False
 
-
-def connect_signals():
-    """Connect Evennia account signals to Discord announcement callbacks.
-    Safe to call multiple times; only connects once."""
-    global _signals_connected
-    if _signals_connected:
-        return
-    _signals_connected = True
-
-    from evennia.server.signals import (
-        SIGNAL_ACCOUNT_POST_FIRST_LOGIN,
-        SIGNAL_ACCOUNT_POST_LOGIN,
-        SIGNAL_ACCOUNT_POST_LOGOUT,
-        SIGNAL_ACCOUNT_POST_LAST_LOGOUT,
-    )
-
-    def _on_first_login(sender, **kwargs):
-        send_to_mudinfo(f"{sender.key} connected")
-
-    def _on_login(sender, **kwargs):
-        pass
-
-    def _on_logout(sender, **kwargs):
-        pass
-
-    def _on_last_logout(sender, **kwargs):
-        send_to_mudinfo(f"{sender.key} disconnected")
-
-    SIGNAL_ACCOUNT_POST_FIRST_LOGIN.connect(_on_first_login, sender=None)
-    SIGNAL_ACCOUNT_POST_LOGOUT.connect(_on_logout, sender=None)
-    SIGNAL_ACCOUNT_POST_LAST_LOGOUT.connect(_on_last_logout, sender=None)

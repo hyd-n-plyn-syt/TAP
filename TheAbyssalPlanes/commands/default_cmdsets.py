@@ -27,6 +27,7 @@ from commands.building.force import CmdForce
 from commands.building.teleport import CmdBuilderTeleport
 from commands.admin.addchange import CmdAddChange
 from commands.admin.removechange import CmdRemoveChange
+from commands.admin.reload import CmdRestart
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
 from commands.player.skills import CmdSkills
@@ -93,6 +94,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetGender)
         self.add(CmdAddChange)
         self.add(CmdRemoveChange)
+        self.add(CmdRestart)
         self.add(CmdPerceive)
         self.add(CmdManifest)
         self.add(CmdSkills)

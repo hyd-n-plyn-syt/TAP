@@ -16,7 +16,6 @@ from world.discord_integration import (
     send_to_mudinfo,
     start_discord_bot,
     stop_discord_bot,
-    connect_signals,
 )
 
 
@@ -44,29 +43,69 @@ def announce_new():
         evennia.logger.log_trace(f"Error announcing changes: {err}")
 
 
+def connect_account_signals():
+    """Connect account creation signal to auto-subscribe new accounts to MudInfo."""
+    try:
+        from evennia.server.signals import SIGNAL_ACCOUNT_POST_CREATE
+        from evennia import ChannelDB
+
+        def _on_account_create(sender, **kwargs):
+            mudinfo = ChannelDB.objects.get_channel("MudInfo") or ChannelDB.objects.get_channel("mudinfo")
+            if mudinfo and not mudinfo.has_connection(sender):
+                mudinfo.connect(sender)
+
+        SIGNAL_ACCOUNT_POST_CREATE.connect(_on_account_create, sender=None)
+    except Exception as err:
+        evennia.logger.log_trace(f"Error connecting account create signal: {err}")
+
+
+import threading
+
+
 def at_server_start():
     """Called on every server startup (cold, reload, reset)."""
-    announce_new()
     try:
         start_discord_bot()
     except Exception as err:
         evennia.logger.log_trace(f"Error starting Discord bot: {err}")
     try:
-        connect_signals()
-        send_to_mudinfo("Server started")
+        connect_account_signals()
     except Exception as err:
-        evennia.logger.log_trace(f"Error sending startup announcement: {err}")
+        evennia.logger.log_trace(f"Error connecting account signals: {err}")
+    try:
+        from evennia import AccountDB, ChannelDB
+        mudinfo = ChannelDB.objects.get_channel("MudInfo") or ChannelDB.objects.get_channel("mudinfo")
+        if mudinfo:
+            for acct in AccountDB.objects.all():
+                if not mudinfo.has_connection(acct):
+                    mudinfo.connect(acct)
+    except Exception as err:
+        evennia.logger.log_trace(f"Error auto-subscribing accounts to MudInfo: {err}")
+
+    def _delayed_announce():
+        try:
+            send_to_mudinfo("|000**|105The server has s|104t|103a|102r|103t|104e|105d|100!|000**|n")
+            announce_new()
+        except Exception as err:
+            evennia.logger.log_trace(f"Error sending startup announcement: {err}")
+
+    threading.Timer(2.0, _delayed_announce).start()
 
 
 def at_server_reload_start():
     """Called when a reload begins."""
-    announce_new()
+    try:
+        stop_discord_bot()
+    except Exception as err:
+        evennia.logger.log_trace(f"Error stopping Discord bot: {err}")
 
 
 def at_server_stop():
     """Called on server shutdown."""
     try:
-        send_to_mudinfo("Server shutting down")
+        send_to_mudinfo("|000**|105The server is s|104h|103ut|102t|101in|102g d|103o|104w|105n|100.|000**|n")
+        import time
+        time.sleep(0.3)
     except Exception as err:
         evennia.logger.log_trace(f"Error sending shutdown announcement: {err}")
     try:
