@@ -176,12 +176,10 @@ def node_welcome(caller, raw_string, **kwargs):
         "You can type |wquit|n at any time to cancel.\n\n"
         "Press |wEnter|n to begin."
     )
-    options = ({"key": "_default", "goto": "node_indoor"},)
+    options = ({"key": "_default", "goto": "node_room_name"},)
     return text, options
 
-
 # ── room name ──────────────────────────────────────────────────────────
-
 
 def node_room_name(caller, raw_string, **kwargs):
     text = "|wStep 1 — Room Name|n\n\nWhat is the name of the new room?"
@@ -195,7 +193,9 @@ def parse_room_name(caller, raw_string, **kwargs):
         caller.msg("You must provide a room name.")
         return None
     _store(caller, "room_name", name)
-    return "node_direction"
+    return "node_indoor"
+
+# ── indoor ─────────────────────────────────────────────────────────────
 
 
 # ── direction ──────────────────────────────────────────────────────────
@@ -300,8 +300,32 @@ def parse_indoor(caller, raw_string, **kwargs):
     _store(caller, "is_indoor", value)
     if not value:
         _store(caller, "room_height", 4)
-        return "node_room_name"
+        return "node_room_size"
     return "node_can_fly"
+
+# ── room size ──────────────────────────────────────────────────────────
+
+def node_room_size(caller, raw_string, **kwargs):
+    text = "|wStep 1d — Room Size|n\n\nWidth and Height? (e.g., '10 3') (Default 1x1)"
+    options = ({"key": "_default", "goto": (parse_room_size, {})},)
+    return text, options
+
+def parse_room_size(caller, raw_string, **kwargs):
+    args = raw_string.split()
+    if not args:
+        width, height = 1, 1
+    elif len(args) == 2:
+        try:
+            width, height = int(args[0]), int(args[1])
+        except ValueError:
+            caller.msg("Dimensions must be integers.")
+            return None
+    else:
+        caller.msg("Provide width and height (e.g., '10 3') or leave blank for 1x1.")
+        return None
+        
+    _store(caller, "room_size", (width, height))
+    return "node_direction"
 
 # ── can fly ────────────────────────────────────────────────────────────
 
@@ -325,7 +349,7 @@ def parse_can_fly(caller, raw_string, **kwargs):
     _store(caller, "can_fly", value)
     if not value:
         _store(caller, "room_height", 1)
-        return "node_room_name"
+        return "node_room_size"
     return "node_fly_height"
 
 # ── fly height ─────────────────────────────────────────────────────────
@@ -348,7 +372,7 @@ def node_fly_height(caller, raw_string, **kwargs):
 def parse_fly_height(caller, raw_string, **kwargs):
     height = kwargs.get("value")
     _store(caller, "room_height", height)
-    return "node_room_name"
+    return "node_room_size"
 
 
 def node_door(caller, raw_string, **kwargs):
@@ -730,13 +754,16 @@ def node_finalize(caller, raw_string, **kwargs):
         
         room_height = _load(caller, "room_height", 1)
         new_room.db.room_height = room_height
+        
+        room_size = _load(caller, "room_size", (1, 1))
+        new_room.db.room_size = {"width": room_size[0], "height": room_size[1]}
 
         lines.append(
             f"|gRoom:|n {new_room.name} (#{new_room.id})  "
             f"Body={coords['body']}, Site={coords['site']}\n"
             f"  Planet ({coords['px']}, {coords['py']}, {coords['pz']})  "
             f"Site ({coords['sx']}, {coords['sy']}, {coords['sz']})\n"
-            f"  Height ({room_height})"
+            f"  Height ({room_height}) Size ({room_size[0]}x{room_size[1]})"
         )
 
         fwd_exit = create_object(
