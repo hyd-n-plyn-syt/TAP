@@ -278,6 +278,47 @@ def parse_return(caller, raw_string, **kwargs):
     return "node_door"
 
 
+# ── room size prompt ───────────────────────────────────────────────────
+
+def node_room_size_type(caller, raw_string, **kwargs):
+    text = (
+        "|wStep 1d — Room Size|n\n\n"
+        "Select a room size category:\n"
+        "1: Tiny\n2: Small\n3: Medium\n4: Large\n5: Huge\n6: Massive\n7: Custom"
+    )
+    options = (
+        {"key": "1", "goto": (parse_room_size_type, {"value": "tiny"})},
+        {"key": "2", "goto": (parse_room_size_type, {"value": "small"})},
+        {"key": "3", "goto": (parse_room_size_type, {"value": "medium"})},
+        {"key": "4", "goto": (parse_room_size_type, {"value": "large"})},
+        {"key": "5", "goto": (parse_room_size_type, {"value": "huge"})},
+        {"key": "6", "goto": (parse_room_size_type, {"value": "massive"})},
+        {"key": "7", "goto": "node_room_size_custom"},
+    )
+    return text, options
+
+def parse_room_size_type(caller, raw_string, **kwargs):
+    value = kwargs.get("value")
+    _store(caller, "room_size", value)
+    return "node_direction"
+
+def node_room_size_custom(caller, raw_string, **kwargs):
+    text = "|wStep 1e — Custom Room Size|n\n\nWidth and Height? (e.g., '10 3')"
+    options = ({"key": "_default", "goto": (parse_room_size_custom, {})},)
+    return text, options
+
+def parse_room_size_custom(caller, raw_string, **kwargs):
+    args = raw_string.split()
+    if len(args) == 2:
+        try:
+            width, height = int(args[0]), int(args[1])
+            _store(caller, "room_size", {"width": width, "height": height})
+            return "node_direction"
+        except ValueError:
+            pass
+    caller.msg("Provide width and height (e.g., '10 3').")
+    return None
+
 # ── indoor ─────────────────────────────────────────────────────────────
 
 def node_indoor(caller, raw_string, **kwargs):
@@ -300,43 +341,10 @@ def parse_indoor(caller, raw_string, **kwargs):
     _store(caller, "is_indoor", value)
     if not value:
         _store(caller, "room_height", 4)
-        return "node_room_size"
+        return "node_room_size_type"
     return "node_can_fly"
 
-# ── room size ──────────────────────────────────────────────────────────
-
-def node_room_size(caller, raw_string, **kwargs):
-    text = "|wStep 1d — Room Size|n\n\nWidth and Height? (e.g., '10 3') (Default 1x1)"
-    options = ({"key": "_default", "goto": (parse_room_size, {})},)
-    return text, options
-
-def parse_room_size(caller, raw_string, **kwargs):
-    args = raw_string.split()
-    if not args:
-        width, height = 1, 1
-    elif len(args) == 2:
-        try:
-            width, height = int(args[0]), int(args[1])
-        except ValueError:
-            caller.msg("Dimensions must be integers.")
-            return None
-    else:
-        caller.msg("Provide width and height (e.g., '10 3') or leave blank for 1x1.")
-        return None
-        
-    _store(caller, "room_size", (width, height))
-    return "node_direction"
-
 # ── can fly ────────────────────────────────────────────────────────────
-
-def node_can_fly(caller, raw_string, **kwargs):
-    text = "|wStep 1b — Fly|n\n\nCan you fly inside this room? (y/n)"
-    options = (
-        {"key": "y", "desc": "Yes", "goto": (parse_can_fly, {"value": True})},
-        {"key": "n", "desc": "No", "goto": (parse_can_fly, {"value": False})},
-        {"key": "_default", "goto": (parse_can_fly, {})},
-    )
-    return text, options
 
 def parse_can_fly(caller, raw_string, **kwargs):
     value = kwargs.get("value")
@@ -349,30 +357,13 @@ def parse_can_fly(caller, raw_string, **kwargs):
     _store(caller, "can_fly", value)
     if not value:
         _store(caller, "room_height", 1)
-        return "node_room_size"
+        return "node_room_size_type"
     return "node_fly_height"
-
-# ── fly height ─────────────────────────────────────────────────────────
-
-def node_fly_height(caller, raw_string, **kwargs):
-    text = (
-        "|wStep 1c — Flight Height|n\n\n"
-        "How high can you fly in this room?\n"
-        "1: Above\n"
-        "2: High Above\n"
-        "3: Very High Above"
-    )
-    options = (
-        {"key": "1", "desc": "Above", "goto": (parse_fly_height, {"value": 2})},
-        {"key": "2", "desc": "High Above", "goto": (parse_fly_height, {"value": 3})},
-        {"key": "3", "desc": "Very High Above", "goto": (parse_fly_height, {"value": 4})},
-    )
-    return text, options
 
 def parse_fly_height(caller, raw_string, **kwargs):
     height = kwargs.get("value")
     _store(caller, "room_height", height)
-    return "node_room_size"
+    return "node_room_size_type"
 
 
 def node_door(caller, raw_string, **kwargs):
@@ -755,16 +746,13 @@ def node_finalize(caller, raw_string, **kwargs):
         room_height = _load(caller, "room_height", 1)
         new_room.db.room_height = room_height
         
-        room_size = _load(caller, "room_size", (1, 1))
-        new_room.db.room_size = {"width": room_size[0], "height": room_size[1]}
-
-        lines.append(
-            f"|gRoom:|n {new_room.name} (#{new_room.id})  "
-            f"Body={coords['body']}, Site={coords['site']}\n"
-            f"  Planet ({coords['px']}, {coords['py']}, {coords['pz']})  "
-            f"Site ({coords['sx']}, {coords['sy']}, {coords['sz']})\n"
-            f"  Height ({room_height}) Size ({room_size[0]}x{room_size[1]})"
-        )
+        room_size = _load(caller, "room_size", "medium")
+        if isinstance(room_size, dict):
+            new_room.db.room_size = room_size
+            lines.append(f"  Height ({room_height}) Size ({room_size['width']}x{room_size['height']})")
+        else:
+            new_room.db.room_size = room_size
+            lines.append(f"  Height ({room_height}) Size ({room_size})")
 
         fwd_exit = create_object(
             "typeclasses.exits.Exit", key=fwd_name, aliases=fwd_aliases,
