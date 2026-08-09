@@ -358,6 +358,15 @@ CHANGES = [
             "to broadcast restart warnings immediately in real time."
         ),
     },
+    {
+        "number": 28,
+        "date": "2026-08-09",
+        "title": "MapSize command update",
+        "body": (
+            "Modified the MAPSIZE command to accept numeric input from 3 to 25, instead "
+            "of toggling between small, medium, and large."
+        ),
+    },
 ]
 
 

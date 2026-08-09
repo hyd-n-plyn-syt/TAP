@@ -22,6 +22,7 @@ from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
 from commands.building.settrainer import CmdSetTrainer
 from commands.building.setnature import CmdSetNature
+from commands.building.setcanfly import CmdSetCanFly
 from commands.building.setgender import CmdSetGender
 from commands.building.force import CmdForce
 from commands.building.teleport import CmdBuilderTeleport
@@ -51,6 +52,12 @@ from commands.player.emote import CmdEmote
 from commands.player.setpose import CmdSetPose
 from commands.player.door_commands import CmdOpen, CmdClose, CmdLock, CmdUnlock, CmdAutoOpen
 from commands.player.movement import CmdDirectionFallback
+from commands.building.setroomsize import CmdSetRoomSize
+from commands.player.combat import CmdApproach, CmdMove
+from commands.player.fly import CmdFly, CmdLand
+from commands.player.where import CmdWhere, CmdWhereKey, CmdAutoWhere
+from commands.player.mapsize import CmdMapSize
+from commands.player.grid import CmdHelpGrid
 from evennia import CmdSet
 
 
@@ -91,7 +98,14 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetSkill)
         self.add(CmdSetTrainer)
         self.add(CmdSetNature)
+        self.add(CmdSetCanFly)
         self.add(CmdSetGender)
+        self.add(CmdFly)
+        self.add(CmdLand)
+        self.add(CmdWhere)
+        self.add(CmdWhereKey)
+        self.add(CmdAutoWhere)
+        self.add(CmdHelpGrid)
         self.add(CmdAddChange)
         self.add(CmdRemoveChange)
         self.add(CmdRestart)
@@ -114,6 +128,9 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
         self.add(CmdEmote)
+        self.add(CmdSetRoomSize)
+        self.add(CmdApproach)
+        self.add(CmdMove)
         self.add(CmdOpen)
         self.add(CmdClose)
         self.add(CmdLock)
@@ -141,6 +158,7 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         from commands.account.mychars import CmdMyChars
         self.add(CmdCharCreate)
         self.add(CmdMyChars)
+        self.add(CmdMapSize)
 
 
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):

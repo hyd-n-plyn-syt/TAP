@@ -16,9 +16,14 @@ class MockChar:
 
     def __init__(self, species_key=None):
         self.species_key = species_key
+        self.name = "MockChar"
         self.skills = {}
         self.skills_xp = {}
         self.stat_xp = {}
+        self.db = type('db', (), {})()
         for main in ("corpus", "genius", "animus"):
             for sub in ("potestas", "reflexus", "obsistis"):
                 setattr(self, f"{main}_{sub}", 1)
+
+    def msg(self, text):
+        pass

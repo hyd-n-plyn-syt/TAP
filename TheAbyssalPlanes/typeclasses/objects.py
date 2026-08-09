@@ -29,6 +29,13 @@ class ObjectParent:
     def at_object_creation(self):
         super().at_object_creation()
         self.db.visarial_nature = "dual_natured"
+        # Tactical spatial attributes
+        self.db.pos_x = 0
+        self.db.pos_y = 0
+        self.db.pos_z = 1
+        self.db.room_id = self.dbref
+        self.db.site_id = "default"
+        self.db.planet_id = "auridon"
 
     def nature(self):
         """The visarial nature: 'physical', 'visarial' or 'dual_natured'."""

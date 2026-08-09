@@ -51,6 +51,21 @@ class Exit(ObjectParent, DefaultExit):
         if is_door and not is_open:
             self.at_failed_traverse(traversing_object, **kwargs)
             return
+
+        # Grid movement: a character must first navigate to the exit's grid
+        # coordinate before the transition happens. Walking is paced by the
+        # combat loop (1 grid / second, 5 grids / round).
+        if hasattr(traversing_object, "db") and getattr(traversing_object.db, "pos_x", None) is not None:
+            from combat.grid import get_exit_coords
+            from combat.movement import start_navigation
+
+            coords = get_exit_coords(self.location, self)
+            if coords and (traversing_object.db.pos_x, traversing_object.db.pos_y) != coords:
+                start_navigation(traversing_object, coords[0], coords[1], exit_obj=self)
+                return
+            if coords:
+                traversing_object.db.pos_x, traversing_object.db.pos_y = coords
+
         super().at_traverse(traversing_object, target_location, **kwargs)
 
     def _has_key(self, caller):

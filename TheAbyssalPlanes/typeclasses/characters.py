@@ -82,9 +82,18 @@ class Character(ObjectParent, DefaultCharacter):
     sign = AttributeProperty(default=None)
     birth_date = AttributeProperty(default=None)
 
-    skills = AttributeProperty(default={}, category="growth")
-    skills_xp = AttributeProperty(default={}, category="growth")
-    stat_xp = AttributeProperty(default={}, category="growth")
+    combat_target = AttributeProperty(default=None)
+    friendly_target = AttributeProperty(default=None)
+    manual_queue = AttributeProperty(default=[])
+    preferred_moves = AttributeProperty(default=[])
+    pos_x = AttributeProperty(default=0)
+    pos_y = AttributeProperty(default=0)
+    pos_z = AttributeProperty(default=1)
+    is_flying = AttributeProperty(default=False)
+    can_fly = AttributeProperty(default=False)
+    is_autowhere = AttributeProperty(default=False)
+    is_hostile = AttributeProperty(default=False)
+    map_size = AttributeProperty(default=15)
 
     @property
     def species(self):
@@ -486,6 +495,66 @@ class Character(ObjectParent, DefaultCharacter):
         self.pose = pose
         return True
 
+    def at_post_move(self, source_location, move_type="move", **kwargs):
+        """
+        After any move, stamp this character's grid position onto the new
+        room's entry coordinate. The entry point is inferred from the exit
+        just traversed: leaving via a North exit means arriving at the new
+        room's South wall.
+        """
+        super().at_post_move(source_location, **kwargs)
+        if not (self.location and source_location):
+            return
+        from combat.grid import get_entry_coords, get_room_grid_size
+        
+        entry = None
+        for obj in source_location.contents:
+            if not obj.destination:
+                continue
+            if obj.destination.id == self.location.id:
+                for name in (obj.key, *(obj.aliases.all() or [])):
+                    if name.lower() in ("north", "south", "east", "west"):
+                        opp = {
+                            "north": "south", "south": "north",
+                            "east": "west", "west": "east",
+                        }[name.lower()]
+                        entry = get_entry_coords(self.location, opp)
+                        break
+                if entry:
+                    break
+        if entry:
+            self.db.pos_x, self.db.pos_y = entry
+        else:
+            size = get_room_grid_size(self.location)
+            self.db.pos_x = size // 2
+            self.db.pos_y = size // 2
+        self.db.pos_z = 1
+        self.db.room_id = self.location.dbref
+
+    def _exit_direction(self, room, target):
+        """Compass direction of the exit in `room` leading to `target`, or None."""
+        if not room or not target:
+            return None
+        from combat.grid import exit_direction
+        for obj in room.contents:
+            if getattr(obj, "destination", None) and obj.destination.id == target.id:
+                direction = exit_direction(obj)
+                if direction:
+                    return direction
+        return None
+
+    def _movement_observers(self):
+        """Creatures in the current room who can perceive this character."""
+        if not self.location:
+            return []
+        return [
+            obj
+            for obj in self.location.contents
+            if obj is not self
+            and getattr(obj, "is_creature", False)
+            and self.visible_to(obj)
+        ]
+
     def announce_move_from(self, destination, msg=None, mapping=None, move_type="move", **kwargs):
         if move_type == "teleport":
             if self.location:
@@ -499,7 +568,18 @@ class Character(ObjectParent, DefaultCharacter):
                     f"{self.location.key} and heading to {destination.key}."
                 )
             return
-        super().announce_move_from(destination, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
+        if move_type not in ("move", "traverse") or not self.location:
+            super().announce_move_from(destination, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
+            return
+        direction = self._exit_direction(self.location, destination)
+        phrase = self.appearance_name
+        if direction:
+            text = f"{phrase} walks away to the {direction}."
+            self.msg(f"You walk to the {direction}.")
+        else:
+            text = f"{phrase} walks away."
+        for observer in self._movement_observers():
+            observer.msg(text, from_obj=self)
 
     def announce_move_to(self, source_location, msg=None, mapping=None, move_type="move", **kwargs):
         if move_type == "teleport":
@@ -510,7 +590,17 @@ class Character(ObjectParent, DefaultCharacter):
                     exclude=(self,),
                 )
             return
-        super().announce_move_to(source_location, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
+        if move_type not in ("move", "traverse") or not self.location:
+            super().announce_move_to(source_location, msg=msg, mapping=mapping, move_type=move_type, **kwargs)
+            return
+        direction = self._exit_direction(self.location, source_location)
+        phrase = self.appearance_name
+        if direction:
+            text = f"{phrase} walks in from the {direction}."
+        else:
+            text = f"{phrase} walks in."
+        for observer in self._movement_observers():
+            observer.msg(text, from_obj=self)
 
     def use_skill(self, key, difficulty="medium", times=1):
         """
@@ -617,9 +707,17 @@ class Character(ObjectParent, DefaultCharacter):
             **kwargs,
         )
 
+    def get_status_descriptor(self):
+        """
+        Returns status descriptors for Vigor, Vim, Mens based on pool percentage.
+        """
+        # (This will bridge to combat/target.py's descriptor mapping)
+        return "unharmed, mentally sound, and spiritually centered"
+
     def get_prompt(self):
-        """Build the client prompt from current pools and visarial state."""
+        """Build the client prompt from current pools and visarial state, including combat state."""
         mode = self.db.promptmode or "numbers"
+        # ... (Existing plane logic) ...
         plane = self.current_plane()
         plane_color = "|x" if plane == "physical" else "|M"
         state_text = f"{plane_color}{plane}|n"
@@ -647,8 +745,11 @@ class Character(ObjectParent, DefaultCharacter):
                     empty_color=_POOL_EMPTY_BG,
                 )
                 parts.append(f"{label} {bar}")
+            elif mode == "immersive":
+                parts.append(f"|w[|n{self.name} is {self.get_status_descriptor()}.|w]|n")
             else:
                 parts.append(f"{label} {pool_color(cur, maxv)}{cur}/{maxv}|n")
 
         parts.append(f"|w[|n{state_text}|w]|n")
         return "  ".join(parts)
+

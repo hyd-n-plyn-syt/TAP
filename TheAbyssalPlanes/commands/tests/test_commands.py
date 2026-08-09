@@ -14,7 +14,9 @@ from commands.player.train import CmdTrain
 from commands.player.perceive import CmdPerceive
 from commands.player.manifest import CmdManifest
 from commands.player.changes import CmdChanges
+from commands.player.combat import CmdMove
 from commands.building.setnature import CmdSetNature
+from commands.building.setcanfly import CmdSetCanFly
 from commands.building.force import CmdForce
 from commands.admin.addchange import CmdAddChange
 from commands.admin.removechange import CmdRemoveChange
@@ -438,6 +440,127 @@ class SetNatureCommandTest(EvenniaCommandTest):
         out = self.call(CmdSetNature(), "physical")
         self.assertIn("physical", out)
         self.assertEqual(self.char1.nature(), "physical")
+
+
+class SetCanFlyCommandTest(EvenniaCommandTest):
+    def test_toggle_on_off(self):
+        self.assertFalse(self.char1.db.can_fly)
+        out = self.call(CmdSetCanFly(), "on")
+        self.assertIn("can fly", out)
+        self.assertTrue(self.char1.db.can_fly)
+        out = self.call(CmdSetCanFly(), "off")
+        self.assertIn("cannot fly", out)
+        self.assertFalse(self.char1.db.can_fly)
+
+    def test_bare_toggles(self):
+        self.call(CmdSetCanFly(), "on")
+        self.call(CmdSetCanFly(), "")
+        self.assertFalse(self.char1.db.can_fly)
+
+
+class MoveCommandTest(EvenniaCommandTest):
+    def setUp(self):
+        super().setUp()
+        self.char1.db.pos_x = 2
+        self.char1.db.pos_y = 2
+        self.char1.db.pos_z = 1
+        self.nav_patch = mock.patch("commands.player.combat.start_navigation")
+        self.mock_start_nav = self.nav_patch.start()
+        self.addCleanup(self.nav_patch.stop)
+
+    def test_bare_usage_message(self):
+        out = self.call(CmdMove(), "")
+        self.assertIn("MOVE <x> <y>", out)
+        self.assertIn("MOVE <direction>", out)
+        self.assertIn("MOVE up", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_coordinate_move(self):
+        self.call(CmdMove(), "4 4")
+        self.mock_start_nav.assert_called_once_with(self.char1, 4, 4, z=None, movement_mode="walking")
+
+    def test_coordinate_out_of_bounds(self):
+        out = self.call(CmdMove(), "9 9")
+        self.assertIn("out of bounds", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_direction_northwest(self):
+        self.call(CmdMove(), "nw")
+        self.mock_start_nav.assert_called_once_with(self.char1, 1, 3, movement_mode="walking")
+
+    def test_direction_full_name(self):
+        self.call(CmdMove(), "southeast")
+        self.mock_start_nav.assert_called_once_with(self.char1, 3, 1, movement_mode="walking")
+
+    def test_direction_blocks_off_grid(self):
+        self.char1.db.pos_x = 0
+        self.char1.db.pos_y = 0
+        out = self.call(CmdMove(), "west")
+        self.assertEqual(out, "You cannot move that way.")
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_up_requires_flying(self):
+        out = self.call(CmdMove(), "up")
+        self.assertEqual(out, "You need to be flying to move up or down.")
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_flying_up(self):
+        self.char1.db.is_flying = True
+        self.call(CmdMove(), "up")
+        self.mock_start_nav.assert_called_once_with(self.char1, 2, 2, z=2, movement_mode="flying")
+
+    def test_flying_up_above_max(self):
+        self.char1.db.is_flying = True
+        self.char1.db.pos_z = 5
+        out = self.call(CmdMove(), "up")
+        self.assertIn("cannot fly higher", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_flying_down_below_floor(self):
+        self.char1.db.is_flying = True
+        self.char1.db.pos_z = 1
+        out = self.call(CmdMove(), "down")
+        self.assertIn("base floor", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_flying_down(self):
+        self.char1.db.is_flying = True
+        self.char1.db.pos_z = 3
+        self.call(CmdMove(), "down")
+        self.mock_start_nav.assert_called_once_with(self.char1, 2, 2, z=2, movement_mode="flying")
+
+    def test_coordinate_z_below_floor(self):
+        out = self.call(CmdMove(), "2 2 0")
+        self.assertIn("base floor", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+    def test_coordinate_z_above_max(self):
+        out = self.call(CmdMove(), "2 2 6")
+        self.assertIn("cannot fly higher", out)
+        self.assertFalse(self.mock_start_nav.called)
+
+
+class RoomListingQuadrantTest(EvenniaCommandTest):
+    def test_char_listed_by_quadrant(self):
+        self.char2.db.pos_x = 0
+        self.char2.db.pos_y = 4
+        out = self.room1.return_appearance(self.char1)
+        self.assertIn("northwest portion", out)
+
+    def test_char_center(self):
+        self.char2.db.pos_x = 2
+        self.char2.db.pos_y = 2
+        out = self.room1.return_appearance(self.char1)
+        self.assertIn("center of the area", out)
+
+    def test_thing_listed_by_quadrant(self):
+        self.char2.db.pos_x = 4
+        self.char2.db.pos_y = 0
+        rock = create_object("typeclasses.objects.Object", key="a stone", location=self.room1)
+        rock.db.pos_x = 4
+        rock.db.pos_y = 0
+        out = self.room1.return_appearance(self.char1)
+        self.assertIn("a stone in the southeast portion", out)
 
 
 class SearchVisibilityTest(EvenniaCommandTest):

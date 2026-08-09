@@ -8,6 +8,7 @@ Rooms are simple containers that has no location of their own.
 from evennia.objects.objects import DefaultRoom
 from evennia.utils.search import search_tag
 from evennia.utils.utils import iter_to_str
+from combat.grid import grid_quadrant
 from world.data import appearance as appearance_data
 from .objects import ObjectParent
 
@@ -312,12 +313,14 @@ class Room(ObjectParent, DefaultRoom):
 
     def _grouped_room_contents(self, looker, **kwargs):
         """
-        List characters and things grouped by plane, then by position:
+        List characters and things grouped by plane, then by grid quadrant
+        and position:
             In the (physical), there's a tall and lean, refracting Visarii
-            standing here. There's also a short and stocky, hardy Terran
-            laying here.
+            standing in the northwest portion of the area. There's also a
+            short and stocky, hardy Terran laying in the southeast portion
+            of the area.
             In the (visarial), there's a willowy, prismatic Visarii standing
-            here.
+            in the center of the area.
         Builders additionally see each character's real name in parentheses.
         """
         from collections import OrderedDict
@@ -359,12 +362,19 @@ class Room(ObjectParent, DefaultRoom):
             color = "x" if plane == "physical" else "M"
             label = f"|w(|{color}{plane}|w)|n"
 
-            by_position = OrderedDict()
+            by_quadrant_pos = OrderedDict()
             for char in group["chars"]:
-                by_position.setdefault(char.pose or "standing", []).append(char)
+                quadrant = grid_quadrant(self, char.db.pos_x, char.db.pos_y)
+                if char.db.is_flying:
+                    key = (f"in the air above {quadrant}", "flying")
+                else:
+                    key = (quadrant, char.pose or "standing")
+                by_quadrant_pos.setdefault(key, []).append(char)
 
             sentences = []
-            for index, (position, pos_chars) in enumerate(by_position.items()):
+            for index, ((quadrant_or_air, position), pos_chars) in enumerate(
+                by_quadrant_pos.items()
+            ):
                 entries = []
                 for char in pos_chars:
                     core, _ = char.appearance_bits
@@ -373,8 +383,18 @@ class Room(ObjectParent, DefaultRoom):
                         entry += f" ({char.name})"
                     entries.append(entry)
                 lead = "there's" if index == 0 else "There's also"
+                # If position is 'flying', quadrant_or_air phrase already includes 'in the air above'
+                # If 'standing', position is pose and quadrant_or_air is just quadrant phrase.
+                # Sentence format: "there's {entries} {position} {quadrant_or_air}."
+                # e.g. "flying in the air above the nw portion..."
+                # e.g. "standing in the northwest portion..."
+                phrase = (
+                    f"{position} {quadrant_or_air}"
+                    if position == "flying"
+                    else f"{position} in {quadrant_or_air}"
+                )
                 sentences.append(
-                    f"{lead} {iter_to_str(entries, endsep=', and')} {position} here."
+                    f"{lead} {iter_to_str(entries, endsep=', and')} {phrase} here."
                 )
 
             if group["things"]:
@@ -388,18 +408,21 @@ class Room(ObjectParent, DefaultRoom):
         return "\n".join(sections)
 
     def _things_list(self, things, looker, **kwargs):
-        """Join one plane's things into a clean, counted list without plane prefixes."""
-        from collections import defaultdict
+        """Join one plane's things into a clean, counted list, each tagged
+        with its grid quadrant."""
+        from collections import OrderedDict
 
-        grouped = defaultdict(list)
+        grouped = OrderedDict()
         for thing in things:
             name = thing.get_display_name(looker, **kwargs)
-            grouped[name].append(thing)
+            quadrant = grid_quadrant(self, thing.db.pos_x, thing.db.pos_y)
+            grouped.setdefault((quadrant, name), []).append(thing)
 
         entries = []
-        for name, lst in grouped.items():
+        for (quadrant, name), lst in grouped.items():
             thing = lst[0]
             nthings = len(lst)
             singular, plural = thing.get_numbered_name(nthings, looker, key=thing.key)
-            entries.append(singular if nthings == 1 else plural)
+            label = singular if nthings == 1 else plural
+            entries.append(f"{label} in {quadrant}")
         return iter_to_str(entries, endsep=", and")
