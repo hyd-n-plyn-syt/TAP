@@ -176,7 +176,7 @@ def node_welcome(caller, raw_string, **kwargs):
         "You can type |wquit|n at any time to cancel.\n\n"
         "Press |wEnter|n to begin."
     )
-    options = ({"key": "_default", "goto": "node_room_name"},)
+    options = ({"key": "_default", "goto": "node_indoor"},)
     return text, options
 
 
@@ -272,37 +272,83 @@ def parse_return(caller, raw_string, **kwargs):
     if value:
         direction = _load(caller, "direction", "north")
         ret_dir = DIRECTION_MAP[direction]["return"]
-        _store(caller, "return_direction", ret_dir)
-        return "node_return_name"
+        _store(caller, "return_name", ret_dir.title())
+        _store(caller, "return_aliases", RETURN_ALIAS_MAP.get(ret_dir, []))
+        return "node_door"
     return "node_door"
 
 
-# ── return exit name ───────────────────────────────────────────────────
+# ── indoor ─────────────────────────────────────────────────────────────
 
-
-def node_return_name(caller, raw_string, **kwargs):
-    direction = _load(caller, "direction")
-    ret_dir = DIRECTION_MAP[direction]["return"]
-    suggested = ret_dir.title()
-    text = (
-        f"|wStep 3b — Return Exit Name|n\n\n"
-        f"What should the return exit be called?\n"
-        f"Suggested: |w{suggested}|n (press Enter to accept)"
+def node_indoor(caller, raw_string, **kwargs):
+    text = "|wStep 1a — Indoor|n\n\nIs this room indoors? (y/n)"
+    options = (
+        {"key": "y", "desc": "Yes", "goto": (parse_indoor, {"value": True})},
+        {"key": "n", "desc": "No", "goto": (parse_indoor, {"value": False})},
+        {"key": "_default", "goto": (parse_indoor, {})},
     )
-    options = ({"key": "_default", "goto": (parse_return_name, {})},)
     return text, options
 
+def parse_indoor(caller, raw_string, **kwargs):
+    value = kwargs.get("value")
+    if value is None:
+        answer = raw_string.strip().lower()
+        if answer not in YES_NO:
+            caller.msg("Please enter y or n.")
+            return None
+        value = YES_NO[answer]
+    _store(caller, "is_indoor", value)
+    if not value:
+        _store(caller, "room_height", 4)
+        return "node_room_name"
+    return "node_can_fly"
 
-def parse_return_name(caller, raw_string, **kwargs):
-    direction = _load(caller, "direction")
-    ret_dir = DIRECTION_MAP[direction]["return"]
-    name = _title_words(raw_string) if raw_string.strip() else ret_dir.title()
-    _store(caller, "return_name", name)
-    _store(caller, "return_aliases", RETURN_ALIAS_MAP.get(ret_dir, []))
-    return "node_door"
+# ── can fly ────────────────────────────────────────────────────────────
 
+def node_can_fly(caller, raw_string, **kwargs):
+    text = "|wStep 1b — Fly|n\n\nCan you fly inside this room? (y/n)"
+    options = (
+        {"key": "y", "desc": "Yes", "goto": (parse_can_fly, {"value": True})},
+        {"key": "n", "desc": "No", "goto": (parse_can_fly, {"value": False})},
+        {"key": "_default", "goto": (parse_can_fly, {})},
+    )
+    return text, options
 
-# ── door ───────────────────────────────────────────────────────────────
+def parse_can_fly(caller, raw_string, **kwargs):
+    value = kwargs.get("value")
+    if value is None:
+        answer = raw_string.strip().lower()
+        if answer not in YES_NO:
+            caller.msg("Please enter y or n.")
+            return None
+        value = YES_NO[answer]
+    _store(caller, "can_fly", value)
+    if not value:
+        _store(caller, "room_height", 1)
+        return "node_room_name"
+    return "node_fly_height"
+
+# ── fly height ─────────────────────────────────────────────────────────
+
+def node_fly_height(caller, raw_string, **kwargs):
+    text = (
+        "|wStep 1c — Flight Height|n\n\n"
+        "How high can you fly in this room?\n"
+        "1: Above\n"
+        "2: High Above\n"
+        "3: Very High Above"
+    )
+    options = (
+        {"key": "1", "desc": "Above", "goto": (parse_fly_height, {"value": 2})},
+        {"key": "2", "desc": "High Above", "goto": (parse_fly_height, {"value": 3})},
+        {"key": "3", "desc": "Very High Above", "goto": (parse_fly_height, {"value": 4})},
+    )
+    return text, options
+
+def parse_fly_height(caller, raw_string, **kwargs):
+    height = kwargs.get("value")
+    _store(caller, "room_height", height)
+    return "node_room_name"
 
 
 def node_door(caller, raw_string, **kwargs):
@@ -681,12 +727,16 @@ def node_finalize(caller, raw_string, **kwargs):
         ]:
             new_room.tags.clear(category=cat)
             new_room.tags.add(val, category=cat)
+        
+        room_height = _load(caller, "room_height", 1)
+        new_room.db.room_height = room_height
 
         lines.append(
             f"|gRoom:|n {new_room.name} (#{new_room.id})  "
             f"Body={coords['body']}, Site={coords['site']}\n"
             f"  Planet ({coords['px']}, {coords['py']}, {coords['pz']})  "
-            f"Site ({coords['sx']}, {coords['sy']}, {coords['sz']})"
+            f"Site ({coords['sx']}, {coords['sy']}, {coords['sz']})\n"
+            f"  Height ({room_height})"
         )
 
         fwd_exit = create_object(
