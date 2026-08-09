@@ -367,6 +367,25 @@ CHANGES = [
             "of toggling between small, medium, and large."
         ),
     },
+    {
+        "number": 29,
+        "date": "2026-08-09",
+        "title": "Combat System: Movement & Rendering",
+        "body": (
+            "The combat foundation is in place. Movement and map rendering are fully "
+            "functional. Combat loops, grouping, targeting, and tactical systems remain "
+            "in development."
+        ),
+    },
+    {
+        "number": 30,
+        "date": "2026-08-09",
+        "title": "Group System: Foundation",
+        "body": (
+            "Foundation for group and party management systems has been added. This "
+            "system is currently under active development and not yet functional."
+        ),
+    },
 ]
 
 
