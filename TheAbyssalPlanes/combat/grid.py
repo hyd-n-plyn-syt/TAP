@@ -22,26 +22,42 @@ DIRECTION_OFFSETS = {
     "down": (0, 0, -1), "d": (0, 0, -1),
 }
 
+CANONICAL_DIRECTION = {
+    "n": "north", "s": "south", "e": "east", "w": "west",
+    "ne": "northeast", "nw": "northwest", "se": "southeast", "sw": "southwest",
+    "u": "up", "d": "down",
+}
+
 def get_room_grid_size(room):
+    """Return (width, height) for the room's grid."""
     size_key = room.db.room_size or "medium"
-    return ROOM_GRID_SIZES.get(size_key, 5)
+    if isinstance(size_key, str):
+        s = ROOM_GRID_SIZES.get(size_key, 5)
+        return (s, s)
+    try:
+        w = size_key.get("width", 5)
+        h = size_key.get("height", 5)
+        return (w, h)
+    except (AttributeError, TypeError):
+        return (5, 5)
 
 def is_valid_coord(room, x, y):
-    size = get_room_grid_size(room)
-    return 0 <= x < size and 0 <= y < size
+    w, h = get_room_grid_size(room)
+    return 0 <= x < w and 0 <= y < h
 
 def get_entry_coords(room, direction):
-    size = get_room_grid_size(room)
-    center = size // 2
+    w, h = get_room_grid_size(room)
+    cx = w // 2
+    cy = h // 2
     
     mapping = {
-        "north": (center, size - 1),
-        "south": (center, 0),
-        "east": (size - 1, center),
-        "west": (0, center),
-        "northeast": (size - 1, size - 1),
-        "northwest": (0, size - 1),
-        "southeast": (size - 1, 0),
+        "north": (cx, h - 1),
+        "south": (cx, 0),
+        "east": (w - 1, cy),
+        "west": (0, cy),
+        "northeast": (w - 1, h - 1),
+        "northwest": (0, h - 1),
+        "southeast": (w - 1, 0),
         "southwest": (0, 0)
     }
     return mapping.get(direction.lower(), None)
@@ -101,12 +117,13 @@ def grid_quadrant(room, x, y):
     if x is None or y is None:
         return "the center of the area"
     x, y = int(x), int(y)
-    size = get_room_grid_size(room)
-    center = size // 2
-    north = y >= center + 1
-    south = y <= center - 1
-    east = x >= center + 1
-    west = x <= center - 1
+    w, h = get_room_grid_size(room)
+    cx = w // 2
+    cy = h // 2
+    north = y >= cy + 1
+    south = y <= cy - 1
+    east = x >= cx + 1
+    west = x <= cx - 1
     if north and east: return "the northeast portion of the area"
     if north and west: return "the northwest portion of the area"
     if south and east: return "the southeast portion of the area"
@@ -138,4 +155,5 @@ def get_room_max_z(room):
     override = getattr(room.db, "max_z", None)
     if override is not None:
         return int(override)
-    return get_room_grid_size(room)
+    w, h = get_room_grid_size(room)
+    return max(w, h)

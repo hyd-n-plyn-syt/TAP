@@ -15,8 +15,12 @@ def get_symbol_and_color(obj, looker):
 
 def render_map(looker):
     room = looker.location
-    size = get_room_grid_size(room)
-    cx, cy = looker.db.pos_x or 0, looker.db.pos_y or 0
+    w, h = get_room_grid_size(room)
+    pos_x = getattr(looker.db, "pos_x", None)
+    pos_y = getattr(looker.db, "pos_y", None)
+    pos_z = getattr(looker.db, "pos_z", None)
+    cx = pos_x if pos_x is not None else w // 2
+    cy = pos_y if pos_y is not None else h // 2
     
     account = looker.account if hasattr(looker, "account") else looker
     radius = (account.attributes.get("map_size", default=15)) // 2
@@ -38,7 +42,7 @@ def render_map(looker):
         row = ["|Y| |n"]
         for ix in range(cx - radius, cx + radius + 1):
             sym, col = " ", "|n"
-            if 0 <= ix < size and 0 <= iy < size:
+            if 0 <= ix < w and 0 <= iy < h:
                 sym, col = "#", "|n"
                 tile_obj = None
                 for obj in room.contents:
@@ -55,6 +59,18 @@ def render_map(looker):
                     sym, col = get_symbol_and_color(tile_obj, looker)
             row.append(f"{col}{sym} |n")
         row.append("|Y| |n")
+
+        zx = pos_x if pos_x is not None else 0
+        zy = pos_y if pos_y is not None else 0
+        zz = pos_z if pos_z is not None else 1
+        iy_val = iy
+        if iy_val == cy - radius:
+            row.append(f" |Cx:|c {zx}")
+        elif iy_val == cy - radius + 1:
+            row.append(f" |Cy:|c {zy}")
+        elif iy_val == cy - radius + 2:
+            row.append(f" |Cz:|c {zz}")
+
         output.append("".join(row))
     output.append(bottom_frame)
     return "\n".join(output)

@@ -103,11 +103,11 @@ class GridHelpersTest(SimpleTestCase):
 class CombatSystemTest(SimpleTestCase):
     def test_grid_mapping(self):
         self.assertEqual(get_entry_coords(MockRoom(), "north"), (1, 2))
-        self.assertEqual(get_room_grid_size(MockRoom()), 3)
+        self.assertEqual(get_room_grid_size(MockRoom()), (3, 3))
 
     def test_move_allowance_halving(self):
-        self.assertEqual(get_move_allowance(0), 5)
-        self.assertEqual(get_move_allowance(1), 2)
+        self.assertEqual(get_move_allowance(0), 6)
+        self.assertEqual(get_move_allowance(1), 3)
         self.assertEqual(get_move_allowance(2), 1)
         self.assertEqual(get_move_allowance(3), 0)
 
@@ -267,7 +267,7 @@ class MoverMessageTest(SimpleTestCase):
 
     def test_eta_full_round_pause(self):
         nav = {"dest_x": 6, "dest_y": 0}
-        self.assertEqual(nav_eta(nav, 0, 0), 7)
+        self.assertEqual(nav_eta(nav, 0, 0), 6)
 
     def test_eta_zero(self):
         nav = {"dest_x": 2, "dest_y": 2}

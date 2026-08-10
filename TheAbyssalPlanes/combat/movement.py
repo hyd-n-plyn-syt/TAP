@@ -5,7 +5,6 @@ from evennia.utils.evmenu import EvMenu
 from combat.grid import (
     exit_direction,
     get_exit_at_coord,
-    get_room_grid_size,
     get_altitude_phrase,
     grid_quadrant,
     is_valid_coord,
@@ -13,32 +12,41 @@ from combat.grid import (
 
 SUB_TICK_RATE = 1
 GLOBAL_ROUND_DURATION = 6
-MAX_GRIDS_PER_ROUND = 5
+MAX_GRIDS_PER_ROUND = 6
 
 def get_move_allowance(actions_taken):
     """
     Calculate grid movement allowance based on actions taken in the round.
-    Base allowance: 5 grids (30ft).
+    Base allowance: 6 grids (36ft).
     Each action reduces allowance by half (rounded down).
     """
-    allowance = 5
+    allowance = 6
     for _ in range(actions_taken):
         allowance = math.floor(allowance / 2)
     return max(0, allowance)
 
 
-def is_grid_occupied(room, x, y):
-    """Checks if the grid point is at full occupancy (2+ entities).
+def is_grid_occupied(room, x, y, z=None, ignore=None):
+    """Return list of occupants blocking (x, y, z).
 
-    Exits are excluded - they are traversal objects, not occupiers.
+    Only objects with ``occupies_space`` True count.  Exits are always
+    excluded.  Pass *ignore* to exclude a specific object (the mover
+    itself) from the check.  When *z* is None the z-axis is not checked.
     """
-    occupants = [
-        obj for obj in room.contents
-        if not getattr(obj, "destination", None)
-        and getattr(obj.db, "pos_x", None) == x
-        and getattr(obj.db, "pos_y", None) == y
-    ]
-    return len(occupants) >= 2
+    occupants = []
+    for obj in room.contents:
+        if obj is ignore:
+            continue
+        if getattr(obj, "destination", None):
+            continue
+        if not getattr(obj, "occupies_space", False):
+            continue
+        if getattr(obj.db, "pos_x", None) != x or getattr(obj.db, "pos_y", None) != y:
+            continue
+        if z is not None and getattr(obj.db, "pos_z", None) != z:
+            continue
+        occupants.append(obj)
+    return occupants
 
 
 def move_actor(actor, x, y, z=None):
@@ -53,7 +61,7 @@ def move_actor(actor, x, y, z=None):
     if not is_valid_coord(room, x, y):
         return False, "That coordinate is out of bounds."
 
-    if is_grid_occupied(room, x, y):
+    if is_grid_occupied(room, x, y, z=z, ignore=actor):
         EvMenu(actor, "combat.menus", startnode="collision_menu_node")
         return False, "That space is occupied."
 
@@ -200,7 +208,7 @@ def announce_grid_arrival(char, nav):
 
 def nav_eta(nav, pos_x, pos_y, pos_z=None):
     """Estimated seconds to reach a navigation destination, assuming a
-    full round is available (5 grids of movement, then a 1s round pause
+    full round is available (6 grids of movement, then a 1s round pause
     between each completed chunk). Best-effort estimate only."""
     dist = max(
         abs(nav["dest_x"] - pos_x),
@@ -247,12 +255,19 @@ def mover_arrival_message(room, nav, mover):
     return f"You arrive in {target}."
 
 
-def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode="walking"):
+def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode="walking", delta_x=None, delta_y=None):
     """
     Begin autonomous grid navigation toward a destination coordinate. If an
     exit object is supplied, reaching the destination traverses it. The
     CombatLoop moves the actor one grid per sub-tick, capped at the round's
     movement allowance.
+
+    If the actor already has an active navigation, the new one is appended
+    to their nav_queue and will start automatically when the current one
+    completes.
+
+    delta_x/delta_y: if provided, the queued destination will be
+    recalculated relative to the character's position at drain time.
     """
     room = actor.location
     nav = {
@@ -262,8 +277,17 @@ def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode
         "exit_dbref": exit_obj.id if exit_obj else None,
         "movement_mode": movement_mode,
     }
-    actor.db.navigation = nav
-    if room:
-        actor.msg(mover_start_message(room, nav, actor))
-        ensure_combat_loop(room)
+    if delta_x is not None and delta_y is not None:
+        nav["delta_x"] = int(delta_x)
+        nav["delta_y"] = int(delta_y)
+    if getattr(actor.db, "navigation", None):
+        queue = list(getattr(actor.db, "nav_queue", None) or [])
+        queue.append(nav)
+        actor.db.nav_queue = queue
+        actor.msg("Queued.")
+    else:
+        actor.db.navigation = nav
+        if room:
+            actor.msg(mover_start_message(room, nav, actor))
+            ensure_combat_loop(room)
     return True

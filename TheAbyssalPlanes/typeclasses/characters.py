@@ -89,6 +89,7 @@ class Character(ObjectParent, DefaultCharacter):
     pos_x = AttributeProperty(default=0)
     pos_y = AttributeProperty(default=0)
     pos_z = AttributeProperty(default=1)
+    occupies_space = AttributeProperty(default=True)
     is_flying = AttributeProperty(default=False)
     can_fly = AttributeProperty(default=False)
     is_autowhere = AttributeProperty(default=False)
@@ -525,11 +526,15 @@ class Character(ObjectParent, DefaultCharacter):
         if entry:
             self.db.pos_x, self.db.pos_y = entry
         else:
-            size = get_room_grid_size(self.location)
-            self.db.pos_x = size // 2
-            self.db.pos_y = size // 2
+            w, h = get_room_grid_size(self.location)
+            self.db.pos_x = w // 2
+            self.db.pos_y = h // 2
         self.db.pos_z = 1
         self.db.room_id = self.location.dbref
+
+        if getattr(self.db, "is_autowhere", False):
+            from combat.map_renderer import render_map
+            self.msg(render_map(self))
 
     def _exit_direction(self, room, target):
         """Compass direction of the exit in `room` leading to `target`, or None."""

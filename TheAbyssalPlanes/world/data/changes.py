@@ -386,6 +386,57 @@ CHANGES = [
             "system is currently under active development and not yet functional."
         ),
     },
+    {
+        "number": 31,
+        "date": "2026-08-09",
+        "title": "Grid movement, navigation & map rendering",
+        "body": (
+            "Characters now move on a per-room grid with x, y, z coordinates. "
+            "The 'move' command navigates across the grid at a paced rate (6 grids "
+            "per round), and a combat loop drains the movement queue each tick. "
+            "The 'approach' command lets you track a moving target, recalculating "
+            "their position every tick. A minimap renders around you showing "
+            "exits, other characters, hostile targets, and your own position. "
+            "Custom room sizes are supported via the builder 'setroomsize' command."
+        ),
+    },
+    {
+        "number": 32,
+        "date": "2026-08-09",
+        "title": "Door mechanics, proximity checks & doorway blocking",
+        "body": (
+            "Door commands (open, close, lock, unlock) now require you to be "
+            "standing at the door's grid coordinate before operating it. If the "
+            "other side of a door is occupied, traversal is blocked with a message "
+            "showing who is in the way. Looking at a door shows who is standing "
+            "just on the other side. The 'autoopen' toggle works with navigation "
+            "to open unlocked doors without stopping."
+        ),
+    },
+    {
+        "number": 33,
+        "date": "2026-08-09",
+        "title": "SHOVE command & through-exit mechanics",
+        "body": (
+            "The 'shove' command pushes a character or object in the opposite "
+            "direction from you. Diagonal pushes are supported. If the target is "
+            "standing on an exit and you are pushing them toward it (aligned "
+            "direction), they are shoved through to the other room. Shoving into "
+            "a closed door bounces them into it. You can target characters on the "
+            "other side of an exit by name, species, or appearance, and shove them "
+            "away from the doorway. The 'door' keyword works with open, close, "
+            "lock, and unlock to target the nearest door automatically."
+        ),
+    },
+    {
+        "number": 34,
+        "date": "2026-08-09",
+        "title": "Map coordinates display",
+        "body": (
+            "The minimap now shows your x, y, and z coordinates on the right "
+            "side of the bottom rows, using colored labels for easy reading."
+        ),
+    },
 ]
 
 

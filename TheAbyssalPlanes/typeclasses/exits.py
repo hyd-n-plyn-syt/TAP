@@ -48,23 +48,73 @@ class Exit(ObjectParent, DefaultExit):
     def at_traverse(self, traversing_object, target_location, **kwargs):
         is_door = getattr(self.db, "is_door", False)
         is_open = getattr(self.db, "is_open", False)
-        if is_door and not is_open:
-            self.at_failed_traverse(traversing_object, **kwargs)
-            return
+        door_blocked = is_door and not is_open
 
         # Grid movement: a character must first navigate to the exit's grid
         # coordinate before the transition happens. Walking is paced by the
         # combat loop (1 grid / second, 5 grids / round).
         if hasattr(traversing_object, "db") and getattr(traversing_object.db, "pos_x", None) is not None:
-            from combat.grid import get_exit_coords
-            from combat.movement import start_navigation
+            from combat.grid import get_exit_coords, get_entry_coords, get_room_grid_size
+            from combat.movement import start_navigation, is_grid_occupied
 
             coords = get_exit_coords(self.location, self)
             if coords and (traversing_object.db.pos_x, traversing_object.db.pos_y) != coords:
                 start_navigation(traversing_object, coords[0], coords[1], exit_obj=self)
+                if door_blocked:
+                    autoopen = getattr(traversing_object.db, "autoopen", False)
+                    if autoopen:
+                        is_locked = getattr(self.db, "is_locked", False)
+                        if not is_locked or self._has_key(traversing_object):
+                            traversing_object.db.navigation["pending_autoopen"] = True
+                            traversing_object.msg("You walk toward the door...")
+                        else:
+                            traversing_object.msg(
+                                f"{self.key} is locked. You'll need to unlock "
+                                f"it when you get there, or type |wautoopen|n "
+                                f"for automatic door handling."
+                            )
+                    else:
+                        traversing_object.msg(
+                            f"{self.key} is closed. You'll need to open it "
+                            f"when you get there, or type |wautoopen|n for "
+                            f"automatic door handling."
+                        )
                 return
             if coords:
                 traversing_object.db.pos_x, traversing_object.db.pos_y = coords
+
+        if door_blocked:
+            autoopen = getattr(traversing_object.db, "autoopen", False)
+            if autoopen:
+                is_locked = getattr(self.db, "is_locked", False)
+                if not is_locked or self._has_key(traversing_object):
+                    self.open_door(traversing_object)
+                    if not getattr(self.db, "is_open", False):
+                        return
+                else:
+                    self.at_failed_traverse(traversing_object, **kwargs)
+                    return
+            else:
+                self.at_failed_traverse(traversing_object, **kwargs)
+                return
+
+        dest_room = self.destination
+        if dest_room:
+            return_exit = None
+            for obj in dest_room.contents:
+                if obj.destination == self.location:
+                    return_exit = obj
+                    break
+            if return_exit:
+                entry = get_entry_coords(dest_room, return_exit.key)
+                if entry:
+                    blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+                    if blockers:
+                        blocker_name = getattr(blockers[0], "appearance_name", None) or blockers[0].key
+                        traversing_object.msg(
+                            f"{blocker_name} is blocking the way on the other side."
+                        )
+                        return
 
         super().at_traverse(traversing_object, target_location, **kwargs)
 
@@ -262,6 +312,47 @@ class Exit(ObjectParent, DefaultExit):
             f"{self.key} is closed. Type |wopen {self.key}|n to open it, "
             f"or |wautoopen|n to toggle automatic door handling."
         )
+
+    def return_appearance(self, looker, **kwargs):
+        from combat.grid import get_exit_coords, get_entry_coords, get_room_grid_size
+        from combat.movement import is_grid_occupied
+
+        base = super().return_appearance(looker, **kwargs)
+
+        dest_room = self.destination
+        if not dest_room:
+            return base
+
+        return_exit = None
+        for obj in dest_room.contents:
+            if obj.destination == self.location:
+                return_exit = obj
+                break
+
+        if not return_exit:
+            return base
+
+        entry = get_entry_coords(dest_room, return_exit.key)
+        if not entry:
+            return base
+
+        blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+        if not blockers:
+            return base
+
+        names = []
+        for b in blockers:
+            name = getattr(b, "appearance_name", None) or b.key
+            names.append(name)
+
+        other_side = " |W" + ", ".join(names) + "|n "
+        if len(blockers) == 1:
+            other_side += "is"
+        else:
+            other_side += "are"
+        other_side += " standing just on the other side."
+
+        return base + other_side
 
     @classmethod
     def filter_visible(cls, obj_list, looker, **kwargs):

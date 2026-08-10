@@ -195,8 +195,6 @@ def parse_room_name(caller, raw_string, **kwargs):
     _store(caller, "room_name", name)
     return "node_indoor"
 
-# ── indoor ─────────────────────────────────────────────────────────────
-
 
 # ── direction ──────────────────────────────────────────────────────────
 
@@ -346,6 +344,15 @@ def parse_indoor(caller, raw_string, **kwargs):
 
 # ── can fly ────────────────────────────────────────────────────────────
 
+def node_can_fly(caller, raw_string, **kwargs):
+    text = "|wStep 1b — Fly|n\n\nCan you fly inside this room? (y/n)"
+    options = (
+        {"key": "y", "desc": "Yes", "goto": (parse_can_fly, {"value": True})},
+        {"key": "n", "desc": "No", "goto": (parse_can_fly, {"value": False})},
+        {"key": "_default", "goto": (parse_can_fly, {})},
+    )
+    return text, options
+
 def parse_can_fly(caller, raw_string, **kwargs):
     value = kwargs.get("value")
     if value is None:
@@ -359,6 +366,23 @@ def parse_can_fly(caller, raw_string, **kwargs):
         _store(caller, "room_height", 1)
         return "node_room_size_type"
     return "node_fly_height"
+
+# ── fly height ─────────────────────────────────────────────────────────
+
+def node_fly_height(caller, raw_string, **kwargs):
+    text = (
+        "|wStep 1c — Flight Height|n\n\n"
+        "How high can you fly in this room?\n"
+        "1: Above\n"
+        "2: High Above\n"
+        "3: Very High Above"
+    )
+    options = (
+        {"key": "1", "desc": "Above", "goto": (parse_fly_height, {"value": 2})},
+        {"key": "2", "desc": "High Above", "goto": (parse_fly_height, {"value": 3})},
+        {"key": "3", "desc": "Very High Above", "goto": (parse_fly_height, {"value": 4})},
+    )
+    return text, options
 
 def parse_fly_height(caller, raw_string, **kwargs):
     height = kwargs.get("value")
@@ -651,7 +675,7 @@ def node_review(caller, raw_string, **kwargs):
 
     if collision:
         options = (
-            {"key": "1", "desc": "Go Back", "goto": "node_options"},
+            {"key": "1", "desc": "Go Back", "goto": "node_direction"},
             {"key": "_quit", "desc": "Quit", "goto": "node_quit"},
         )
     else:

@@ -53,7 +53,7 @@ from commands.player.setpose import CmdSetPose
 from commands.player.door_commands import CmdOpen, CmdClose, CmdLock, CmdUnlock, CmdAutoOpen
 from commands.player.movement import CmdDirectionFallback
 from commands.building.setroomsize import CmdSetRoomSize
-from commands.player.combat import CmdApproach, CmdMove
+from commands.player.combat import CmdApproach, CmdMove, CmdShove
 from commands.player.fly import CmdFly, CmdLand
 from commands.player.where import CmdWhere, CmdWhereKey, CmdAutoWhere
 from commands.player.mapsize import CmdMapSize
@@ -131,6 +131,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetRoomSize)
         self.add(CmdApproach)
         self.add(CmdMove)
+        self.add(CmdShove)
         self.add(CmdOpen)
         self.add(CmdClose)
         self.add(CmdLock)
