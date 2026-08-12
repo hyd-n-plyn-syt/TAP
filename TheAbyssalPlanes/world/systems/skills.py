@@ -83,12 +83,14 @@ def stat_taper(tier_no):
 
 def skill_value(char, key):
     """Return a character's value for a skill (0 if never trained)."""
-    return int(char.skills.get(key, 0))
+    skills = getattr(char.db, "skills", None) or {}
+    return int(skills.get(key, 0))
 
 
 def known_skills(char):
     """Return sorted [(key, value), ...] for every skill on a character."""
-    return sorted(char.skills.items(), key=lambda kv: kv[0])
+    skills = getattr(char.db, "skills", None) or {}
+    return sorted(skills.items(), key=lambda kv: kv[0])
 
 
 def prereqs_met(char, key):
@@ -129,16 +131,16 @@ def learn_skill(char, key, value=None):
             for r, v in skill["requires"].items()
         )
         return False, f"Requires: {reqs}."
-    learned = dict(char.skills)
+    learned = dict(getattr(char.db, "skills", None) or {})
     learned[skill["key"]] = min(MAX_SKILL, max(0, int(value or 0)))
-    char.skills = learned
+    char.db.skills = learned
     return True, None
 
 
 def xp_to_next(char, key):
     """XP remaining before the next skill point."""
     val = skill_value(char, key)
-    buf = float(char.skills_xp.get(key, 0.0))
+    buf = float((getattr(char.db, "skills_xp", None) or {}).get(key, 0.0))
     return point_cost(tier(val)) - buf
 
 
@@ -183,7 +185,7 @@ def use_skill(char, key, difficulty="medium", times=1):
     if not skill:
         return None
 
-    if key not in char.skills:
+    if key not in (getattr(char.db, "skills", None) or {}):
         return {"success": False, "reason": "unknown", "skill": key}
 
     if not prereqs_met(char, key):
@@ -193,17 +195,16 @@ def use_skill(char, key, difficulty="medium", times=1):
     start_tier = tier(skill_value(char, key))
     gain = base * skill_taper(start_tier)
 
-    # Advance the skill value by converting buffered XP into points.
-    skills = dict(char.skills)
-    xp = dict(char.skills_xp)
+    skills = dict(getattr(char.db, "skills", None) or {})
+    xp = dict(getattr(char.db, "skills_xp", None) or {})
     skills.setdefault(key, 0)
     buf = xp.get(key, 0.0) + gain
     while buf >= point_cost(tier(skills[key])) and skills[key] < MAX_SKILL:
         buf -= point_cost(tier(skills[key]))
         skills[key] += 1
     xp[key] = buf
-    char.skills = skills
-    char.skills_xp = xp
+    char.db.skills = skills
+    char.db.skills_xp = xp
 
     # Feed the linked statistics (diminishing with the skill's rank). Locked
     # mains are remapped to the species' alternate (see effective_skill_stats).

@@ -14,6 +14,7 @@ from combat.movement import (
     mover_start_message,
 )
 from combat.map_renderer import render_map
+from world.systems import stats
 
 
 class CombatLoop(DefaultScript):
@@ -51,6 +52,66 @@ class CombatLoop(DefaultScript):
                 if getattr(char, "db", None) and getattr(char.db, "movement_used", None):
                     char.db.movement_used = 0
 
+        # 1-minute regeneration tick (60 seconds)
+        regen_secs = (self.db.regen_secs or 0) + 1
+        if regen_secs >= 60:
+            self.db.regen_secs = 0
+            from world.data import species as species_data
+            for char in room.contents:
+                if not getattr(char, "is_creature", False):
+                    continue
+                pose = getattr(char, "pose", "standing")
+                if pose == "sleeping":
+                    mult = 2.0
+                elif pose in ("resting", "laying", "sitting"):
+                    mult = 1.5
+                else:
+                    mult = 1.0
+
+                furniture_bonus = 0.0
+                cx = getattr(char.db, "pos_x", 0)
+                cy = getattr(char.db, "pos_y", 0)
+                for obj in room.contents:
+                    if obj.is_typeclass("typeclasses.furniture.Furniture"):
+                        is_nearby = False
+                        if hasattr(obj, "is_at_coord") and obj.is_at_coord(cx, cy):
+                            is_nearby = True
+                        else:
+                            fx = getattr(obj.db, "pos_x", 0)
+                            fy = getattr(obj.db, "pos_y", 0)
+                            if max(abs(cx - fx), abs(cy - fy)) <= 1:
+                                is_nearby = True
+                        if is_nearby:
+                            allowed = getattr(obj, "allowed_states", [])
+                            pose_map = {
+                                "resting": ["resting", "rest"],
+                                "sleeping": ["sleeping", "sleep"],
+                                "laying": ["laying", "lay"],
+                                "sitting": ["sitting", "sit"],
+                            }
+                            match_states = pose_map.get(pose, [pose])
+                            if any(st in allowed for st in match_states):
+                                q = getattr(obj, "quality", 1.0)
+                                furniture_bonus = max(furniture_bonus, q)
+
+                effective_mult = mult * (1.0 + furniture_bonus)
+
+                zeroed = species_data.zeroed_pools(char.species_key)
+                for pool in stats.POOL_KEYS:
+                    if pool in zeroed:
+                        continue
+                    base_regen = getattr(char, f"{pool}_regen", 1)
+                    regen_val = int(round(base_regen * effective_mult))
+                    if regen_val < 1 and base_regen > 0:
+                        regen_val = 1
+                    maxv = getattr(char, pool, 0)
+                    cur = char.pools_current[pool]
+                    if cur < maxv:
+                        new_cur = min(maxv, cur + regen_val)
+                        char.set_pool(pool, new_cur)
+        else:
+            self.db.regen_secs = regen_secs
+
         active = False
         for char in room.contents:
             if not getattr(char, "db", None):
@@ -61,6 +122,13 @@ class CombatLoop(DefaultScript):
             if getattr(char.db, "combat_target", None):
                 active = True
                 self.resolve_tick(char)
+            pose = getattr(char, "pose", "standing")
+            if pose in ("resting", "sleeping", "laying"):
+                active = True
+            for pool in stats.POOL_KEYS:
+                maxv = getattr(char, pool, 0)
+                if char.pools_current[pool] < maxv:
+                    active = True
 
         if not active:
             self.stop()
@@ -197,4 +265,112 @@ class CombatLoop(DefaultScript):
 
     def resolve_tick(self, char):
         """Process a single combatant's sub-tick."""
-        pass
+        from combat.actions import pop_action, set_actions_used
+        from combat.accuracy import resolve_hit, check_range
+        from combat.damage import calculate_base_damage, get_armor_value, apply_damage, check_critical
+        from world.data import skills as skill_data
+
+        action, time_cost = pop_action(char)
+        if not action:
+            return
+
+        if time_cost > 0:
+            used = char.db.movement_used or 0
+            set_actions_used(char, used + time_cost)
+
+        if action["type"] == "attack":
+            skill_info_cost = skill_data.get_skill(action["skill"])
+            if skill_info_cost:
+                pool_cost = skill_info_cost.get("pool_cost", 0)
+                health_bar_cost = skill_info_cost.get("health_bar")
+                if pool_cost > 0 and health_bar_cost:
+                    from world.data.species import resolve_pool
+                    eff_pool = resolve_pool(getattr(char.db, "species_key", ""), health_bar_cost)
+                    cur = getattr(char.db, f"{eff_pool}_current", None)
+                    if cur is None:
+                        from world.systems.stats import derived_pools
+                        cur = derived_pools(char).get(eff_pool, 0)
+                    setattr(char.db, f"{eff_pool}_current", max(0, cur - pool_cost))
+
+        if action["type"] != "attack":
+            return
+
+        skill_key = action["skill"]
+        target_dbref = action.get("target_dbref")
+        if not target_dbref:
+            return
+
+        from evennia.objects.models import ObjectDB
+        try:
+            target = ObjectDB.objects.get(id=target_dbref)
+        except ObjectDB.DoesNotExist:
+            return
+
+        if not target.location or target.location != char.location:
+            char.msg(f"{target.key} is no longer here.")
+            return
+
+        skill_value = getattr(char.db, "skills", {}).get(skill_key, 0)
+
+        in_range, distance = check_range(char, target, skill_key)
+        if not in_range:
+            skill_info_temp = skill_data.get_skill(skill_key)
+            reach = skill_info_temp.get("reach", 0) if skill_info_temp else 0
+            char.msg(f"{target.key} is out of range (distance {distance}, need {reach}).")
+            return
+
+        hit, attack_roll, defense_roll, is_crit = resolve_hit(char, target, skill_key, skill_value)
+
+        skill_info = skill_data.get_skill(skill_key)
+        skill_name = skill_info["name"] if skill_info else skill_key
+
+        if not hit:
+            char.msg(f"You miss {target.key} with {skill_name}.")
+            if hasattr(target, "msg"):
+                target.msg(f"{char.key} misses you with {skill_name}.")
+            for observer in char.location.contents:
+                if observer in (char, target):
+                    continue
+                if hasattr(observer, "msg"):
+                    observer.msg(f"{char.key} misses {target.key} with {skill_name}.")
+            return
+
+        base_damage, damage_type, health_bar = calculate_base_damage(char, skill_key, skill_value)
+        if base_damage <= 0 or not health_bar:
+            char.msg(f"Your {skill_name} has no effect.")
+            return
+
+        armor = get_armor_value(target, damage_type) if not is_crit else 0
+        final_damage = int(round(max(0, base_damage - armor)))
+
+        if final_damage <= 0:
+            char.msg(f"Your {skill_name} is blocked by {target.key}'s armor.")
+            if hasattr(target, "msg"):
+                target.msg(f"{char.key}'s {skill_name} is blocked by your armor.")
+            for observer in char.location.contents:
+                if observer in (char, target):
+                    continue
+                if hasattr(observer, "msg"):
+                    observer.msg(f"{char.key}'s {skill_name} is blocked by {target.key}'s armor.")
+            return
+
+        remaining, knocked_out = apply_damage(target, health_bar, final_damage, is_crit)
+
+        crit_text = " (CRITICAL)" if is_crit else ""
+        char.msg(f"You hit {target.key} with {skill_name} for {final_damage:.0f} {damage_type} damage!{crit_text}")
+        if hasattr(target, "msg"):
+            target.msg(f"{char.key} hits you with {skill_name} for {final_damage:.0f} {damage_type} damage!{crit_text}")
+        for observer in char.location.contents:
+            if observer in (char, target):
+                continue
+            if hasattr(observer, "msg"):
+                observer.msg(f"{char.key} hits {target.key} with {skill_name} for {final_damage:.0f} {damage_type} damage!{crit_text}")
+
+        if knocked_out:
+            target.msg(f"You are knocked out!")
+            char.msg(f"You knock out {target.key}!")
+            for observer in char.location.contents:
+                if observer in (char, target):
+                    continue
+                if hasattr(observer, "msg"):
+                    observer.msg(f"{target.key} is knocked out!")

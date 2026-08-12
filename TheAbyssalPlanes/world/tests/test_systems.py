@@ -47,48 +47,48 @@ class SkillGrowthTest(SimpleTestCase):
         self.assertIsNone(skills.use_skill(MockChar(), "nope"))
 
     def test_use_not_learned_reports_unknown(self):
-        result = skills.use_skill(MockChar(), "attack")
+        result = skills.use_skill(MockChar(), "punch")
         self.assertIsNotNone(result)
         self.assertFalse(result["success"])
         self.assertEqual(result["reason"], "unknown")
 
     def test_use_learned_skill_advances_skill_and_stats(self):
         char = MockChar()
-        skills.learn_skill(char, "attack")
-        result = skills.use_skill(char, "attack", difficulty="medium")
+        skills.learn_skill(char, "punch")
+        result = skills.use_skill(char, "punch", difficulty="medium")
         self.assertTrue(result["success"])
         self.assertGreater(result["skill_xp"], 0)
         self.assertGreater(result["stat_xp"], 0)
-        self.assertEqual(char.skills["attack"], 1)  # 15 xp buys one point (cost 10)
+        self.assertEqual(char.db.skills["punch"], 1)  # 15 xp buys one point (cost 10)
         self.assertGreater(char.stat_xp.get("corpus_potestas", 0), 0)
 
     def test_use_repeats_accumulate_to_point(self):
         char = MockChar()
-        skills.learn_skill(char, "attack")
+        skills.learn_skill(char, "punch")
         for _ in range(5):
-            skills.use_skill(char, "attack", difficulty="extreme")
+            skills.use_skill(char, "punch", difficulty="extreme")
         # each extreme use is 40 xp; point cost tier 1 is 10
-        self.assertGreaterEqual(char.skills["attack"], 1)
+        self.assertGreaterEqual(char.db.skills["punch"], 1)
 
     def test_diminishing_returns_high_tier(self):
         char = MockChar()
-        skills.learn_skill(char, "attack", value=900)
-        first = skills.use_skill(char, "attack", difficulty="medium")
+        skills.learn_skill(char, "punch", value=900)
+        first = skills.use_skill(char, "punch", difficulty="medium")
         skills.learn_skill(char, "meditate")
         second = skills.use_skill(char, "meditate", difficulty="medium")
         self.assertGreater(second["skill_xp"], first["skill_xp"])
 
     def test_prereq_gating(self):
         char = MockChar()
-        ok, _ = skills.learn_skill(char, "power_strike")
+        ok, _ = skills.learn_skill(char, "haymaker")
         self.assertFalse(ok)
-        self.assertFalse(skills.prereqs_met(char, "power_strike"))
-        self.assertIn("attack", skills.missing_prereqs(char, "power_strike"))
+        self.assertFalse(skills.prereqs_met(char, "haymaker"))
+        self.assertIn("axehandle", skills.missing_prereqs(char, "haymaker"))
 
     def test_use_respects_prereqs(self):
         char = MockChar()
-        char.skills = {"power_strike": 0}  # force-set past the learning gate
-        result = skills.use_skill(char, "power_strike")
+        char.db.skills = {"haymaker": 0}  # force-set past the learning gate
+        result = skills.use_skill(char, "haymaker")
         self.assertFalse(result["success"])
         self.assertEqual(result["reason"], "prereq")
 
@@ -96,19 +96,19 @@ class SkillGrowthTest(SimpleTestCase):
         char = MockChar()
         ok, _ = skills.learn_skill(char, "punch", value=5000)
         self.assertTrue(ok)
-        self.assertEqual(char.skills["punch"], skills.MAX_SKILL)
+        self.assertEqual(char.db.skills["punch"], skills.MAX_SKILL)
 
     def test_known_skills_sorted(self):
         char = MockChar()
         skills.learn_skill(char, "kick")
-        skills.learn_skill(char, "attack")
-        self.assertEqual([k for k, _ in skills.known_skills(char)], ["attack", "kick"])
+        skills.learn_skill(char, "punch")
+        self.assertEqual([k for k, _ in skills.known_skills(char)], ["kick", "punch"])
 
 
 class EffectiveStatsTest(SimpleTestCase):
     def test_default_species_uses_own_stats(self):
         char = MockChar()
-        self.assertEqual(skills.effective_skill_stats(char, "feint"),
+        self.assertEqual(skills.effective_skill_stats(char, "melee_feint"),
                          {"corpus_reflexus": 0.7, "genius_reflexus": 0.3})
 
     def test_visarii_remaps_corpus_to_animus(self):
@@ -149,3 +149,17 @@ class StatsSchemaTest(SimpleTestCase):
         for pool in ("vigor", "vim", "mens"):
             self.assertGreater(pools[pool], 0, pool)
             self.assertGreater(pools[f"{pool}_regen"], 0, pool)
+
+
+class RegenerationAndPositionTest(SimpleTestCase):
+    def test_regen_multipliers(self):
+        char = MockChar()
+        for main in ("corpus", "genius", "animus"):
+            for sub in ("potestas", "reflexus", "obsistis"):
+                setattr(char, f"{main}_{sub}", 6)
+        base_regen = stats.derived_pools(char)["vigor_regen"]
+        sleep_regen = int(round(base_regen * 2.0))
+        rest_regen = int(round(base_regen * 1.5))
+        stand_regen = int(round(base_regen * 1.0))
+        self.assertGreater(sleep_regen, rest_regen)
+        self.assertGreaterEqual(rest_regen, stand_regen)

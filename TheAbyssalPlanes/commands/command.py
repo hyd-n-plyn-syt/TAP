@@ -54,6 +54,17 @@ class GameMuxCommand(MuxCommand):
     parsing the default commands rely on (self.lhs, self.rhs, etc.).
     """
 
+    def at_pre_cmd(self):  # type: ignore
+        """Check if sleeping blocks command execution."""
+        caller = self.caller
+        if getattr(caller, "pose", "standing") == "sleeping":
+            cmdname = (self.key or "").lower()
+            allowed = {"wake", "awaken", "wakeup", "score", "stats", "quit", "help"}
+            if cmdname not in allowed and not any(alias.lower() in allowed for alias in getattr(self, "aliases", [])):
+                caller.msg("You are fast asleep. You must WAKE up first.")
+                return True
+        return False
+
     def at_post_cmd(self):
         """Refresh the character's prompt after every command."""
         refresh_prompt(self.caller)

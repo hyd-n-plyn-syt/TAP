@@ -16,7 +16,7 @@ class CmdTrain(Command):
 
     With no arguments, lists the trainers here and the skills each can
     teach you. With a skill name, asks a trainer here to teach it to you;
-    you learn it at Novice (0%) and raise it by using it. Advanced skills
+    you learn it at Novice and raise it by using it. Advanced skills
     show their requirements - you must meet them before you can learn.
     """
     key = "train"
@@ -54,7 +54,8 @@ class CmdTrain(Command):
             caller.msg("No one here can teach you that.")
             return
 
-        if key in caller.skills:
+        known = getattr(caller.db, "skills", None) or {}
+        if key in known:
             caller.msg(f"You already know how to {data.get_skill(key)['name'].lower()}.")
             return
 
@@ -70,10 +71,11 @@ class CmdTrain(Command):
             )
             return
 
-        caller.skills[key] = 0
+        known[key] = 1
+        caller.db.skills = known
         caller.msg(
             f"|g{trainer.name} teaches you the fundamentals of "
-            f"{data.get_skill(key)['name']} (Novice, 0%).|n"
+            f"{data.get_skill(key)['name']} (Novice).|n"
         )
 
     def _list_trainers(self, caller, trainers):

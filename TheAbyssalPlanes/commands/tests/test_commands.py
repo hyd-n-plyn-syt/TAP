@@ -27,6 +27,8 @@ from commands.player.appearance import (
     CmdSetHairColor,
     CmdSetSkin,
 )
+from commands.player.poses import CmdRest, CmdSleep, CmdWake, CmdLay, CmdStand
+from combat.movement import start_navigation
 from world.data import changes
 
 
@@ -37,31 +39,31 @@ class SkillsCommandTest(EvenniaCommandTest):
         self.assertIn("You have not learned any skills yet", out)
 
     def test_known_skill_listing(self):
-        self.char1.skills = {"attack": 100, "punch": 50}
+        self.char1.db.skills = {"punch": 100, "kick": 50}
         out = self.call(CmdSkills(), "")
-        self.assertIn("Attack", out)
         self.assertIn("Punch", out)
+        self.assertIn("Kick", out)
 
     def test_unknown_skill_detail(self):
         out = self.call(CmdSkills(), "nonsense")
         self.assertTrue(out.startswith("You don't know how to do that."))
 
     def test_learned_skill_detail(self):
-        self.char1.skills = {"attack": 300}
-        out = self.call(CmdSkills(), "attack")
-        self.assertIn("Attack", out)
+        self.char1.db.skills = {"punch": 300}
+        out = self.call(CmdSkills(), "punch")
+        self.assertIn("Punch", out)
         self.assertIn("Corpus Potestas", out)
 
     def test_skill_key_detail_shows_requirements(self):
-        self.char1.skills = {"power_strike": 0, "attack": 300, "punch": 300}
-        out = self.call(CmdSkills(), "power strike")
-        self.assertIn("Power Strike", out)
+        self.char1.db.skills = {"haymaker": 0, "axehandle": 300}
+        out = self.call(CmdSkills(), "haymaker")
+        self.assertIn("Haymaker", out)
         self.assertIn("Requires", out)
 
     def test_skills_all_listing(self):
-        self.char1.skills = {"attack": 100}
+        self.char1.db.skills = {"punch": 100}
         out = self.call(CmdSkills(), "all")
-        self.assertIn("Attack", out)
+        self.assertIn("Punch", out)
         self.assertIn("Unlearned", out)
 
 
@@ -69,7 +71,7 @@ class SkillsCommandTest(EvenniaCommandTest):
 class TrainCommandTest(EvenniaCommandTest):
     def _make_trainer(self):
         trainer = self.char2
-        trainer.attributes.add("trained_skills", ["punch", "kick", "power_strike"])
+        trainer.attributes.add("trained_skills", ["punch", "kick", "haymaker"])
         return trainer
 
     def test_no_trainers_message(self):
@@ -81,29 +83,29 @@ class TrainCommandTest(EvenniaCommandTest):
         out = self.call(CmdTrain(), "")
         self.assertIn("trains in", out)
         self.assertIn("Punch", out)
-        self.assertIn("Power Strike", out)
+        self.assertIn("Haymaker", out)
 
     def test_learn_simple_skill(self):
         self._make_trainer()
         self.call(CmdTrain(), "punch")
-        self.assertIn("punch", self.char1.skills)
-        self.assertEqual(self.char1.skills["punch"], 0)
+        self.assertIn("punch", self.char1.db.skills)
+        self.assertEqual(self.char1.db.skills["punch"], 1)
 
     def test_learn_gated_by_prereqs(self):
         self._make_trainer()
-        out = self.call(CmdTrain(), "power strike")
-        self.assertIn("You need Attack 0% Adept", out)
-        self.assertNotIn("power_strike", self.char1.skills)
+        out = self.call(CmdTrain(), "haymaker")
+        self.assertIn("You need Axehandle", out)
+        self.assertNotIn("haymaker", self.char1.db.skills)
 
     def test_learn_after_prereqs(self):
         self._make_trainer()
-        self.char1.skills = {"attack": 300, "punch": 300}
-        self.call(CmdTrain(), "power strike")
-        self.assertIn("power_strike", self.char1.skills)
+        self.char1.db.skills = {"axehandle": 300}
+        self.call(CmdTrain(), "haymaker")
+        self.assertIn("haymaker", self.char1.db.skills)
 
     def test_no_trainer_for_skill(self):
         self._make_trainer()
-        out = self.call(CmdTrain(), "block")
+        out = self.call(CmdTrain(), "melee_evasion")
         self.assertTrue(out.startswith("No one here can teach you that."))
 
     def test_unknown_skill(self):
@@ -1360,3 +1362,43 @@ class BuilderAppearanceCommandsTest(EvenniaCommandTest):
         self.assertIn("(#dcdcdc)", result)
         self.assertIn("violet", result)
         self.assertIn("silver", result)
+
+
+class PoseCommandsTest(EvenniaCommandTest):
+    def test_rest_command(self):
+        self.call(CmdRest(), "")
+        self.assertEqual(self.char1.pose, "resting")
+
+    def test_sleep_and_wake_workflow(self):
+        self.char1.set_state("perceiving")
+        self.call(CmdSleep(), "")
+        self.assertEqual(self.char1.pose, "sleeping")
+        self.assertEqual(self.char1.state(), "normal")
+        self.assertFalse(self.char1.can_phys_see)
+        self.assertFalse(self.char1.can_hear_phys)
+
+        # Trying to stand straight from sleeping should fail
+        out = self.call(CmdStand(), "")
+        self.assertIn("fast asleep", out)
+        self.assertEqual(self.char1.pose, "sleeping")
+
+        self.call(CmdWake(), "")
+        self.assertEqual(self.char1.pose, "laying")
+        self.assertTrue(self.char1.can_phys_see)
+
+        # Now can stand from laying
+        self.call(CmdStand(), "")
+        self.assertEqual(self.char1.pose, "standing")
+
+    def test_lay_and_stand_workflow(self):
+        self.call(CmdLay(), "")
+        self.assertEqual(self.char1.pose, "laying")
+
+        ok = start_navigation(self.char1, 1, 1)
+        self.assertFalse(ok)
+
+        self.call(CmdStand(), "")
+        self.assertEqual(self.char1.pose, "standing")
+
+        ok = start_navigation(self.char1, 1, 1)
+        self.assertTrue(ok)

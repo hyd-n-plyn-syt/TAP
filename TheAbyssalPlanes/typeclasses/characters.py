@@ -524,15 +524,33 @@ class Character(ObjectParent, DefaultCharacter):
                 if entry:
                     break
         if entry:
-            self.db.pos_x, self.db.pos_y = entry
+            tx, ty = entry
         else:
             w, h = get_room_grid_size(self.location)
-            self.db.pos_x = w // 2
-            self.db.pos_y = h // 2
+            tx, ty = w // 2, h // 2
+
+        from combat.movement import find_nearest_unoccupied_coord
+        ux, uy = find_nearest_unoccupied_coord(self.location, tx, ty, z=1, ignore=self)
+        self.db.pos_x, self.db.pos_y = ux, uy
         self.db.pos_z = 1
         self.db.room_id = self.location.dbref
 
         if getattr(self.db, "is_autowhere", False):
+            from combat.map_renderer import render_map
+            self.msg(render_map(self))
+
+    def send_autowhere(self):
+        if getattr(self.db, "is_autowhere", False):
+            from combat.map_renderer import render_map
+            self.msg(render_map(self))
+
+    def check_autowhere(self, old_location, old_x, old_y, old_z):
+        if not getattr(self.db, "is_autowhere", False):
+            return
+        if (self.location != old_location
+                or getattr(self.db, "pos_x", None) != old_x
+                or getattr(self.db, "pos_y", None) != old_y
+                or getattr(self.db, "pos_z", None) != old_z):
             from combat.map_renderer import render_map
             self.msg(render_map(self))
 

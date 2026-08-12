@@ -42,18 +42,18 @@ class SkillCatalogTest(SimpleTestCase):
                 self.assertIn(prereq, skills.SKILLS, skill["key"])
 
     def test_get_skill_normalizes(self):
-        self.assertIs(skills.get_skill("POWER_STRIKE"), skills.SKILLS["power_strike"])
-        self.assertIsNone(skills.get_skill("power strike"))  # a name, not a key
+        self.assertIs(skills.get_skill("HAYMAKER"), skills.SKILLS["haymaker"])
+        self.assertIsNone(skills.get_skill("power strike"))  # removed skill
         self.assertIsNone(skills.get_skill(None))
         self.assertIsNone(skills.get_skill("nope"))
 
     def test_skill_key_resolves(self):
-        self.assertEqual(skills.skill_key("feint"), "feint")
+        self.assertEqual(skills.skill_key("melee feint"), "melee_feint")
         self.assertEqual(skills.skill_key("Focused Meditation"), "focused_meditation")
         self.assertIsNone(skills.skill_key("not a skill"))
 
     def test_advanced_skills_have_prereqs(self):
-        self.assertEqual(skills.SKILLS["power_strike"]["requires"], {"attack": 300, "punch": 300})
+        self.assertEqual(skills.SKILLS["haymaker"]["requires"], {"axehandle": 300})
         self.assertEqual(skills.SKILLS["focused_meditation"]["requires"], {"meditate": 400})
 
     def test_categories_present(self):

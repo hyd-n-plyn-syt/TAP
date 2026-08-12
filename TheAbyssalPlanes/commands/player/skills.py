@@ -71,7 +71,8 @@ class CmdSkills(Command):
     def _line(self, caller, key):
         """One listing line for a skill (known or unlearned)."""
         skill = data.get_skill(key)
-        if not caller.skills or key not in caller.skills:
+        known = getattr(caller.db, "skills", None) or {}
+        if key not in known:
             return f"  |w{skill['name']:16}|n  |xUnlearned|n"
         value = skills.skill_value(caller, key)
         pct = skills.within_tier(value)
@@ -88,7 +89,8 @@ class CmdSkills(Command):
         if not skill:
             caller.msg("You don't know how to do that.")
             return
-        if key not in caller.skills:
+        known = getattr(caller.db, "skills", None) or {}
+        if key not in known:
             caller.msg("You don't know how to do that.")
             return
 

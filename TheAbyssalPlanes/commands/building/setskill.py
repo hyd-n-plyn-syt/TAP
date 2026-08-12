@@ -65,9 +65,12 @@ class CmdSetSkill(Command):
             )
             return
 
+        known = getattr(target.db, "skills", None) or {}
+
         if len(parts) >= 2 and parts[1].lower() == "reset":
-            if key in target.skills:
-                del target.skills[key]
+            if key in known:
+                del known[key]
+                target.db.skills = known
                 caller.msg(f"|r{target.name} forgot {skill['name']}.|n")
             else:
                 caller.msg(f"{target.name} doesn't know {skill['name']}.")
@@ -79,20 +82,16 @@ class CmdSetSkill(Command):
             except ValueError:
                 caller.msg("Value must be an integer.")
                 return
-            value = max(0, min(1000, value))
-            if value == 0:
-                if key in target.skills:
-                    del target.skills[key]
-                caller.msg(f"|r{target.name} forgot {skill['name']}.|n")
-                return
-            target.skills[key] = value
+            value = max(1, min(1000, value))
+            known[key] = value
+            target.db.skills = known
             caller.msg(
                 f"|gSet {skill['name']} to {value} "
                 f"({data.TIER_NAMES[skills.tier(value) - 1]}) on {target.name}.|n"
             )
             return
 
-        if key in target.skills:
+        if key in known:
             caller.msg(f"{target.name} already knows {skill['name']}.")
             return
 
@@ -107,7 +106,8 @@ class CmdSetSkill(Command):
             )
             return
 
-        target.skills[key] = 0
+        known[key] = 1
+        target.db.skills = known
         if missing:
             caller.msg(
                 f"|g{target.name} learned {skill['name']} "

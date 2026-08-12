@@ -293,3 +293,25 @@ def zeroed_pools(key):
     """Return the tuple of pools pinned to 0 for the species."""
     data = get_species(key)
     return data["zeroed_pools"] if data else ()
+
+
+_POOL_MAIN = {"vigor": "corpus", "vim": "animus", "mens": "genius"}
+_MAIN_POOL = {"corpus": "vigor", "animus": "vim", "genius": "mens"}
+
+
+def resolve_pool(key, pool_name):
+    """Return the effective pool name for a character of this species.
+
+    If the pool is zeroed for the species, route to the substitute pool
+    via locked_alternates.  Falls back to the original pool if there is
+    no substitute (should not happen for valid species).
+    """
+    if pool_name not in zeroed_pools(key):
+        return pool_name
+    main = _POOL_MAIN.get(pool_name)
+    if not main:
+        return pool_name
+    sub_main = alternate_for(key, main)
+    if sub_main:
+        return _MAIN_POOL.get(sub_main, pool_name)
+    return pool_name

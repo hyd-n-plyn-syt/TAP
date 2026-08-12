@@ -30,19 +30,34 @@ def is_grid_occupied(room, x, y, z=None, ignore=None):
     """Return list of occupants blocking (x, y, z).
 
     Only objects with ``occupies_space`` True count.  Exits are always
-    excluded.  Pass *ignore* to exclude a specific object (the mover
-    itself) from the check.  When *z* is None the z-axis is not checked.
+    excluded.  Pass *ignore* to exclude a specific object or collection of objects
+    (the mover itself, furniture, etc.) from the check.  When *z* is None the z-axis is not checked.
     """
+    ignore_list = []
+    if ignore is not None:
+        if isinstance(ignore, (list, tuple, set)):
+            ignore_list = list(ignore)
+        else:
+            ignore_list = [ignore]
+
     occupants = []
     for obj in room.contents:
-        if obj is ignore:
+        if obj in ignore_list:
             continue
         if getattr(obj, "destination", None):
             continue
         if not getattr(obj, "occupies_space", False):
             continue
-        if getattr(obj.db, "pos_x", None) != x or getattr(obj.db, "pos_y", None) != y:
+
+        matched = False
+        if hasattr(obj, "is_at_coord"):
+            matched = obj.is_at_coord(x, y)
+        else:
+            matched = (getattr(obj.db, "pos_x", None) == x and getattr(obj.db, "pos_y", None) == y)
+
+        if not matched:
             continue
+
         if z is not None and getattr(obj.db, "pos_z", None) != z:
             continue
         occupants.append(obj)
@@ -269,6 +284,11 @@ def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode
     delta_x/delta_y: if provided, the queued destination will be
     recalculated relative to the character's position at drain time.
     """
+    pose = getattr(actor, "pose", None) or "standing"
+    if pose != "standing":
+        actor.msg("You cannot move while resting, sleeping, or laying. You must stand up first.")
+        return False
+
     room = actor.location
     nav = {
         "dest_x": int(dest_x),
@@ -291,3 +311,26 @@ def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode
             actor.msg(mover_start_message(room, nav, actor))
             ensure_combat_loop(room)
     return True
+
+
+def find_nearest_unoccupied_coord(room, start_x, start_y, z=1, ignore=None):
+    """Find the nearest unoccupied coordinate to (start_x, start_y) in room."""
+    from combat.grid import get_room_grid_size, is_valid_coord
+    w, h = get_room_grid_size(room)
+
+    if is_valid_coord(room, start_x, start_y) and not is_grid_occupied(room, start_x, start_y, z=z, ignore=ignore):
+        return start_x, start_y
+
+    max_dist = max(w, h)
+    for d in range(1, max_dist + 1):
+        candidates = []
+        for dx in range(-d, d + 1):
+            for dy in range(-d, d + 1):
+                if max(abs(dx), abs(dy)) == d:
+                    nx, ny = start_x + dx, start_y + dy
+                    if is_valid_coord(room, nx, ny) and not is_grid_occupied(room, nx, ny, z=z, ignore=ignore):
+                        candidates.append((nx, ny))
+        if candidates:
+            candidates.sort(key=lambda t: abs(t[0] - start_x) + abs(t[1] - start_y))
+            return candidates[0]
+    return start_x, start_y

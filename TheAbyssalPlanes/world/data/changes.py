@@ -437,6 +437,155 @@ CHANGES = [
             "side of the bottom rows, using colored labels for easy reading."
         ),
     },
+    {
+        "number": 35,
+        "date": "2026-08-11",
+        "title": "Combat system: attack, actions, accuracy & damage",
+        "body": (
+            "The combat engine is now functional. The 'attack' command (and "
+            "aliases punch, kick, headbutt, knee, axehandle, haymaker) queues "
+            "up to 3 actions per round. Each action costs time from a 6-second "
+            "round and pool points (Mens for brawling). Hit resolution rolls "
+            "attack vs defense using skill values, with critical hit chance. "
+            "Damage is calculated from skill, stat weights, and damage type, "
+            "then reduced by the target's armor. Health bars (Vigor, Vim, Mens) "
+            "take damage and a knock-out threshold exists. The combat loop "
+            "drains the action queue each tick and resolves attacks in order."
+        ),
+    },
+    {
+        "number": 36,
+        "date": "2026-08-11",
+        "title": "Skill overhaul: brawling tree, precursor chains & combat stats",
+        "body": (
+            "The skill system was restructured with a precursor chain model. "
+            "Brawling is the foundation governing all unarmed combat. Offense "
+            "skills form a tree: punch and kick lead to headbutt and knee, "
+            "which lead to axehandle, which leads to haymaker. A new defense "
+            "tree covers melee evasion, parry, block, feint and counterattack. "
+            "Every skill now carries combat properties: reach (grid distance), "
+            "damage type (physical/psychic/magical), health bar target, base "
+            "time cost, and pool cost per use. Time cost decreases with skill "
+            "level. Old generic skills (dodge, parry, attack, block, "
+            "power_strike) were replaced by the new trees."
+        ),
+    },
+    {
+        "number": 37,
+        "date": "2026-08-11",
+        "title": "Pool regeneration, furniture healing & species pool routing",
+        "body": (
+            "A 1-minute regeneration tick now runs in the combat loop for every "
+            "character in an active room. Regeneration rate scales with pose: "
+            "sleeping grants 2x, resting/laying/sitting grant 1.5x. Furniture "
+            "quality adds a multiplier on top (e.g. quality 1.0 doubles regen). "
+            "Zeroed pools for species are routed through locked alternates via "
+            "the new resolve_pool function, so Silex and Visarii regeneration "
+            "respects their stat locks."
+        ),
+    },
+    {
+        "number": 38,
+        "date": "2026-08-11",
+        "title": "Furniture system & createfurniture command",
+        "body": (
+            "A new Furniture typeclass supports multi-tile objects with grid "
+            "footprints, configurable dimensions (1x1, 1x2, 1x3, 2x2), "
+            "facing, rotation, seat counts, quality ratings, and allowed "
+            "states (sit, rest, lay, sleep). Furniture automatically seats "
+            "occupants when dropped, placing them on free tiles. The builder "
+            "createfurniture command walks through all options interactively: "
+            "name, blocks-movement, seats, dimensions, states, and quality. "
+            "Furniture is searchable by material description in room listings."
+        ),
+    },
+    {
+        "number": 39,
+        "date": "2026-08-11",
+        "title": "Item system: multi-material truecolor descriptions",
+        "body": (
+            "A new Item typeclass extends Furniture with truecolor material "
+            "descriptions. Items carry one or two materials (each with a color), "
+            "an adjective, and a base name. The display name is auto-generated: "
+            "'a brown leather, sturdy couch' with each material rendered in its "
+            "actual hex color. The builder createitem command walks through type, "
+            "base name, materials, colors, adjectives, and furniture options. "
+            "Item descriptions show in room listings, action messages, and "
+            "anywhere the item is referenced."
+        ),
+    },
+    {
+        "number": 40,
+        "date": "2026-08-11",
+        "title": "Furniture-aware pose commands & plane-aware drop",
+        "body": (
+            "New player commands: sit, rest, sleep, lay, stand, and rotate. "
+            "Each detects nearby furniture, validates allowed states, finds a "
+            "free seat, and moves the character onto it. Standing finds an "
+            "adjacent free spot. Wake now detects if you are on furniture and "
+            "keeps you there instead of saying 'lie on the ground'. Drop is "
+            "now a custom command: dropping furniture auto-seats you and sends "
+            "a single combined message. All drop messages are plane-aware: "
+            "observers who cannot see the item see nothing; those who see the "
+            "item but not the dropper see the item appear without naming them."
+        ),
+    },
+    {
+        "number": 41,
+        "date": "2026-08-11",
+        "title": "Sleep mechanics: blocked commands & perception",
+        "body": (
+            "Sleeping now has real consequences. While sleeping, all commands "
+            "are blocked except wake, score, stats, quit and help. Sleeping "
+            "characters cannot perceive either the physical or visarial plane "
+            "and cannot hear anything. The combat loop stays active while "
+            "someone in the room is sleeping to support regeneration."
+        ),
+    },
+    {
+        "number": 42,
+        "date": "2026-08-11",
+        "title": "Coordinate teleport & movement improvements",
+        "body": (
+            "The builder teleport command now supports grid coordinates: "
+            "'teleport 5 3' or 'teleport 5 3 2' for z-level, and "
+            "'teleport target = 5 3' to teleport another character. Finding "
+            "the nearest unoccupied coordinate is automatic. Movement now "
+            "requires a standing pose; you must stand before walking. "
+            "Multi-tile objects (furniture) use footprint collision instead "
+            "of a single tile, so a 1x3 couch blocks three tiles properly."
+        ),
+    },
+    {
+        "number": 43,
+        "date": "2026-08-11",
+        "title": "Autowhere gating & map renderer updates",
+        "body": (
+            "The autowhere minimap now only updates when your position "
+            "actually changes, not on every pose or state change. A new "
+            "check_autowhere method compares location and coordinates before "
+            "and after any action, firing only on real movement. The map "
+            "renderer now displays items and furniture on the grid using "
+            "their material colors. Characters sitting on furniture are shown "
+            "on the furniture's tile. The minimap respects multi-tile "
+            "footprints for proper collision display."
+        ),
+    },
+    {
+        "number": 44,
+        "date": "2026-08-11",
+        "title": "Room furniture display & skill storage migration",
+        "body": (
+            "Room descriptions now show characters 'on' furniture by name "
+            "rather than listing furniture as a separate object. Occupied "
+            "furniture is hidden from the things list; unoccupied furniture "
+            "shows with its full material description. Skills have been "
+            "migrated from attribute properties to a persistent db.skills "
+            "dict for reliability. The skill value floor is now 1 (Novice) "
+            "instead of 0. The train command no longer displays '0%' for "
+            "newly learned skills."
+        ),
+    },
 ]
 
 

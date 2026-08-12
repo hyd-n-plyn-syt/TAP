@@ -417,3 +417,58 @@ class CmdShove(Command):
             elif push_y > 0: direction = "north"
             elif push_y < 0: direction = "south"
             target.msg(f"You are shoved {direction}.")
+
+
+class CmdAttack(Command):
+    """
+    Attack a target with a combat skill.
+    Usage:
+        ATTACK <target>
+        ATTACK <skill> <target>
+    Queues up to 3 actions. Actions consume time from your 6-second round.
+    """
+    key = "attack"
+    aliases = ["punch", "kick", "headbutt", "knee", "axehandle", "haymaker"]
+    locks = "cmd:all()"
+
+    def func(self):
+        if not self.args:
+            self.msg("Attack what?")
+            return
+
+        caller = self.caller
+        room = caller.location
+        if not room:
+            return
+
+        skill_key = self.cmdstring.lower()
+        if skill_key == "attack":
+            skill_key = "punch"
+            target_name = self.args.strip()
+        else:
+            target_name = self.args.strip()
+
+        from world.data.skills import get_skill
+        skill_info = get_skill(skill_key)
+        if not skill_info:
+            self.msg(f"Unknown skill: {skill_key}")
+            return
+
+        results = caller.search(target_name, quiet=True)
+        target = results[0] if results else None
+        if not target:
+            self.msg(f"Could not find '{target_name}'.")
+            return
+
+        if target == caller:
+            self.msg("You can't attack yourself.")
+            return
+
+        from combat.actions import queue_action
+        success, msg = queue_action(caller, "attack", skill_key, target)
+        self.msg(msg)
+
+        if success:
+            from combat.movement import ensure_combat_loop
+            ensure_combat_loop(room)
+            caller.db.combat_target = target

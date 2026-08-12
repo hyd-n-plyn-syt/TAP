@@ -3,6 +3,7 @@ Map Renderer for the movement grid.
 """
 from combat.grid import grid_quadrant, get_room_grid_size, get_room_floor_z, get_exit_coords
 from world.systems.hostility import hostile_towards
+from world.data import colors as colors_data
 
 def get_symbol_and_color(obj, looker):
     if obj == looker: return "@", "|c"
@@ -10,6 +11,16 @@ def get_symbol_and_color(obj, looker):
     if hostile_towards(looker, obj): return "H", "|r"
     if obj.is_typeclass("typeclasses.characters.Character"): return "@", "|C"
     if obj.destination: return "+", "|g"
+    if obj.is_typeclass("typeclasses.items.Item") or obj.is_typeclass("typeclasses.furniture.Furniture"):
+        col = "|D"
+        if hasattr(obj, "materials") and obj.materials:
+            mat_name, col_key = obj.materials[0]
+            hexcol = colors_data.hex_for_color(col_key)
+            if hexcol:
+                col = f"|{hexcol}"
+        elif hasattr(obj, "color") and obj.color:
+            col = obj.color
+        return "X", col
     if obj.is_typeclass("typeclasses.objects.Object"): return "X", "|D"
     return "#", "|n"
 
@@ -47,7 +58,12 @@ def render_map(looker):
                 tile_obj = None
                 for obj in room.contents:
                     if obj.destination: continue
-                    if getattr(obj.db, "pos_x", None) == ix and getattr(obj.db, "pos_y", None) == iy:
+                    matched = False
+                    if hasattr(obj, "is_at_coord"):
+                        matched = obj.is_at_coord(ix, iy)
+                    else:
+                        matched = (getattr(obj.db, "pos_x", None) == ix and getattr(obj.db, "pos_y", None) == iy)
+                    if matched:
                         if obj == looker:
                             tile_obj = obj
                             break

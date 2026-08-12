@@ -17,6 +17,8 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 from evennia import default_cmds
 from commands.building.dig import GridDig
 from commands.building.dig_menu import CmdDigMenu
+from commands.building.createfurniture import CmdCreateFurniture
+from commands.building.createitem import CmdCreateItem
 from commands.building.setorigin import CmdSetOrigin
 from commands.building.attset import CmdAttSet
 from commands.building.setskill import CmdSetSkill
@@ -48,12 +50,14 @@ from commands.player.score import CmdScore
 from commands.player.changes import CmdChanges
 from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
+from commands.player.poses import CmdRest, CmdSleep, CmdWake, CmdLay, CmdStand, CmdSit, CmdRotate
+from commands.player.drop import CmdDrop
 from commands.player.emote import CmdEmote
 from commands.player.setpose import CmdSetPose
 from commands.player.door_commands import CmdOpen, CmdClose, CmdLock, CmdUnlock, CmdAutoOpen
 from commands.player.movement import CmdDirectionFallback
 from commands.building.setroomsize import CmdSetRoomSize
-from commands.player.combat import CmdApproach, CmdMove, CmdShove
+from commands.player.combat import CmdApproach, CmdMove, CmdShove, CmdAttack
 from commands.player.fly import CmdFly, CmdLand
 from commands.player.where import CmdWhere, CmdWhereKey, CmdAutoWhere
 from commands.player.mapsize import CmdMapSize
@@ -91,6 +95,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.remove("pose")
         self.add(GridDig)  # This replaces the default engine @dig globally
         self.add(CmdDigMenu)  # Interactive build menu for rooms and exits
+        self.add(CmdCreateFurniture)
+        self.add(CmdCreateItem)
         self.add(CmdForce)  # Replaces the default 'force' (global, plane-agnostic)
         self.add(CmdBuilderTeleport)  # Lowers default teleport from Admin to Builder
         self.add(CmdSetOrigin)
@@ -127,11 +133,20 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdChanges)
         self.add(CmdSetSpecies)
         self.add(CmdPromptMode)
+        self.add(CmdRest)
+        self.add(CmdSleep)
+        self.add(CmdWake)
+        self.add(CmdLay)
+        self.add(CmdStand)
+        self.add(CmdSit)
+        self.add(CmdRotate)
+        self.add(CmdDrop)
         self.add(CmdEmote)
         self.add(CmdSetRoomSize)
         self.add(CmdApproach)
         self.add(CmdMove)
         self.add(CmdShove)
+        self.add(CmdAttack)
         self.add(CmdOpen)
         self.add(CmdClose)
         self.add(CmdLock)

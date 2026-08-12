@@ -93,12 +93,16 @@ class ObjectParent:
         """Whether this entity currently perceives the physical plane."""
         if not self.is_creature:
             return False
+        if getattr(self, "pose", None) == "sleeping":
+            return False
         return self.current_plane() == "physical" or self.state() == "perceiving"
 
     @property
     def can_vis_see(self):
         """Whether this entity currently perceives the visarial plane."""
         if not self.is_creature:
+            return False
+        if getattr(self, "pose", None) == "sleeping":
             return False
         return self.current_plane() == "visarial" or self.state() == "perceiving"
 

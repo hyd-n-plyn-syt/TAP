@@ -362,17 +362,47 @@ class Room(ObjectParent, DefaultRoom):
             color = "x" if plane == "physical" else "M"
             label = f"|w(|{color}{plane}|w)|n"
 
+            furnitures = [t for t in group["things"] if t.is_typeclass("typeclasses.furniture.Furniture")]
+            occupied_furnitures = set()
+            for furn in furnitures:
+                tiles = [(furn.db.pos_x, furn.db.pos_y)] + list(furn.db.extra_coords or [])
+                for char in group["chars"]:
+                    cx = getattr(char.db, "pos_x", 0)
+                    cy = getattr(char.db, "pos_y", 0)
+                    if (cx, cy) in tiles:
+                        pose = (char.pose or "standing").lower()
+                        allowed = [s.lower() for s in getattr(furn, "allowed_states", [])]
+                        if pose in allowed or (pose == "resting" and "rest" in allowed) or (pose == "sleeping" and "sleep" in allowed) or (pose == "sitting" and "sit" in allowed) or (pose == "laying" and "lay" in allowed):
+                            occupied_furnitures.add(furn)
+                            break
+
+            unoccupied_things = [
+                t for t in group["things"]
+                if not (t.is_typeclass("typeclasses.furniture.Furniture") and t in occupied_furnitures)
+            ]
+
             by_quadrant_pos = OrderedDict()
             for char in group["chars"]:
                 quadrant = grid_quadrant(self, char.db.pos_x, char.db.pos_y)
                 if char.db.is_flying:
-                    key = (f"in the air above {quadrant}", "flying")
+                    key = (f"in the air above {quadrant}", "flying", None)
                 else:
-                    key = (quadrant, char.pose or "standing")
+                    pose = char.pose or "standing"
+                    assigned_furn = None
+                    cx = getattr(char.db, "pos_x", 0)
+                    cy = getattr(char.db, "pos_y", 0)
+                    for furn in furnitures:
+                        tiles = [(furn.db.pos_x, furn.db.pos_y)] + list(furn.db.extra_coords or [])
+                        if (cx, cy) in tiles:
+                            allowed = [s.lower() for s in getattr(furn, "allowed_states", [])]
+                            if pose.lower() in allowed or (pose == "resting" and "rest" in allowed) or (pose == "sleeping" and "sleep" in allowed) or (pose == "sitting" and "sit" in allowed) or (pose == "laying" and "lay" in allowed):
+                                assigned_furn = furn
+                                break
+                    key = (quadrant, pose, assigned_furn)
                 by_quadrant_pos.setdefault(key, []).append(char)
 
             sentences = []
-            for index, ((quadrant_or_air, position), pos_chars) in enumerate(
+            for index, ((quadrant_or_air, position, furn), pos_chars) in enumerate(
                 by_quadrant_pos.items()
             ):
                 entries = []
@@ -383,22 +413,25 @@ class Room(ObjectParent, DefaultRoom):
                         entry += f" ({char.name})"
                     entries.append(entry)
                 lead = "there's" if index == 0 else "There's also"
-                # If position is 'flying', quadrant_or_air phrase already includes 'in the air above'
-                # If 'standing', position is pose and quadrant_or_air is just quadrant phrase.
-                # Sentence format: "there's {entries} {position} {quadrant_or_air}."
-                # e.g. "flying in the air above the nw portion..."
-                # e.g. "standing in the northwest portion..."
-                phrase = (
-                    f"{position} {quadrant_or_air}"
-                    if position == "flying"
-                    else f"{position} in {quadrant_or_air}"
-                )
+
+                if furn:
+                    furn_name = furn.get_display_name(looker, **kwargs)
+                    if len(pos_chars) > 1:
+                        phrase = f"{position} together on {furn_name} in {quadrant_or_air}"
+                    else:
+                        phrase = f"{position} on {furn_name} in {quadrant_or_air}"
+                else:
+                    phrase = (
+                        f"{position} {quadrant_or_air}"
+                        if position == "flying"
+                        else f"{position} in {quadrant_or_air}"
+                    )
                 sentences.append(
                     f"{lead} {iter_to_str(entries, endsep=', and')} {phrase} here."
                 )
 
-            if group["things"]:
-                things_sentence = f"you see {self._things_list(group['things'], looker, **kwargs)}."
+            if unoccupied_things:
+                things_sentence = f"you see {self._things_list(unoccupied_things, looker, **kwargs)}."
                 if sentences:
                     things_sentence = things_sentence[0].upper() + things_sentence[1:]
                 sentences.append(things_sentence)

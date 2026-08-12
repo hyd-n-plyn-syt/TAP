@@ -281,7 +281,7 @@ class MoverMessageTest(SimpleTestCase):
         nav = {"dest_x": 0, "dest_y": 10, "dest_z": 1, "exit_dbref": None}
         self.assertEqual(
             mover_start_message(room, nav, mover),
-            "You begin moving toward the northwest portion of the area. You should arrive in about 11 seconds.",
+            "You begin moving toward the northwest portion of the area. Arrive in about 11 seconds.",
         )
 
     def test_start_message_beside_occupant(self):
@@ -293,7 +293,7 @@ class MoverMessageTest(SimpleTestCase):
         nav = {"dest_x": 0, "dest_y": 10, "dest_z": 1, "exit_dbref": None}
         self.assertEqual(
             mover_start_message(room, nav, mover),
-            "You begin moving toward a stone. You should arrive in about 11 seconds.",
+            "You begin moving toward a stone. Arrive in about 11 seconds.",
         )
 
     def test_arrival_message_quadrant(self):
