@@ -608,6 +608,38 @@ CHANGES = [
             "rules."
         ),
     },
+    {
+        "number": 46,
+        "date": "2026-08-19",
+        "title": "Movement speed, pathfinding, and echo rework",
+        "body": (
+            "Movement now has three speed tiers: walk (3s/tile), jog (2s/tile), "
+            "and run (1s/tile). Use the WALK, JOG, and RUN commands to switch "
+            "speeds. Flight speeds scale accordingly: slowly, briskly, recklessly.\n\n"
+            "Two new opt-in toggles:\n"
+            "  AUTONAVIGATE - enables BFS pathfinding to route around furniture "
+            "and obstacles. When blocked, your character automatically finds the "
+            "shortest path around. Detours are announced to observers.\n"
+            "  AUTOFLY - when grounded and blocked, automatically takes off, "
+            "flies over the obstacle, and lands on the other side.\n\n"
+            "Both are off by default. Movement echoes have been reworked: "
+            "observers now see directional messages (\"walks to his east, "
+            "toward you\") instead of destination-revealing ones. Arrival "
+            "messages list only adjacent creatures and objects in a room-"
+            "objects-style list. One-step navigation (move n, approach) "
+            "remains greedy and unaffected by autonavigate.\n\n"
+            "ETA now reflects your actual speed tier (walk = 3x base, "
+            "jog = 2x, run = 1x). Arrival lists show what's at your "
+            "actual landing position, not the navigation target. Occupied "
+            "destinations now correctly arrive beside the occupant instead "
+            "of blocking.\n\n"
+            "The |D color-wrap bug on furniture names (visible in arrival "
+            "and detour messages) has been fixed by removing the "
+            "narrative_name/furniture_name wrappers and using "
+            "appearance_name directly, matching the pattern used by "
+            "APPROACH and SIT/STAND."
+        ),
+    },
 ]
 
 

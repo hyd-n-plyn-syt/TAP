@@ -1,6 +1,6 @@
 from evennia import utils
 from evennia.commands.default.general import NumberedTargetCommand
-from world.systems.narrative import colored_self, narrative_name
+from world.systems.narrative import colored_self
 
 
 class CmdDrop(NumberedTargetCommand):
@@ -54,7 +54,7 @@ class CmdDrop(NumberedTargetCommand):
         for obj in moved:
             drop_action = getattr(obj.db, "_drop_action", None)
             if obj.is_typeclass("typeclasses.furniture.Furniture"):
-                obj_name = narrative_name(obj)
+                obj_name = obj.appearance_name
             else:
                 obj_name = obj.get_numbered_name(1, caller, return_string=True)
 

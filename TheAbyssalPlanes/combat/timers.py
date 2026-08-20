@@ -31,10 +31,20 @@ from evennia.objects.models import ObjectDB
 from combat.grid import get_exit_coords, get_room_floor_z, is_valid_coord
 from combat.map_renderer import render_map
 from combat.movement import (
+    SPEED_TICKS,
     announce_grid_arrival,
     announce_grid_move,
+    arrival_mover_echo,
+    arrival_observer_echo,
+    blocked_with_hint,
     capitalize_display_name,
+    detour_mover_echo,
+    detour_observer_echo,
+    direction_from_delta,
+    find_path,
     is_grid_occupied,
+    move_mover_echo,
+    move_observer_echo,
     mover_arrival_message,
     mover_start_message,
 )
@@ -515,10 +525,66 @@ class MovementTimer(DefaultScript):
                 nav["dest_y"] = int(ty)
                 char.db.navigation = nav
 
+        is_autonav = getattr(char.db, "autonavigate", False)
+        is_autofly = getattr(char.db, "autofly", False)
+        speed = getattr(char.db, "move_speed", "walk") or "walk"
+        is_flying = getattr(char.db, "is_flying", False)
+
+        if is_flying:
+            step_every = SPEED_TICKS.get(speed, 3)
+        else:
+            step_every = SPEED_TICKS.get(speed, 3)
+
+        step_count = nav.get("step_count", 0) + 1
+        nav["step_count"] = step_count
+        char.db.navigation = nav
+
+        if step_count < step_every:
+            return
+
+        nav["step_count"] = 0
+        char.db.navigation = nav
+
         used = char.db.movement_used or 0
         if used >= MAX_GRIDS_PER_ROUND:
             char.msg("|rYou have used all your movement for this round.|n")
             return
+
+        if not nav.get("path") and is_autonav:
+            sx = char.db.pos_x or 0
+            sy = char.db.pos_y or 0
+            dest_z = nav.get("dest_z")
+            z_check = int(dest_z) if dest_z is not None else (int(char.db.pos_z or 1) if is_flying else None)
+            path, blockers = find_path(
+                room, sx, sy, nav["dest_x"], nav["dest_y"],
+                z=z_check, ignore=char, mover=char,
+            )
+            if path and len(path) > 1:
+                nav["path"] = path[1:]
+                char.db.navigation = nav
+            elif blockers:
+                if is_autofly and not is_flying and char.db.can_fly:
+                    from combat.grid import get_room_max_z
+                    cz = char.db.pos_z or 1
+                    tz = cz + 1
+                    if tz <= get_room_max_z(room):
+                        char.db.is_flying = True
+                        nav["movement_mode"] = "takeoff"
+                        nav["dest_z"] = tz
+                        nav["fly_landing_z"] = char.db.pos_z or 1
+                        char.db.navigation = nav
+                        char.msg("You take off, rising into the air to fly over the obstacle.")
+                        ensure_movement_timer(char)
+                        return
+                char.msg(blocked_with_hint(blockers, is_autonav))
+                char.db.navigation = None
+                self._drain_nav_queue(char)
+                return
+            else:
+                char.msg("You cannot reach that destination.")
+                char.db.navigation = None
+                self._drain_nav_queue(char)
+                return
 
         dx = int(nav["dest_x"] - (char.db.pos_x or 0))
         dy = int(nav["dest_y"] - (char.db.pos_y or 0))
@@ -549,7 +615,13 @@ class MovementTimer(DefaultScript):
                 else:
                     char.move_to(exit_obj.destination)
             else:
-                char.msg(mover_arrival_message(room, nav, char))
+                char.msg(arrival_mover_echo(char, nav))
+                for observer in room.contents:
+                    if observer is char or not getattr(observer, "is_creature", False):
+                        continue
+                    if not char.visible_to(observer):
+                        continue
+                    observer.msg(arrival_observer_echo(char, nav, observer), from_obj=char)
             self._drain_nav_queue(char)
             return
 
@@ -562,27 +634,61 @@ class MovementTimer(DefaultScript):
             self._drain_nav_queue(char)
             return
 
-        blockers = is_grid_occupied(room, nx, ny, ignore=char, mover=char)
+        cur_z = int(char.db.pos_z or 1)
+        z_check = cur_z if is_flying else None
+        blockers = is_grid_occupied(room, nx, ny, z=z_check, ignore=char, mover=char)
+
         if blockers:
             if dz == 0 and nx == nav["dest_x"] and ny == nav["dest_y"]:
-                announce_grid_arrival(char, nav)
-                char.msg(mover_arrival_message(room, nav, char))
+                char.msg(arrival_mover_echo(char, nav))
+                for observer in room.contents:
+                    if observer is char or not getattr(observer, "is_creature", False):
+                        continue
+                    if not char.visible_to(observer):
+                        continue
+                    observer.msg(arrival_observer_echo(char, nav, observer), from_obj=char)
                 char.db.navigation = None
                 self._drain_nav_queue(char)
                 return
-            blocker = blockers[0]
-            name = capitalize_display_name(
-                getattr(blocker, "appearance_name", None) or blocker.key
-            )
-            if hasattr(blocker, "approach_hint"):
-                hint, readable = blocker.approach_hint()
-                actions = ", ".join(readable) if readable else "interact"
-                char.msg(
-                    f"You can't move there. {name} occupies that space. "
-                    f"You could {actions} on it if you approached from {hint}."
+            if is_autonav and not is_flying:
+                route = find_path(
+                    room, char.db.pos_x or 0, char.db.pos_y or 0,
+                    nav["dest_x"], nav["dest_y"],
+                    z=z_check, ignore=char, mover=char,
                 )
-            else:
-                char.msg(f"You can't move there. {name} occupies that space.")
+                if route[0] and len(route[0]) > 1:
+                    next_x, next_y = route[0][1]
+                    ndx = next_x - (char.db.pos_x or 0)
+                    ndy = next_y - (char.db.pos_y or 0)
+                    direction = direction_from_delta(ndx, ndy) or "forward"
+                    observer_msg = detour_observer_echo(char, direction, speed, blockers[0])
+                    mover_msg = detour_mover_echo(char, direction, speed, blockers[0])
+                    char.msg(mover_msg)
+                    for observer in room.contents:
+                        if observer is char or not getattr(observer, "is_creature", False):
+                            continue
+                        if not char.visible_to(observer):
+                            continue
+                        observer.msg(observer_msg, from_obj=char)
+                    char.db.pos_x, char.db.pos_y = next_x, next_y
+                    used = char.db.movement_used or 0
+                    char.db.movement_used = used + 1
+                    if char.db.is_autowhere:
+                        char.msg(render_map(char))
+                    return
+                if is_autofly and char.db.can_fly:
+                    from combat.grid import get_room_max_z
+                    tz = cur_z + 1
+                    if tz <= get_room_max_z(room):
+                        char.db.is_flying = True
+                        nav["movement_mode"] = "takeoff"
+                        nav["dest_z"] = tz
+                        nav["fly_landing_z"] = cur_z
+                        char.db.navigation = nav
+                        char.msg("You take off, rising into the air to fly over the obstacle.")
+                        ensure_movement_timer(char)
+                        return
+            char.msg(blocked_with_hint(blockers, is_autonav))
             char.db.navigation = None
             self._drain_nav_queue(char)
             return
@@ -603,22 +709,58 @@ class MovementTimer(DefaultScript):
         if char.db.is_autowhere:
             char.msg(render_map(char))
 
+        direction = direction_from_delta(
+            nx - (char.db.pos_x or 0) + (1 if dx > 0 else -1 if dx < 0 else 0),
+            ny - (char.db.pos_y or 0) + (1 if dy > 0 else -1 if dy < 0 else 0),
+        ) or "forward"
+
+        move_obs = move_observer_echo(char, direction, speed, None)
+        move_mv = move_mover_echo(char, direction, speed)
+
         if nav.get("exit_dbref"):
-            announce_grid_move(char, nav)
+            for observer in room.contents:
+                if observer is char or not getattr(observer, "is_creature", False):
+                    continue
+                if not char.visible_to(observer):
+                    continue
+                observer.msg(move_obs, from_obj=char)
+            char.msg(move_mv)
         elif dz != 0:
-            announce_grid_move(char, nav)
+            for observer in room.contents:
+                if observer is char or not getattr(observer, "is_creature", False):
+                    continue
+                if not char.visible_to(observer):
+                    continue
+                observer.msg(move_obs, from_obj=char)
+            char.msg(move_mv)
             if nx == nav["dest_x"] and ny == nav["dest_y"]:
-                announce_grid_arrival(char, nav)
-                char.msg(mover_arrival_message(room, nav, char))
+                char.msg(arrival_mover_echo(char, nav))
+                for observer in room.contents:
+                    if observer is char or not getattr(observer, "is_creature", False):
+                        continue
+                    if not char.visible_to(observer):
+                        continue
+                    observer.msg(arrival_observer_echo(char, nav, observer), from_obj=char)
                 char.db.navigation = None
                 self._drain_nav_queue(char)
         elif nx == nav["dest_x"] and ny == nav["dest_y"]:
-            announce_grid_arrival(char, nav)
-            char.msg(mover_arrival_message(room, nav, char))
+            char.msg(arrival_mover_echo(char, nav))
+            for observer in room.contents:
+                if observer is char or not getattr(observer, "is_creature", False):
+                    continue
+                if not char.visible_to(observer):
+                    continue
+                observer.msg(arrival_observer_echo(char, nav, observer), from_obj=char)
             char.db.navigation = None
             self._drain_nav_queue(char)
         else:
-            announce_grid_move(char, nav)
+            for observer in room.contents:
+                if observer is char or not getattr(observer, "is_creature", False):
+                    continue
+                if not char.visible_to(observer):
+                    continue
+                observer.msg(move_obs, from_obj=char)
+            char.msg(move_mv)
 
     def _drain_nav_queue(self, char):
         room = char.location

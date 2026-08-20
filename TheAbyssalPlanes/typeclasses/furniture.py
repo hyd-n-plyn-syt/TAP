@@ -3,7 +3,7 @@ from evennia.objects.objects import DefaultObject
 from evennia.utils.utils import iter_to_str
 from .objects import ObjectParent
 from world.data import appearance as appearance_data
-from world.systems.narrative import colored_self, furniture_name
+from world.systems.narrative import colored_self
 from combat.grid import is_valid_coord
 from combat.movement import is_grid_occupied
 
@@ -286,7 +286,7 @@ class Furniture(ObjectParent, DefaultObject):
                 self.facing = new_facing
                 self.calculate_footprint()
                 you = colored_self(viewer, True) if viewer is not None else "You"
-                return True, f"{you} rotate {furniture_name(self)} to face {new_facing}."
+                return True, f"{you} rotate {self.appearance_name} to face {new_facing}."
 
         return False, "There is no clear space to rotate this furniture."
 

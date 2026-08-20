@@ -591,4 +591,94 @@ Roll totals are never revealed.
 See also: |wperceive|n, |wspecies|n, |wprompt|n.
 """.strip(),
     },
+    {
+        "key": "walk",
+        "category": "Movement",
+        "aliases": [],
+        "text": """
+|wWalk|n
+
+Set your movement speed to |wwalk|n (3 seconds per tile, 2 tiles per round).
+This is the default speed.
+
+  |wwalk|n
+
+See also: |wjog|n, |wrun|n, |wautonavigate|n, |wautofly|n.
+""".strip(),
+    },
+    {
+        "key": "jog",
+        "category": "Movement",
+        "aliases": [],
+        "text": """
+|wJog|n
+
+Set your movement speed to |wjog|n (2 seconds per tile, 3 tiles per round).
+Faster than walking, slower than running.
+
+  |wjog|n
+
+See also: |wwalk|n, |wrun|n, |wautonavigate|n, |wautofly|n.
+""".strip(),
+    },
+    {
+        "key": "run",
+        "category": "Movement",
+        "aliases": [],
+        "text": """
+|wRun|n
+
+Set your movement speed to |wrun|n (1 second per tile, 6 tiles per round).
+The fastest ground speed.
+
+  |wrun|n
+
+See also: |wwalk|n, |wjog|n, |wautonavigate|n, |wautofly|n.
+""".strip(),
+    },
+    {
+        "key": "autonavigate",
+        "category": "Movement",
+        "aliases": ["autonav"],
+        "text": """
+|wAutonavigate|n
+
+Toggle automatic pathfinding around obstacles. When |won|n, if your path is
+blocked by furniture, objects or other creatures, your character will
+automatically route around them instead of stopping. The path is recomputed
+every step so you always find the shortest way.
+
+When |woff|n (the default), blocked paths stop with a message.
+
+  |wautonavigate|n      - toggle on/off
+
+|wHow it works|n
+  - BFS pathfinding finds the shortest path around obstacles.
+  - Detours are announced: "X walks around a leather armchair to the east."
+  - If no path exists, you get a list of all blockers and the command stops.
+  - One-step movement (|wmove n|n, |wapproach|n) is unaffected and stays
+    greedy.
+
+See also: |wautofly|n, |wwalk|n, |wjog|n, |wrun|n.
+""".strip(),
+    },
+    {
+        "key": "autofly",
+        "category": "Movement",
+        "aliases": [],
+        "text": """
+|wAutofly|n
+
+Toggle automatic flight over ground obstacles. When |won|n, if your path is
+blocked by a ground object or creature and you |wcan fly|n, you will
+automatically take off, fly over the obstacle, and land on the other side.
+
+  |wautofly|n      - toggle on/off (requires can_fly)
+
+You must be able to fly to use this. Flight speed matches your current
+movement speed tier (walk = slowly, jog = briskly, run = recklessly).
+
+See also: |wautonavigate|n, |wfly|n, |wland|n, |wwalk|n, |wjog|n, |wrun|n.
+""".strip(),
+    },
 ]

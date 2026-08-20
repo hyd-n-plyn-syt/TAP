@@ -5,13 +5,8 @@ A character is introduced by its appearance phrase (whose species name is
 already colored by skin tone) the first time it appears in a narrative line;
 every later mention collapses to a skin-colored pronoun (he/she/it, his/her,
 You), so repeated references stay short and it is always obvious who is being
-indicated. Furniture and items are referenced by their material/color tint.
+indicated.
 """
-
-from world.data import colors as colors_data
-
-
-_DISPLAY_COLOR_FALLBACK = "D"
 
 _PRONOUN_FALLBACK = {
     "subject": "It",
@@ -99,44 +94,3 @@ def narrate_refs():
         return colored_pronoun(entity, case=case, sentence_start=sentence_start)
 
     return ref
-
-
-def display_color(obj):
-    """The bare color-code for an object's narrative name: its first
-    material's truecolor, its stored color code, or the dark-gray fallback.
-    Returned WITHOUT a leading pipe so callers wrap it in ``|{code}...|n``."""
-    materials = getattr(obj, "materials", None)
-    if materials:
-        entry = materials[0]
-        if isinstance(entry, (list, tuple)) and len(entry) > 1:
-            col_key = entry[1]
-        else:
-            col_key = entry
-        hexcol = colors_data.hex_for_color(col_key)
-        if hexcol:
-            return hexcol
-    color = getattr(obj, "color", None)
-    if color:
-        return color.lstrip("|") if color.startswith("|") else color
-    return _DISPLAY_COLOR_FALLBACK
-
-
-def _color_object_name(text, obj):
-    """Wrap the noun (not the article) of a display name in the object's
-    color, e.g. 'an |Doak table|n'."""
-    low = text.lower()
-    for art in ("an ", "a "):
-        if low.startswith(art):
-            return f"{text[:len(art)]}|{display_color(obj)}{text[len(art):]}|n"
-    return f"|{display_color(obj)}{text}|n"
-
-
-def narrative_name(obj, sentence_start=False):
-    """A narrative display name: furniture and items are tinted by their
-    material/color; anything else uses its plain display name."""
-    if obj.is_typeclass("typeclasses.furniture.Furniture"):
-        return _color_object_name(obj.get_display_name(), obj)
-    return obj.get_display_name()
-
-
-furniture_name = narrative_name

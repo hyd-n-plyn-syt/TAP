@@ -22,6 +22,7 @@ def _nav(dest_x, dest_y, dest_z=None):
         "dest_z": dest_z,
         "exit_dbref": None,
         "movement_mode": "walking",
+        "step_count": 0,
     }
 
 
@@ -32,6 +33,9 @@ class MovementTimerTest(EvenniaCommandTest):
         self.char1.db.pos_y = 2
         self.char1.db.pos_z = 1
         self.char1.db.movement_used = 0
+        self.char1.db.move_speed = "run"
+        self.char1.db.autonavigate = False
+        self.char1.db.autofly = False
         other = create_object("typeclasses.rooms.Room", key="ExitRoom")
         create_object(
             "evennia.objects.objects.DefaultExit",
@@ -60,11 +64,11 @@ class MovementTimerTest(EvenniaCommandTest):
         self.assertEqual((self.char1.db.pos_x, self.char1.db.pos_y), (2, 2))
         self.assertIsNone(self.char1.db.navigation)
         self.assertTrue(
-            any("arrive beside" in line for line in msgs),
+            any("arrive" in line.lower() for line in msgs),
             f"messages were: {msgs}",
         )
         self.assertFalse(
-            any("can't move there" in line for line in msgs),
+            any("way is blocked" in line.lower() for line in msgs),
             f"messages were: {msgs}",
         )
 
@@ -86,7 +90,7 @@ class MovementTimerTest(EvenniaCommandTest):
         self.assertEqual((self.char1.db.pos_x, self.char1.db.pos_y), (2, 2))
         self.assertIsNone(self.char1.db.navigation)
         self.assertTrue(
-            any("can't move there" in line.lower() for line in msgs),
+            any("way is blocked" in line.lower() for line in msgs),
             f"messages were: {msgs}",
         )
 
@@ -118,7 +122,7 @@ class MovementTimerTest(EvenniaCommandTest):
         script.at_repeat()
         self.assertEqual((self.char1.db.pos_x, self.char1.db.pos_y), (2, 2))
         self.assertTrue(
-            any("A leather armchair occupies that space" in line for line in msgs),
+            any("way is blocked" in line.lower() for line in msgs),
             f"messages were: {msgs}",
         )
 

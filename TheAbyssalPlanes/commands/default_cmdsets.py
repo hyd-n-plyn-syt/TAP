@@ -60,6 +60,9 @@ from commands.player.movement import CmdDirectionFallback
 from commands.building.setroomsize import CmdSetRoomSize
 from commands.player.combat import CmdApproach, CmdMove, CmdShove, CmdAttack
 from commands.player.fly import CmdFly, CmdLand
+from commands.player.movement_speed import CmdWalk, CmdJog, CmdRun
+from commands.player.autonavigate import CmdAutoNavigate
+from commands.player.autofly import CmdAutoFly
 from commands.player.where import CmdWhere, CmdWhereKey, CmdAutoWhere
 from commands.player.mapsize import CmdMapSize
 from commands.player.grid import CmdHelpGrid
@@ -109,6 +112,11 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetGender)
         self.add(CmdFly)
         self.add(CmdLand)
+        self.add(CmdWalk)
+        self.add(CmdJog)
+        self.add(CmdRun)
+        self.add(CmdAutoNavigate)
+        self.add(CmdAutoFly)
         self.add(CmdWhere)
         self.add(CmdWhereKey)
         self.add(CmdAutoWhere)

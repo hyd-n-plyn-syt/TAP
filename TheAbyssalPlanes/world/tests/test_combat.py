@@ -289,19 +289,28 @@ class MoverMessageTest(SimpleTestCase):
             super().__init__()
             self.db.pos_x = x
             self.db.pos_y = y
+            self.db.move_speed = "run"
             self.appearance_name = "A tall Visarii"
 
     def test_eta_single_round(self):
         nav = {"dest_x": 3, "dest_y": 4}
-        self.assertEqual(nav_eta(nav, 0, 0), 4)
+        self.assertEqual(nav_eta(nav, 0, 0, speed="run"), 4)
 
     def test_eta_full_round_pause(self):
         nav = {"dest_x": 6, "dest_y": 0}
-        self.assertEqual(nav_eta(nav, 0, 0), 6)
+        self.assertEqual(nav_eta(nav, 0, 0, speed="run"), 6)
+
+    def test_eta_walk_speed(self):
+        nav = {"dest_x": 3, "dest_y": 0}
+        self.assertEqual(nav_eta(nav, 0, 0, speed="walk"), 9)
+
+    def test_eta_jog_speed(self):
+        nav = {"dest_x": 3, "dest_y": 0}
+        self.assertEqual(nav_eta(nav, 0, 0, speed="jog"), 6)
 
     def test_eta_zero(self):
         nav = {"dest_x": 2, "dest_y": 2}
-        self.assertEqual(nav_eta(nav, 2, 2), 0)
+        self.assertEqual(nav_eta(nav, 2, 2, speed="run"), 0)
 
     def test_start_message_quadrant(self):
         mover = self._MsgChar(0, 0)

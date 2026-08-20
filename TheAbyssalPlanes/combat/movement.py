@@ -1,4 +1,5 @@
 import math
+from collections import deque
 
 from evennia.utils.evmenu import EvMenu
 
@@ -6,10 +7,54 @@ from combat.grid import (
     exit_direction,
     get_exit_at_coord,
     get_altitude_phrase,
+    get_room_grid_size,
     grid_quadrant,
     is_valid_coord,
 )
 from world.systems.time import MAX_GRIDS_PER_ROUND
+
+SPEED_TICKS = {"walk": 3, "jog": 2, "run": 1}
+SPEED_GROUND_VERBS = {"walk": "walks", "jog": "jogs", "run": "runs"}
+SPEED_GROUND_VERB_START = {"walk": "walking", "jog": "jogging", "run": "running"}
+SPEED_FLY_VERBS = {"walk": "flies slowly", "jog": "flies briskly", "run": "flies recklessly"}
+SPEED_FLY_VERB_START = {"walk": "flying slowly", "jog": "flying briskly", "run": "flying recklessly"}
+SPEED_FLY_OVER = {"walk": "flies slowly over", "jog": "flies briskly over", "run": "flies recklessly over"}
+
+_DIRECTION_FROM_DELTA = {
+    (0, 1): "north", (0, -1): "south",
+    (1, 0): "east", (-1, 0): "west",
+    (1, 1): "northeast", (-1, 1): "northwest",
+    (1, -1): "southeast", (-1, -1): "southwest",
+}
+
+_DIRECTION_OFFSETS = {
+    "north": (0, 1), "south": (0, -1),
+    "east": (1, 0), "west": (-1, 0),
+    "northeast": (1, 1), "northwest": (-1, 1),
+    "southeast": (1, -1), "southwest": (-1, -1),
+}
+
+_POSSESSIVE_DIR = {
+    "north": "its", "south": "its", "east": "its", "west": "its",
+    "northeast": "its", "northwest": "its", "southeast": "its", "southwest": "its",
+    "up": "its", "down": "its",
+}
+
+_TOWARD_PHRASE = {
+    "north": "toward you", "south": "toward you",
+    "east": "toward you", "west": "toward you",
+    "northeast": "toward you", "northwest": "toward you",
+    "southeast": "toward you", "southwest": "toward you",
+    "up": "upward", "down": "downward",
+}
+
+_AWAY_PHRASE = {
+    "north": "away from you", "south": "away from you",
+    "east": "away from you", "west": "away from you",
+    "northeast": "away from you", "northwest": "away from you",
+    "southeast": "away from you", "southwest": "away from you",
+    "up": "upward", "down": "downward",
+}
 
 def get_move_allowance(actions_taken):
     """
@@ -251,10 +296,11 @@ def announce_grid_arrival(char, nav):
         observer.msg(text, from_obj=char)
 
 
-def nav_eta(nav, pos_x, pos_y, pos_z=None):
-    """Estimated seconds to reach a navigation destination, assuming a
-    full round is available (6 grids of movement, then a 1s round pause
-    between each completed chunk). Best-effort estimate only."""
+def nav_eta(nav, pos_x, pos_y, pos_z=None, speed="walk"):
+    """Estimated seconds to reach a navigation destination. Accounts for
+    movement speed tier (walk=3s/tile, jog=2s/tile, run=1s/tile) and
+    1-second pauses between each completed round of 6 grids."""
+    step_every = SPEED_TICKS.get(speed, 3)
     dist = max(
         abs(nav["dest_x"] - pos_x),
         abs(nav["dest_y"] - pos_y),
@@ -263,19 +309,22 @@ def nav_eta(nav, pos_x, pos_y, pos_z=None):
         dist = max(dist, abs(int(nav["dest_z"]) - int(pos_z)))
     if dist == 0:
         return 0
+    movement_secs = dist * step_every
     pauses = (dist - 1) // MAX_GRIDS_PER_ROUND
-    return dist + pauses
+    return movement_secs + pauses
 
 
 def mover_start_message(room, nav, mover):
     """The message a mover sees when beginning navigation."""
     occupant = _nav_target_occupant(room, nav, mover=mover)
     target = getattr(occupant, "appearance_name", None) or occupant.key if occupant else describe_nav_target(room, nav, mover=mover)
+    speed = getattr(mover.db, "move_speed", "walk") or "walk"
     eta = nav_eta(
         nav,
         mover.db.pos_x or 0,
         mover.db.pos_y or 0,
         getattr(mover.db, "pos_z", None) or 1,
+        speed=speed,
     )
     seconds = "second" if eta == 1 else "seconds"
     mode = nav.get("movement_mode", "walking")
@@ -366,3 +415,264 @@ def find_nearest_unoccupied_coord(room, start_x, start_y, z=1, ignore=None, move
             candidates.sort(key=lambda t: abs(t[0] - start_x) + abs(t[1] - start_y))
             return candidates[0]
     return start_x, start_y
+
+
+def direction_from_delta(dx, dy):
+    """Return a compass direction string from a grid delta, or None for zero."""
+    return _DIRECTION_FROM_DELTA.get((dx, dy))
+
+
+def find_path(room, sx, sy, gx, gy, z=None, ignore=None, mover=None):
+    """BFS shortest path from (sx,sy) to (gx,gy) on the room grid.
+
+    Returns ``(path, blockers)`` where *path* is a list of ``(x,y)`` tuples
+    (including start) and *blockers* is the list of occupant objects at the
+    goal tile (empty if reachable).  If the goal is occupied and
+    *approach_target* is the mover (i.e. the char IS the approach target),
+    the path ends at the nearest free neighbor of the goal.
+    """
+    w, h = get_room_grid_size(room)
+    if not (is_valid_coord(room, sx, sy) and is_valid_coord(room, gx, gy)):
+        return [], []
+
+    if sx == gx and sy == gy:
+        return [(sx, sy)], []
+
+    visited = set()
+    visited.add((sx, sy))
+    parent = {}
+    queue = deque([(sx, sy)])
+    goal_blockers = []
+
+    while queue:
+        cx, cy = queue.popleft()
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                nx, ny = cx + dx, cy + dy
+                if not (0 <= nx < w and 0 <= ny < h):
+                    continue
+                if (nx, ny) in visited:
+                    continue
+                visited.add((nx, ny))
+                if is_grid_occupied(room, nx, ny, z=z, ignore=ignore, mover=mover):
+                    continue
+                parent[(nx, ny)] = (cx, cy)
+                if nx == gx and ny == gy:
+                    path = []
+                    cur = (gx, gy)
+                    while cur is not None:
+                        path.append(cur)
+                        cur = parent.get(cur)
+                    path.reverse()
+                    return path, []
+                queue.append((nx, ny))
+
+    goal_blockers = is_grid_occupied(room, gx, gy, z=z, ignore=ignore, mover=mover)
+    if goal_blockers:
+        best, best_dist = None, float("inf")
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                nx, ny = gx + dx, gy + dy
+                if (nx, ny) not in parent:
+                    continue
+                if is_grid_occupied(room, nx, ny, z=z, ignore=ignore, mover=mover):
+                    continue
+                dist = abs(nx - sx) + abs(ny - sy)
+                if dist < best_dist:
+                    best, best_dist = (nx, ny), dist
+        if best:
+            path = []
+            cur = best
+            while cur is not None:
+                path.append(cur)
+                cur = parent.get(cur)
+            path.reverse()
+            return path, goal_blockers
+
+    return [], goal_blockers
+
+
+def _toward_or_away(observer, char, dx, dy):
+    """'toward you' / 'away from you' / None based on observer position relative to move."""
+    if not observer or not char:
+        return None
+    ox = getattr(observer.db, "pos_x", None)
+    oy = getattr(observer.db, "pos_y", None)
+    cx = getattr(char.db, "pos_x", None)
+    cy = getattr(char.db, "pos_y", None)
+    if ox is None or oy is None or cx is None or cy is None:
+        return None
+    rel_x = int(ox) - int(cx)
+    rel_y = int(oy) - int(cy)
+    toward_x = (dx > 0 and rel_x > 0) or (dx < 0 and rel_x < 0)
+    toward_y = (dy > 0 and rel_y > 0) or (dy < 0 and rel_y < 0)
+    away_x = (dx > 0 and rel_x < 0) or (dx < 0 and rel_x > 0)
+    away_y = (dy > 0 and rel_y < 0) or (dy < 0 and rel_y > 0)
+    if toward_x or toward_y:
+        return "toward you"
+    if away_x or away_y:
+        return "away from you"
+    return None
+
+
+def _possessive_dir(entity, direction):
+    """Colored 'his/her/its' + direction for observer echoes."""
+    from world.systems.narrative import colored_pronoun
+    poss = colored_pronoun(entity, "poss_obj")
+    return f"{poss} {direction}"
+
+
+def _adjacent_entities(room, gx, gy, z, mover=None):
+    """Visible creatures and objects within Chebyshev 1 of (gx,gy), excluding the mover."""
+    from world.systems.narrative import entity_first_ref
+    entities = []
+    for obj in room.contents:
+        if obj is mover:
+            continue
+        if getattr(obj, "destination", None):
+            continue
+        if not getattr(obj, "occupies_space", False):
+            continue
+        ox = getattr(obj.db, "pos_x", None)
+        oy = getattr(obj.db, "pos_y", None)
+        if ox is None or oy is None:
+            continue
+        if max(abs(int(ox) - gx), abs(int(oy) - gy)) > 1:
+            continue
+        if z is not None:
+            oz = getattr(obj.db, "pos_z", None)
+            if oz is not None and int(oz) != int(z):
+                continue
+        if getattr(obj, "is_creature", False):
+            entities.append(entity_first_ref(obj, sentence_start=False))
+        else:
+            entities.append(getattr(obj, "appearance_name", None) or obj.key)
+    return entities
+
+
+def _format_next_to(entities):
+    """'a Foo, a Bar, and a Baz' from a list of display-name strings."""
+    if not entities:
+        return ""
+    if len(entities) == 1:
+        return entities[0]
+    return ", ".join(entities[:-1]) + ", and " + entities[-1]
+
+
+def move_observer_echo(char, direction, speed, observer):
+    """Direction-based, observer-relative move echo."""
+    from world.systems.narrative import colored_pronoun
+    dx, dy = _DIRECTION_OFFSETS.get(direction, (0, 0))
+    toward = _toward_or_away(observer, char, dx, dy)
+    if toward is None:
+        toward = "away from you"
+    poss = _possessive_dir(char, direction)
+    verb = SPEED_GROUND_VERBS.get(speed, "moves")
+    if getattr(char.db, "is_flying", False):
+        verb = SPEED_FLY_VERBS.get(speed, "flies")
+    name = getattr(char, "appearance_name", None) or char.key
+    return f"{name} {verb} to {poss}, {toward}."
+
+
+def move_mover_echo(char, direction, speed, target_desc=None):
+    """Mover's own view when starting movement."""
+    verb = SPEED_GROUND_VERB_START.get(speed, "moving")
+    if getattr(char.db, "is_flying", False):
+        verb = SPEED_FLY_VERB_START.get(speed, "flying")
+    if target_desc:
+        return f"You begin {verb} toward {target_desc}."
+    return f"You begin {verb} toward the {direction}."
+
+
+def arrival_observer_echo(char, nav, observer):
+    """Arrival echo: quadrant + next-to list, per-observer visibility."""
+    from world.systems.narrative import entity_first_ref
+    room = char.location
+    ax = char.db.pos_x or 0
+    ay = char.db.pos_y or 1
+    az = nav.get("dest_z") or getattr(char.db, "pos_z", None) or 1
+    quad = grid_quadrant(room, ax, ay)
+    adjacent = _adjacent_entities(room, ax, ay, az, mover=char)
+    visible_adjacent = [e for e in adjacent if char.visible_to(observer)] if hasattr(char, "visible_to") else adjacent
+    name = getattr(char, "appearance_name", None) or char.key
+    mode = nav.get("movement_mode", "walking")
+    if mode == "takeoff":
+        verb = "hovers above"
+    elif mode == "landing":
+        verb = "lands in"
+    elif mode == "flying":
+        verb = "arrives in"
+    else:
+        verb = "arrives in"
+    text = f"{name} {verb} {quad}"
+    if visible_adjacent:
+        text += f" next to {_format_next_to(visible_adjacent)}"
+    text += "."
+    return text
+
+
+def arrival_mover_echo(char, nav):
+    """Mover's arrival message: quadrant + next-to list."""
+    room = char.location
+    ax = char.db.pos_x or 0
+    ay = char.db.pos_y or 1
+    az = nav.get("dest_z") or getattr(char.db, "pos_z", None) or 1
+    quad = grid_quadrant(room, ax, ay)
+    adjacent = _adjacent_entities(room, ax, ay, az, mover=char)
+    mode = nav.get("movement_mode", "walking")
+    if mode == "takeoff":
+        text = f"You arrive in the air {quad}."
+    elif mode == "landing":
+        text = f"You have landed {quad}."
+    elif mode == "flying":
+        text = f"You arrive in the air {quad}."
+    else:
+        text = f"You arrive in {quad}"
+        if adjacent:
+            text += f" next to {_format_next_to(adjacent)}"
+        text += "."
+    return text
+
+
+def detour_observer_echo(char, direction, speed, obstacle):
+    """'{PERSONDESC} {speed_verb} around {colored_obj} to the {dir}.'"""
+    from world.systems.narrative import colored_pronoun
+    name = getattr(char, "appearance_name", None) or char.key
+    verb = SPEED_GROUND_VERBS.get(speed, "moves")
+    if getattr(char.db, "is_flying", False):
+        verb = SPEED_FLY_VERBS.get(speed, "flies")
+    obs_name = getattr(obstacle, "appearance_name", None) or obstacle.key
+    return f"{name} {verb} around {obs_name} to the {direction}."
+
+
+def detour_mover_echo(char, direction, speed, obstacle):
+    """'You {speed_verb} around {colored_obj} to the {dir}.'"""
+    verb = SPEED_GROUND_VERB_START.get(speed, "moving")
+    if getattr(char.db, "is_flying", False):
+        verb = SPEED_FLY_VERB_START.get(speed, "flying")
+    obs_name = getattr(obstacle, "appearance_name", None) or obstacle.key
+    return f"You {verb} around {obs_name} to the {direction}."
+
+
+def stuck_blockers_message(blockers):
+    """'The way is blocked by a Foo, a Bar, and a Baz.'"""
+    names = []
+    for b in blockers[:5]:
+        if getattr(b, "is_creature", False):
+            from world.systems.narrative import entity_first_ref
+            names.append(entity_first_ref(b, sentence_start=False))
+        else:
+            names.append(getattr(b, "appearance_name", None) or b.key)
+    if not names:
+        return "The way is blocked."
+    return f"The way is blocked by {_format_next_to(names)}."
+
+
+def blocked_with_hint(blockers, has_autonav):
+    """Blocked message, optionally hinting at AUTONAVIGATE."""
+    msg = stuck_blockers_message(blockers)
+    if has_autonav:
+        return msg
+    return f"{msg}\nType AUTONAVIGATE to route around obstacles."
