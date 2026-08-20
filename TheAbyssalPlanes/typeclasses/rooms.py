@@ -313,14 +313,17 @@ class Room(ObjectParent, DefaultRoom):
 
     def _grouped_room_contents(self, looker, **kwargs):
         """
-        List characters and things grouped by plane, then by grid quadrant
-        and position:
-            In the (physical), there's a tall and lean, refracting Visarii
-            standing in the northwest portion of the area. There's also a
-            short and stocky, hardy Terran laying in the southeast portion
-            of the area.
-            In the (visarial), there's a willowy, prismatic Visarii standing
-            in the center of the area.
+        List the characters and things the looker can perceive, grouped into a
+        single plane section. The section names the realm(s) the looker is in
+        and aware of:
+            In the (physical), ...
+            In the (visarial), ...
+            In the (physical and visarial), ...
+        The normal / perceiving / manifested states decide which section
+        renders: manifesting shows only the visarial, resting shows only the
+        physical, and perceiving shows both realms as one combined list.
+        Dual-natured objects appear once, in whichever section is shown, since
+        they are present in both realms.
         Builders additionally see each character's real name in parentheses.
         """
         from collections import OrderedDict
@@ -330,115 +333,102 @@ class Room(ObjectParent, DefaultRoom):
             for char in self.filter_visible(
                 self.contents_get(content_type="character"), looker, **kwargs
             )
-            if char.visible_to(looker)
+            if not hasattr(char, "visible_to") or char.visible_to(looker)
         ]
         things = [
             thing
             for thing in self.filter_visible(
                 self.contents_get(content_type="object"), looker, **kwargs
             )
-            if thing.visible_to(looker)
+            if not hasattr(thing, "visible_to") or thing.visible_to(looker)
         ]
-        if not chars and not things:
+
+        visible_planes = []
+        if getattr(looker, "can_phys_see", False):
+            visible_planes.append("physical")
+        if getattr(looker, "can_vis_see", False):
+            visible_planes.append("visarial")
+
+        if (not chars and not things) or not visible_planes:
             return ""
 
         is_builder = looker is not None and self.locks.check_lockstring(
             looker, "perm(Builder)"
         )
 
-        by_plane = OrderedDict(
-            (plane, {"chars": [], "things": []})
-            for plane in ("physical", "visarial")
-        )
+        plane_tokens = [
+            f"|x{plane}" if plane == "physical" else f"|M{plane}"
+            for plane in visible_planes
+        ]
+        label = f"|w({' and '.join(plane_tokens)}|w)|n"
+
+        furnitures = [
+            t for t in things if t.is_typeclass("typeclasses.furniture.Furniture")
+        ]
+        occupied_furnitures = set()
+        for furn in furnitures:
+            occupancies = furn.occupied_seats_by_plane()
+            if any(set(visible_planes) & planes for planes in occupancies.values()):
+                occupied_furnitures.add(furn)
+
+        unoccupied_things = [
+            t for t in things
+            if not (t.is_typeclass("typeclasses.furniture.Furniture") and t in occupied_furnitures)
+        ]
+
+        by_quadrant_pos = OrderedDict()
         for char in chars:
-            by_plane[char.current_plane()]["chars"].append(char)
-        for thing in things:
-            by_plane[thing.current_plane()]["things"].append(thing)
+            quadrant = grid_quadrant(self, char.db.pos_x, char.db.pos_y)
+            if char.db.is_flying:
+                key = (f"in the air above {quadrant}", "flying", None)
+            else:
+                pose = char.pose or "standing"
+                assigned_furn = None
+                cx = getattr(char.db, "pos_x", 0)
+                cy = getattr(char.db, "pos_y", 0)
+                for furn in furnitures:
+                    if (cx, cy) in furn.footprint_tiles() and furn.allows_pose(pose):
+                        assigned_furn = furn
+                        break
+                key = (quadrant, pose, assigned_furn)
+            by_quadrant_pos.setdefault(key, []).append(char)
 
-        sections = []
-        for plane, group in by_plane.items():
-            if not group["chars"] and not group["things"]:
-                continue
-            color = "x" if plane == "physical" else "M"
-            label = f"|w(|{color}{plane}|w)|n"
+        sentences = []
+        for index, ((quadrant_or_air, position, furn), pos_chars) in enumerate(
+            by_quadrant_pos.items()
+        ):
+            entries = []
+            for char in pos_chars:
+                core, _ = char.appearance_bits
+                entry = f"{appearance_data.article(core).lower()} {core}"
+                if is_builder:
+                    entry += f" ({char.name})"
+                entries.append(entry)
+            lead = "there's" if index == 0 else "There's also"
 
-            furnitures = [t for t in group["things"] if t.is_typeclass("typeclasses.furniture.Furniture")]
-            occupied_furnitures = set()
-            for furn in furnitures:
-                tiles = [(furn.db.pos_x, furn.db.pos_y)] + list(furn.db.extra_coords or [])
-                for char in group["chars"]:
-                    cx = getattr(char.db, "pos_x", 0)
-                    cy = getattr(char.db, "pos_y", 0)
-                    if (cx, cy) in tiles:
-                        pose = (char.pose or "standing").lower()
-                        allowed = [s.lower() for s in getattr(furn, "allowed_states", [])]
-                        if pose in allowed or (pose == "resting" and "rest" in allowed) or (pose == "sleeping" and "sleep" in allowed) or (pose == "sitting" and "sit" in allowed) or (pose == "laying" and "lay" in allowed):
-                            occupied_furnitures.add(furn)
-                            break
-
-            unoccupied_things = [
-                t for t in group["things"]
-                if not (t.is_typeclass("typeclasses.furniture.Furniture") and t in occupied_furnitures)
-            ]
-
-            by_quadrant_pos = OrderedDict()
-            for char in group["chars"]:
-                quadrant = grid_quadrant(self, char.db.pos_x, char.db.pos_y)
-                if char.db.is_flying:
-                    key = (f"in the air above {quadrant}", "flying", None)
+            if furn:
+                furn_name = furn.get_display_name(looker, **kwargs)
+                if len(pos_chars) > 1:
+                    phrase = f"{position} together on {furn_name} in {quadrant_or_air}"
                 else:
-                    pose = char.pose or "standing"
-                    assigned_furn = None
-                    cx = getattr(char.db, "pos_x", 0)
-                    cy = getattr(char.db, "pos_y", 0)
-                    for furn in furnitures:
-                        tiles = [(furn.db.pos_x, furn.db.pos_y)] + list(furn.db.extra_coords or [])
-                        if (cx, cy) in tiles:
-                            allowed = [s.lower() for s in getattr(furn, "allowed_states", [])]
-                            if pose.lower() in allowed or (pose == "resting" and "rest" in allowed) or (pose == "sleeping" and "sleep" in allowed) or (pose == "sitting" and "sit" in allowed) or (pose == "laying" and "lay" in allowed):
-                                assigned_furn = furn
-                                break
-                    key = (quadrant, pose, assigned_furn)
-                by_quadrant_pos.setdefault(key, []).append(char)
-
-            sentences = []
-            for index, ((quadrant_or_air, position, furn), pos_chars) in enumerate(
-                by_quadrant_pos.items()
-            ):
-                entries = []
-                for char in pos_chars:
-                    core, _ = char.appearance_bits
-                    entry = f"{appearance_data.article(core).lower()} {core}"
-                    if is_builder:
-                        entry += f" ({char.name})"
-                    entries.append(entry)
-                lead = "there's" if index == 0 else "There's also"
-
-                if furn:
-                    furn_name = furn.get_display_name(looker, **kwargs)
-                    if len(pos_chars) > 1:
-                        phrase = f"{position} together on {furn_name} in {quadrant_or_air}"
-                    else:
-                        phrase = f"{position} on {furn_name} in {quadrant_or_air}"
-                else:
-                    phrase = (
-                        f"{position} {quadrant_or_air}"
-                        if position == "flying"
-                        else f"{position} in {quadrant_or_air}"
-                    )
-                sentences.append(
-                    f"{lead} {iter_to_str(entries, endsep=', and')} {phrase} here."
+                    phrase = f"{position} on {furn_name} in {quadrant_or_air}"
+            else:
+                phrase = (
+                    f"{position} {quadrant_or_air}"
+                    if position == "flying"
+                    else f"{position} in {quadrant_or_air}"
                 )
+            sentences.append(
+                f"{lead} {iter_to_str(entries, endsep=', and')} {phrase} here."
+            )
 
-            if unoccupied_things:
-                things_sentence = f"you see {self._things_list(unoccupied_things, looker, **kwargs)}."
-                if sentences:
-                    things_sentence = things_sentence[0].upper() + things_sentence[1:]
-                sentences.append(things_sentence)
+        if unoccupied_things:
+            things_sentence = f"you see {self._things_list(unoccupied_things, looker, **kwargs)}."
+            if sentences:
+                things_sentence = things_sentence[0].upper() + things_sentence[1:]
+            sentences.append(things_sentence)
 
-            sections.append(f"In the {label}, {' '.join(sentences)}")
-
-        return "\n".join(sections)
+        return f"In the {label}, {' '.join(sentences)}"
 
     def _things_list(self, things, looker, **kwargs):
         """Join one plane's things into a clean, counted list, each tagged
@@ -448,6 +438,9 @@ class Room(ObjectParent, DefaultRoom):
         grouped = OrderedDict()
         for thing in things:
             name = thing.get_display_name(looker, **kwargs)
+            facing = getattr(thing.db, "facing", None)
+            if facing:
+                name += f" (facing {facing})"
             quadrant = grid_quadrant(self, thing.db.pos_x, thing.db.pos_y)
             grouped.setdefault((quadrant, name), []).append(thing)
 
@@ -456,6 +449,10 @@ class Room(ObjectParent, DefaultRoom):
             thing = lst[0]
             nthings = len(lst)
             singular, plural = thing.get_numbered_name(nthings, looker, key=thing.key)
+            facing = getattr(thing.db, "facing", None)
+            if facing:
+                singular += f" (facing {facing})"
+                plural = f"{nthings} {thing.key}s (facing {facing})"
             label = singular if nthings == 1 else plural
             entries.append(f"{label} in {quadrant}")
         return iter_to_str(entries, endsep=", and")

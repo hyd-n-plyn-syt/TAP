@@ -126,6 +126,10 @@ def apply_damage(target, health_bar, damage, is_crit=False):
     remaining = max(0, current - damage)
     setattr(target.db, f"{effective_pool}_current", remaining)
 
+    from world.systems.regen import ensure_regen_timer
+    if getattr(target, "is_creature", False) and getattr(target, "is_injured", False):
+        ensure_regen_timer(target)
+
     knocked_out = remaining <= 0
     return remaining, knocked_out
 

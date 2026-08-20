@@ -60,7 +60,6 @@ class CmdApproach(Command):
         
         mode = "flying" if self.caller.db.is_flying else "walking"
         start_navigation(self.caller, tx, ty, movement_mode=mode)
-        self.caller.msg(f"You start approaching {target.name}.")
 
 
 class CmdMove(Command):
@@ -238,7 +237,7 @@ class CmdShove(Command):
                 caller.msg("The way is blocked.")
                 return
 
-            blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+            blockers = is_grid_occupied(dest_room, entry[0], entry[1], mover=target)
             if not blockers:
                 caller.msg(f"{target.key} isn't there anymore.")
                 return
@@ -264,7 +263,7 @@ class CmdShove(Command):
                 landing_x = entry_x
                 landing_y = entry_y
 
-            blockers_land = is_grid_occupied(dest_room, landing_x, landing_y, ignore=target)
+            blockers_land = is_grid_occupied(dest_room, landing_x, landing_y, ignore=target, mover=target)
             if blockers_land:
                 blocker_name = getattr(blockers[0], "appearance_name", None) or blockers[0].key
                 caller.msg(f"{blocker_name} is in the way.")
@@ -364,7 +363,7 @@ class CmdShove(Command):
                 if return_exit:
                     entry = get_entry_coords(dest_room, return_exit.key)
                     if entry:
-                        blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+                        blockers = is_grid_occupied(dest_room, entry[0], entry[1], mover=target)
                         if blockers:
                             blocker_name = getattr(blockers[0], "appearance_name", None) or blockers[0].key
                             caller.msg(f"{blocker_name} is blocking the way on the other side.")
@@ -395,7 +394,7 @@ class CmdShove(Command):
             caller.msg(f"You shove {name} into the wall.")
             return
 
-        blockers = is_grid_occupied(room, dest_x, dest_y, ignore=target)
+        blockers = is_grid_occupied(room, dest_x, dest_y, ignore=target, mover=target)
         if blockers:
             blocker_name = getattr(blockers[0], "appearance_name", None) or blockers[0].key
             target_name = getattr(target, "appearance_name", None) or target.key
@@ -469,6 +468,6 @@ class CmdAttack(Command):
         self.msg(msg)
 
         if success:
-            from combat.movement import ensure_combat_loop
-            ensure_combat_loop(room)
+            from combat.timers import engage_combat
+            engage_combat(caller, target)
             caller.db.combat_target = target

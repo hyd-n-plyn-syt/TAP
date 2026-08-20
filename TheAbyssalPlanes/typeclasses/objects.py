@@ -84,9 +84,29 @@ class ObjectParent:
         planes and states. True when the entity's occupied plane(s) overlap
         with the planes the looker can currently see.
         """
-        return (self.can_phys_touch and looker.can_phys_see) or (
-            self.can_vis_touch and looker.can_vis_see
+        planes = self.planes_occupied
+        return ("physical" in planes and looker.can_phys_see) or (
+            "visarial" in planes and looker.can_vis_see
         )
+
+    @property
+    def planes_occupied(self):
+        """
+        The plane(s) this entity currently occupies. Creatures occupy exactly
+        the single plane of their visarial state (normal/perceiving → native
+        realm, manifested → the opposite). Plain objects never shift planes — a
+        physical nature places them only in the physical, a visarial nature
+        only in the visarial, and a dual-natured object is present in both
+        (seeable and touchable in both realms).
+        """
+        if self.is_creature:
+            return (self.current_plane(),)
+        nature = self.nature()
+        if nature == "physical":
+            return ("physical",)
+        if nature == "visarial":
+            return ("visarial",)
+        return ("physical", "visarial")
 
     @property
     def can_phys_see(self):
@@ -109,12 +129,12 @@ class ObjectParent:
     @property
     def can_phys_touch(self):
         """Whether this entity currently occupies the physical plane."""
-        return self.current_plane() == "physical"
+        return "physical" in self.planes_occupied
 
     @property
     def can_vis_touch(self):
         """Whether this entity currently occupies the visarial plane."""
-        return self.current_plane() == "visarial"
+        return "visarial" in self.planes_occupied
 
     @property
     def can_speak_phys(self):
@@ -161,6 +181,16 @@ class ObjectParent:
         if nature == "dual_natured":
             return "physical" if state in ("normal", "perceiving") else "visarial"
         return "physical" if state == "manifested" else "visarial"
+
+    @property
+    def appearance_name(self):
+        """
+        The name used to refer to this entity in observer messages
+        (approach/arrival/blocked notices). Characters override this with
+        their appearance phrase; everything else reports the same name the
+        room description uses.
+        """
+        return self.get_display_name()
 
     def visarial_desc_text(self):
         """

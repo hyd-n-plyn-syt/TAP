@@ -586,6 +586,28 @@ CHANGES = [
             "newly learned skills."
         ),
     },
+    {
+        "number": 45,
+        "date": "2026-08-19",
+        "title": "Realm-shove contests on manifest",
+        "body": (
+            "Manifesting or withdrawing across realms onto a spot already held "
+            "by someone in that realm now triggers a contest. Both parties roll "
+            "their realm's stat (Corpus in the physical, Animus in the "
+            "visarial) plus a d10: a 1 is a fumble and subtracts 10, a 10 "
+            "explodes and rolls again. The loser is shoved off the seat when a "
+            "seat is claimed underfoot, or shoved a random step back on open "
+            "ground, keeping zeroed-stat species in the running. The crossing "
+            "itself is announced: you blink into existence folding outward "
+            "from a point, or blink out of existence folding inward before "
+            "vanishing, and on a contested crossing onlookers see the loser "
+            "shoved a compass direction. Roll totals are never shown. Pose "
+            "changes (sit, rest, sleep, lay, stand) now also follow "
+            "observational rules - only creatures that share your realm or "
+            "perceive it see them. The manifest help file covers the contest "
+            "rules."
+        ),
+    },
 ]
 
 

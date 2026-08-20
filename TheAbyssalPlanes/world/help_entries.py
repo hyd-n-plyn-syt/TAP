@@ -547,4 +547,48 @@ and shown at |wlogin|n until read, so nothing is missed.
 See also: |whelp|n.
 """.strip(),
     },
+    {
+        "key": "manifest",
+        "category": "General",
+        "aliases": ["manifesting", "project"],
+        "text": """
+|wManifest|n
+
+|wmanifest|n steps you fully across into the other realm - |wperceive|n only
+lets you sense it, while manifesting puts your whole presence there. Species
+that can manifest do: Visarii project into the physical plane from the
+visarial, and dual-natured beings project into the visarial from the
+physical. Species bound to a single realm (Silex) cannot.
+
+|wCrossing into Occupied Space|n
+
+When you manifest, or withdraw from manifesting, onto a spot that is already
+held by another creature in the realm you are entering, a |wcontest|n is
+forced between the two of you.
+
+Both parties roll the entering realm's stat against a d10:
+
+  |wPhysical realm|n - roll your |wCorpus|n + d10
+  |wVisarial realm|n - roll your |wAnimus|n + d10
+
+|wThe d10|n
+  - A roll of |w1|n is a fumble and subtracts 10 from your total.
+  - A roll of |w10|n explodes: add 10 and roll again, so strings of 10s keep
+    climbing - and a follow-up 1 can claw them back.
+  A low stat is no death sentence: the dice always carry a chance, even for
+  a race whose relevant column sits at 0.
+
+|wThe Shove|n
+The loser is shoved off the spot. If a seat is claimed underfoot they are
+shoved |woff the seat|n and dumped on their feet nearby; on open ground they
+are shoved a |wrandom step|n in a random direction. On a tie, the one who
+was already there holds their ground and the newcomer is the one shoved.
+
+The arrival and departure themselves are announced around you - and when a
+contest breaks out, the onlookers see the loser shoved a compass direction.
+Roll totals are never revealed.
+
+See also: |wperceive|n, |wspecies|n, |wprompt|n.
+""".strip(),
+    },
 ]

@@ -195,8 +195,13 @@ def node_create(caller, raw_string, **kwargs):
     color = _load(caller, "color", "|D")
     quality = _load(caller, "quality", 1.0)
 
+    typeclass = (
+        "typeclasses.furniture.Bed"
+        if _load(caller, "is_bed", False)
+        else "typeclasses.furniture.Furniture"
+    )
     furn = create_object(
-        "typeclasses.furniture.Furniture",
+        typeclass,
         key=name,
         location=caller,
     )

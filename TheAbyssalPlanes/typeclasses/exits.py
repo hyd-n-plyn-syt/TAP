@@ -55,7 +55,7 @@ class Exit(ObjectParent, DefaultExit):
         # combat loop (1 grid / second, 5 grids / round).
         if hasattr(traversing_object, "db") and getattr(traversing_object.db, "pos_x", None) is not None:
             from combat.grid import get_exit_coords, get_entry_coords, get_room_grid_size
-            from combat.movement import start_navigation, is_grid_occupied
+            from combat.movement import start_navigation, is_grid_occupied, capitalize_display_name
 
             coords = get_exit_coords(self.location, self)
             if coords and (traversing_object.db.pos_x, traversing_object.db.pos_y) != coords:
@@ -108,9 +108,11 @@ class Exit(ObjectParent, DefaultExit):
             if return_exit:
                 entry = get_entry_coords(dest_room, return_exit.key)
                 if entry:
-                    blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+                    blockers = is_grid_occupied(dest_room, entry[0], entry[1], mover=traversing_object)
                     if blockers:
-                        blocker_name = getattr(blockers[0], "appearance_name", None) or blockers[0].key
+                        blocker_name = capitalize_display_name(
+                            getattr(blockers[0], "appearance_name", None) or blockers[0].key
+                        )
                         traversing_object.msg(
                             f"{blocker_name} is blocking the way on the other side."
                         )
@@ -336,7 +338,7 @@ class Exit(ObjectParent, DefaultExit):
         if not entry:
             return base
 
-        blockers = is_grid_occupied(dest_room, entry[0], entry[1])
+        blockers = is_grid_occupied(dest_room, entry[0], entry[1], mover=looker)
         if not blockers:
             return base
 

@@ -1,107 +1,147 @@
-EVENNIA SETUP IN 10 STEPS FOR POWERSHELL
+# EVENNIA SETUP IN 10 STEPS FOR POWERSHELL
 
-# 1. Create environment within the TAP(project) folder.
+## 1. Create environment within the TAP(project) folder.
+```powershell
 py -3.14 -m venv evenv
+```
 
-# 2. Activate the environment in Powershell.
+## 2. Activate the environment in Powershell.
+```powershell
 .\evenv\Scripts\Activate.ps1
+```
 
-# 3. Upgrade pip setup tools fully, so it throws no errors.
+## 3. Upgrade pip setup tools fully, so it throws no errors.
+```powershell
 pip install --upgrade pip setuptools wheel
+```
 
-# 4. Install Evennia
+## 4. Install Evennia
+```powershell
 pip install evennia
+```
 
-# 5. Register the installation location with POWERSHELL
+## 5. Register the installation location with POWERSHELL
+```powershell
 py -m evennia
+```
 
-# 6. Set up the actual Evennia game directory.
-evennia --init TheAbyssalPlanes(OrWhateverYouWantToCallIt)
+## 6. Set up the actual Evennia game directory.
+```powershell
+evennia --init TheAbyssalPlanes
+```
 
-# 7. Move to the new game directory.
+## 7. Move to the new game directory.
+```powershell
 cd TheAbyssalPlanes
+```
 
-# 8. Build the database architecture.
+## 8. Build the database architecture.
+```powershell
 evennia migrate
+```
 
-# 9. Launch the server. (Make a SuperUser account. Username/email/password) Runs in the background. You can close POWERSHELL.
+## 9. Launch the server. (Make a SuperUser account. Username/email/password) Runs in the background. You can close POWERSHELL.
+```powershell
 evennia start
+```
 
-# 10. Login from the client of your choice with localhost:4000, or in the browser with localhost:4001
+## 10. Login from the client of your choice with localhost:4000, or in the browser with localhost:4001
 
+---
 
+# RESTART THE SERVER AFTER SHUTDOWN OR STOPPING THE SERVER
 
-RESTART THE SERVER AFTER SHUTDOWN OR STOPPING THE SERVER
-
-# 1. Navigate back into your root project directory
+```powershell
 cd D:\TAP
-
-# 2. Re-activate your Python 3.14 virtual environment
 .\evenv\Scripts\Activate.ps1
-
-# 3. Move into your actual game code directory
 cd TheAbyssalPlanes
-
-# 4. Turn the server back on
 evennia start
+```
 
+---
 
-MORE
+# RUNNING EVENNIA COMMANDS
 
-evennia info 
-  * Displays your active port configuration, database connections, and operational statistics.
+**Important:** Always use the `&` call operator with the full path to evennia.exe from PowerShell:
 
-evennia status 
-  * Checks if the Server and Portal are currently running or stopped.
+```powershell
+& ..\evenv\Scripts\evennia.exe <command>
+```
 
-evennia reload 
-  * Performs a restart without kicking the players off the MUD. Useful after code changes and the like.
+Bare `evennia` does NOT work from PowerShell without this.
 
-evennia reboot 
-  * Performs a hard restart. This shuts down both components, completely forcing all active player sessions to disconnect.
+## Server Management
+- `evennia start` — start server (background)
+- `evennia stop` — stop server entirely
+- `evennia reload` — restart without kicking players (code changes)
+- `evennia reboot` — hard restart, disconnects all sessions
+- `evennia status` — check if Portal/Server are running
+- `evennia info` — port config, DB connections, stats
+- `evennia --log` — tail server logs in real time
+- `evennia istart` — interactive mode (locks terminal, debugger attach)
 
-evennia stop 
-  * Stops the server entirely.
+## Development
+- `evennia makemigrations` — scan code for DB schema changes
+- `evennia migrate` — apply pending DB migrations
+- `evennia shell` — interactive Python prompt linked to live DB
 
-evennia --log 
-  * Continuously streams (tails) your active server logs directly into your PowerShell window.
-  
-evennia istart
-  * Launches the server in Interactive Mode. This locks your PowerShell window to the engine process. It allows you to catch explicit error tracking or attach an active debugger directly if your code crashes.
+## Testing
+```powershell
+# Run the full game test suite
+& ..\evenv\Scripts\evennia.exe test --settings settings.py .
 
-evennia makemigrations 
-  * Scans your custom Python code inside typeclasses or commands for data changes. It prepares structural updates for your database schema.
+# Run one group (e.g. data/systems tests)
+& ..\evenv\Scripts\evennia.exe test --settings settings.py world.tests
 
-evennia shell 
-  * Drops your PowerShell window directly into an interactive Python prompt linked into your live game database.
+# Run command integration tests
+& ..\evenv\Scripts\evennia.exe test --settings settings.py commands.tests
+```
 
+The test runner builds a throwaway `test_evennia.db3` — it never touches the live dev DB.
 
+---
 
-PUBLIC ACCESS (DUCKDNS)
+# RUNNING OPENCODE INSIDE THE ENVIRONMENT
 
-* The MUD is reachable externally via telnet at theabyssalplane.duckdns.org:4000.
-* The website/webclient is served on port 80 (Evennia WEBSERVER_PORTS = [(80, 4005)]):
+```powershell
+cd D:\TAP
+.\evenv\Scripts\Activate.ps1
+cd TheAbyssalPlanes
+opencode
+```
+
+---
+
+# PUBLIC ACCESS (DUCKDNS)
+
+- The MUD is reachable externally via telnet at theabyssalplane.duckdns.org:4000.
+- The website/webclient is served on port 80 (Evennia WEBSERVER_PORTS = [(80, 4005)]):
   http://theabyssalplane.duckdns.org
-* The router only supports opening port ranges (no external->internal remap), so
+- The router only supports opening port ranges (no external→internal remap), so
   Evennia must own port 80 directly. The IIS "Default Web Site" had claimed :80
   and was unbinding it (Remove-WebBinding) to free the port for Evennia.
-* SERVER_HOSTNAME is set to theabyssalplane.duckdns.org so the webclient websocket
+- SERVER_HOSTNAME is set to theabyssalplane.duckdns.org so the webclient websocket
   resolves through the domain.
-* Windows Firewall inbound rules: "Evennia Telnet 4000", "Evennia Web 80",
+- Windows Firewall inbound rules: "Evennia Telnet 4000", "Evennia Web 80",
   "Evennia Web 4001", "Evennia 4002"-"Evennia 4005" (all TCP, Allow).
-* The GitHub repo is private: https://github.com/hyd-n-plyn-syt/TAP
+- The GitHub repo is private: https://github.com/hyd-n-plyn-syt/TAP
 
+---
 
-RUN OPENCODE INSIDE THE ENVIRONMENT TO HELP MANAGE
+# ADDITIONAL NOTES
 
-# 1. Go to your main project directory
-cd D:\TAP
+## PowerShell Gotchas
+- **PowerShell 5.1 does NOT support `&&`.** Use `cmd1; if ($?) { cmd2 }` for dependent commands. Use `cmd1; cmd2` (semicolon) for sequential independent commands.
+- **Paths starting with `..\` need the `&` call operator.** Without it, PowerShell tries to interpret the path as a native command name.
 
-# 2. ACTIVATE THE ENVIRONMENT FIRST
-.\evenv\Scripts\Activate.ps1
+## Shell Scripts
+For complex DB queries, write a script to `D:\TAP\scr_<topic>.py` and run:
+```powershell
+$cmd = "exec(open(r'D:\TAP\scr_<topic>.py').read())"
+$cmd | ..\evenv\Scripts\evennia.exe shell
+```
+The script should write results to `D:\TAP\scr_<topic>_result.txt`.
 
-# 3. Step into your game files folder
-cd TheAbyssalPlanes
-
-# 4. Launch OpenCode from INSIDE the active environment
-opencode
+## secret_settings.py
+Sensitive settings (webhook tokens, bot tokens) live in `server/conf/secret_settings.py`
+which is gitignored and imported at the end of `settings.py`.

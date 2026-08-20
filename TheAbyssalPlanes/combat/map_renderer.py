@@ -42,7 +42,12 @@ def render_map(looker):
     bottom_frame = f"|Y\\{'=' * (row_width + 1)}/|n"
     
     exit_map = {}
-    for obj in room.contents:
+    visible_contents = [
+        obj
+        for obj in room.contents
+        if not hasattr(obj, "visible_to") or obj.visible_to(looker)
+    ]
+    for obj in visible_contents:
         if obj.destination:
             coords = get_exit_coords(room, obj)
             if coords:
@@ -56,7 +61,7 @@ def render_map(looker):
             if 0 <= ix < w and 0 <= iy < h:
                 sym, col = "#", "|n"
                 tile_obj = None
-                for obj in room.contents:
+                for obj in visible_contents:
                     if obj.destination: continue
                     matched = False
                     if hasattr(obj, "is_at_coord"):

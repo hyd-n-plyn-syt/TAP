@@ -52,6 +52,7 @@ from commands.player.setspecies import CmdSetSpecies
 from commands.player.promptmode import CmdPromptMode
 from commands.player.poses import CmdRest, CmdSleep, CmdWake, CmdLay, CmdStand, CmdSit, CmdRotate
 from commands.player.drop import CmdDrop
+from commands.player.get import CmdGet
 from commands.player.emote import CmdEmote
 from commands.player.setpose import CmdSetPose
 from commands.player.door_commands import CmdOpen, CmdClose, CmdLock, CmdUnlock, CmdAutoOpen
@@ -141,6 +142,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSit)
         self.add(CmdRotate)
         self.add(CmdDrop)
+        self.add(CmdGet)
         self.add(CmdEmote)
         self.add(CmdSetRoomSize)
         self.add(CmdApproach)

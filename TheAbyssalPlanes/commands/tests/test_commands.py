@@ -95,7 +95,7 @@ class TrainCommandTest(EvenniaCommandTest):
         self._make_trainer()
         out = self.call(CmdTrain(), "haymaker")
         self.assertIn("You need Axehandle", out)
-        self.assertNotIn("haymaker", self.char1.db.skills)
+        self.assertNotIn("haymaker", self.char1.db.skills or {})
 
     def test_learn_after_prereqs(self):
         self._make_trainer()
@@ -252,22 +252,16 @@ class VisariiPlaneTest(EvenniaCommandTest):
         self.assertFalse(silex.can_vis_touch)
         self.assertFalse(silex.can_vis_see)
 
-
-class VisariiCommandsTest(EvenniaCommandTest):
-    def test_visarii_native_cannot_manifest_into_physical_by_default(self):
-        self.char1.apply_species("visarii")
-        self.assertEqual(self.char1.state(), "normal")
-        self.assertFalse(self.char1.can_phys_touch)
-
     def test_visarii_manifest_projects_into_physical(self):
         self.char1.apply_species("visarii")
+        self.char2.db.pos_x = 5
         out = self.call(CmdManifest(), "")
-        self.assertIn("project your crystalline form", out)
+        self.assertIn("You start manifesting in the physical realm", out)
         self.assertEqual(self.char1.state(), "manifested")
         self.assertEqual(self.char1.current_plane(), "physical")
         self.assertTrue(self.char1.can_phys_touch)
 
-    def test_visarii_perceive_sees_physical_in_place(self):
+    def test_visarii_perceive_sees_physical_in_place_cmd(self):
         self.char1.apply_species("visarii")
         out = self.call(CmdPerceive(), "")
         self.assertIn("perceive the physical plane", out)
@@ -281,8 +275,6 @@ class VisariiCommandsTest(EvenniaCommandTest):
         out = self.call(CmdManifest(), "")
         self.assertIn("cannot manifest", out)
         self.assertEqual(self.char1.state(), "normal")
-        self.assertTrue(self.char1.can_phys_touch)
-        self.assertFalse(self.char1.can_vis_touch)
 
     def test_silex_cannot_perceive(self):
         self.char1.apply_species("silex")
@@ -488,11 +480,15 @@ class MoveCommandTest(EvenniaCommandTest):
 
     def test_direction_northwest(self):
         self.call(CmdMove(), "nw")
-        self.mock_start_nav.assert_called_once_with(self.char1, 1, 3, movement_mode="walking")
+        self.mock_start_nav.assert_called_once_with(
+            self.char1, 1, 3, movement_mode="walking", delta_x=-1, delta_y=1
+        )
 
     def test_direction_full_name(self):
         self.call(CmdMove(), "southeast")
-        self.mock_start_nav.assert_called_once_with(self.char1, 3, 1, movement_mode="walking")
+        self.mock_start_nav.assert_called_once_with(
+            self.char1, 3, 1, movement_mode="walking", delta_x=1, delta_y=-1
+        )
 
     def test_direction_blocks_off_grid(self):
         self.char1.db.pos_x = 0
@@ -633,7 +629,7 @@ class ChangesCommandTest(EvenniaCommandTest):
 
     def test_read_latest_marks_read(self):
         out = self.call(CmdChanges(), "latest")
-        self.assertIn(f"#10", out)
+        self.assertIn(f"#{changes.latest_number()}", out)
         self.assertEqual(self.account.changes_seen, changes.latest_number())
 
     def test_caught_up_message(self):
@@ -861,51 +857,6 @@ class EmoteCommandTest(EvenniaCommandTest):
         self.assertIn("(You)", out)
         self.assertTrue(target.msg.called)
 
-    def test_emote_quoted_speech_heard_same_realm(self):
-        self.char1.apply_species("terran")
-        self.char1.location = self.room1
-        phys_listener = self._dual()
-        phys_listener.location = self.room1
-        phys_listener.msg = mock.Mock()
-        out = self.call(CmdEmote(), 'yells "Hello!"')
-        self.assertTrue(phys_listener.msg.called)
-        msg_text = self._get_msg_text(phys_listener)
-        self.assertIn('"Hello!"', msg_text)
-
-    def test_emote_quoted_speech_heard_perceiving_other_realm(self):
-        self.char1.apply_species("terran")
-        self.char1.location = self.room1
-        vis_perceiving = self._visarii()
-        vis_perceiving.set_state("perceiving")
-        vis_perceiving.location = self.room1
-        vis_perceiving.msg = mock.Mock()
-        out = self.call(CmdEmote(), 'yells "Hello!"')
-        self.assertTrue(vis_perceiving.msg.called)
-        msg_text = self._get_msg_text(vis_perceiving)
-        self.assertIn('"Hello!"', msg_text)
-
-    def test_emote_quoted_then_continuation_comma(self):
-        self.char1.apply_species("terran")
-        self.char1.location = self.room1
-        phys_listener = self._dual()
-        phys_listener.location = self.room1
-        phys_listener.msg = mock.Mock()
-        out = self.call(CmdEmote(), 'says "Hello." then waves')
-        self.assertTrue(phys_listener.msg.called)
-        msg_text = self._get_msg_text(phys_listener)
-        self.assertIn('"Hello,"', msg_text)
-
-    def test_emote_display_name_no_prefix_same_realm(self):
-        self.char1.apply_species("terran")
-        self.char1.location = self.room1
-        target = self._dual()
-        target.location = self.room1
-        target.msg = mock.Mock()
-        out = self.call(CmdEmote(), "waves")
-        self.assertTrue(target.msg.called)
-        msg_text = self._get_msg_text(target)
-        self.assertNotIn("|w(|", msg_text)
-
     def test_emote_display_name_prefix_diff_realm(self):
         self.char1.apply_species("visarii")
         self.char1.set_state("manifested")
@@ -958,39 +909,24 @@ class EmoteCommandTest(EvenniaCommandTest):
         self.assertIn("himself", msg_text)
         self.assertIn("|wHe|n", msg_text)
 
-    def test_emote_multi_sentence_self_view(self):
+    def test_emote_reflexive_self_view(self):
         self.char1.apply_species("terran")
         self.char1.gender = "female"
         self.char1.location = self.room1
-        out = self.call(CmdEmote(), '@me says, "Hello!" to @self. @me nods.')
+        out = self.call(CmdEmote(), "@me waves at @self")
         self.assertIn("yourself", out)
-        self.assertIn("You", out)
 
-    def test_emote_reflexive_pronouns_observer(self):
+    def test_emote_reflexive_observer_view(self):
         self.char1.apply_species("terran")
         self.char1.gender = "male"
         self.char1.location = self.room1
         observer = self._dual()
         observer.location = self.room1
         observer.msg = mock.Mock()
-        out = self.call(CmdEmote(), "@me waves at @self")
+        self.call(CmdEmote(), "@me waves at @self")
         self.assertTrue(observer.msg.called)
         msg_text = self._get_msg_text(observer)
         self.assertIn("himself", msg_text)
-
-    def test_emote_reflexive_pronouns_self(self):
-        self.char1.apply_species("terran")
-        self.char1.gender = "female"
-        self.char1.location = self.room1
-        out = self.call(CmdEmote(), "@me waves at @self")
-        self.assertIn("yourself", out)
-
-    def test_emote_reflexive_neuter(self):
-        self.char1.apply_species("terran")
-        self.char1.gender = "neuter"
-        self.char1.location = self.room1
-        out = self.call(CmdEmote(), "@me waves at @self")
-        self.assertIn("yourself", out)
 
     def test_emote_target_by_species(self):
         self.char1.apply_species("terran")

@@ -45,7 +45,7 @@ class CmdBuilderTeleport(CmdTeleport):
                     caller.msg("That coordinate is out of bounds.")
                     return
 
-                target_coord = find_nearest_unoccupied_coord(room, x, y, z=z, ignore=caller)
+                target_coord = find_nearest_unoccupied_coord(room, x, y, z=z, ignore=caller, mover=caller)
                 caller.db.pos_x, caller.db.pos_y = target_coord
                 caller.db.pos_z = z
                 caller.msg(f"You teleport to coordinates ({target_coord[0]}, {target_coord[1]}, {z}).")
@@ -73,7 +73,7 @@ class CmdBuilderTeleport(CmdTeleport):
                     caller.msg("That coordinate is out of bounds.")
                     return
 
-                target_coord = find_nearest_unoccupied_coord(room, x, y, z=z, ignore=target_obj)
+                target_coord = find_nearest_unoccupied_coord(room, x, y, z=z, ignore=target_obj, mover=target_obj)
                 target_obj.db.pos_x, target_obj.db.pos_y = target_coord
                 target_obj.db.pos_z = z
                 caller.msg(f"Teleported {target_obj.name} to ({target_coord[0]}, {target_coord[1]}, {z}).")

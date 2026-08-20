@@ -96,6 +96,20 @@ class Character(ObjectParent, DefaultCharacter):
     is_hostile = AttributeProperty(default=False)
     map_size = AttributeProperty(default=15)
 
+    # Combat state: idle | non_combat | in_combat | fled_combat |
+    # fled_from_combat. 'idle' = can fight, not fighting; 'non_combat' =
+    # cannot fight back (but can still be hurt and regenerate).
+    combat_state = AttributeProperty(default="idle")
+
+    @property
+    def engagements(self):
+        """Per-partner combat detail: {dbref: {"state": ..., "fled_since": ...}}."""
+        return self.attributes.get("engagements", default={}) or {}
+
+    @engagements.setter
+    def engagements(self, value):
+        self.attributes.add("engagements", value or {})
+
     @property
     def species(self):
         """The character's species data dict, or None if none is set."""
@@ -263,11 +277,25 @@ class Character(ObjectParent, DefaultCharacter):
         self.msg(prompt=self.get_prompt())
 
     @property
+    def is_injured(self):
+        """True if any non-zeroed pool's current value is below its maximum."""
+        zeroed = species_data.zeroed_pools(self.species_key)
+        for pool in stats.POOL_KEYS:
+            if pool in zeroed:
+                continue
+            if self.pools_current[pool] < getattr(self, pool):
+                return True
+        return False
+
+    @property
     def skin_hex(self):
         """The Truecolor hex for the character's skin tone, if valid."""
-        if not (self.species_key and self.appearance_skin):
+        try:
+            if not (self.species_key and self.appearance_skin):
+                return None
+            return appearance_data.hex_for_skin(self.species_key, self.appearance_skin)
+        except Exception:
             return None
-        return appearance_data.hex_for_skin(self.species_key, self.appearance_skin)
 
     @property
     def species_display_name(self):
@@ -506,6 +534,9 @@ class Character(ObjectParent, DefaultCharacter):
         super().at_post_move(source_location, **kwargs)
         if not (self.location and source_location):
             return
+        if getattr(self, "is_creature", False) and source_location.id != self.location.id:
+            from combat.timers import mark_flee
+            mark_flee(self, source_location)
         from combat.grid import get_entry_coords, get_room_grid_size
         
         entry = None
@@ -530,7 +561,7 @@ class Character(ObjectParent, DefaultCharacter):
             tx, ty = w // 2, h // 2
 
         from combat.movement import find_nearest_unoccupied_coord
-        ux, uy = find_nearest_unoccupied_coord(self.location, tx, ty, z=1, ignore=self)
+        ux, uy = find_nearest_unoccupied_coord(self.location, tx, ty, z=1, ignore=self, mover=self)
         self.db.pos_x, self.db.pos_y = ux, uy
         self.db.pos_z = 1
         self.db.room_id = self.location.dbref

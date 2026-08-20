@@ -1,3 +1,0 @@
-Room: Movement Test Arena at (0,0):
-Object: North | dest=True | attrs=['visarial_nature', 'pos_x', 'pos_y', 'pos_z', 'room_id', 'site_id', 'planet_id', 'is_door', 'is_open', 'is_locked', 'key_id', 'lockpick_dc', 'is_breakable', 'bash_dc', 'is_hidden', 'detect_dc', 'sibling_id']
-Object: Northeast | dest=True | attrs=['visarial_nature', 'pos_x', 'pos_y', 'pos_z', 'room_id', 'site_id', 'planet_id', 'is_door', 'is_open', 'is_locked', 'key_id', 'lockpick_dc', 'is_breakable', 'bash_dc', 'is_hidden', 'detect_dc', 'sibling_id']

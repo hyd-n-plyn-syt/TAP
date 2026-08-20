@@ -1,3 +1,0 @@
-Room: Movement Test Arena
-Exit: North -> Coords: (12, 24)
-Exit: Northeast -> Coords: (24, 24)

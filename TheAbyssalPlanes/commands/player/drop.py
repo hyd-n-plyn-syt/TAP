@@ -1,5 +1,6 @@
 from evennia import utils
 from evennia.commands.default.general import NumberedTargetCommand
+from world.systems.narrative import colored_self, narrative_name
 
 
 class CmdDrop(NumberedTargetCommand):
@@ -52,10 +53,13 @@ class CmdDrop(NumberedTargetCommand):
         room = caller.location
         for obj in moved:
             drop_action = getattr(obj.db, "_drop_action", None)
-            obj_name = obj.get_numbered_name(1, caller, return_string=True)
+            if obj.is_typeclass("typeclasses.furniture.Furniture"):
+                obj_name = narrative_name(obj)
+            else:
+                obj_name = obj.get_numbered_name(1, caller, return_string=True)
 
             if drop_action:
-                caller.msg(f"You drop {obj_name} {drop_action}.")
+                caller.msg(f"{colored_self(caller, True)} drop {obj_name} {drop_action}.")
                 if room:
                     for observer in room.contents:
                         if observer is caller or not getattr(observer, "is_creature", False):
@@ -70,7 +74,7 @@ class CmdDrop(NumberedTargetCommand):
                             observer.msg(f"{obj_name} appears and someone {drop_action.lstrip('and ')}.")
                 obj.db._drop_action = None
             else:
-                caller.msg(f"You drop {obj_name}.")
+                caller.msg(f"{colored_self(caller, True)} drop {obj_name}.")
                 if room:
                     for observer in room.contents:
                         if observer is caller or not getattr(observer, "is_creature", False):

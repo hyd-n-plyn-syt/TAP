@@ -40,10 +40,17 @@ class MockRoom:
 
 
 class MockOccupant:
-    def __init__(self, x, y, key="thing", appearance_name=None):
+    def __init__(self, x, y, key="thing", appearance_name=None, planes=("physical",)):
         self.key = key
         self.appearance_name = appearance_name
-        self.db = type("db", (), {"pos_x": x, "pos_y": y})()
+        self.occupies_space = True
+        self.planes_occupied = planes
+        self.db = type("db", (), {"pos_x": x, "pos_y": y, "pos_z": 1})()
+
+
+class MockMover:
+    def __init__(self, planes):
+        self.planes_occupied = planes
 
 
 class GridHelpersTest(SimpleTestCase):
@@ -114,6 +121,29 @@ class CombatSystemTest(SimpleTestCase):
     def test_grid_occupancy(self):
         room = MockRoom()
         self.assertFalse(is_grid_occupied(room, 0, 0))
+
+    def test_occupancy_blocks_same_realm_only(self):
+        room = MockRoom(room_size="small")
+        room.contents = [MockOccupant(0, 0, key="guard", planes=("physical",))]
+        self.assertTrue(is_grid_occupied(room, 0, 0, mover=MockMover(("physical",))))
+        self.assertFalse(is_grid_occupied(room, 0, 0, mover=MockMover(("visarial",))))
+
+    def test_occupancy_without_mover_counts_all_realms(self):
+        room = MockRoom(room_size="small")
+        room.contents = [MockOccupant(0, 0, key="guard", planes=("physical",))]
+        self.assertTrue(is_grid_occupied(room, 0, 0))
+
+    def test_dual_occupant_blocks_both_realms(self):
+        room = MockRoom(room_size="small")
+        room.contents = [MockOccupant(0, 0, key="wardrobe", planes=("physical", "visarial"))]
+        self.assertTrue(is_grid_occupied(room, 0, 0, mover=MockMover(("physical",))))
+        self.assertTrue(is_grid_occupied(room, 0, 0, mover=MockMover(("visarial",))))
+
+    def test_manifested_and_physical_share_tile(self):
+        room = MockRoom(room_size="small")
+        room.contents = [MockOccupant(0, 0, key="ghost", planes=("visarial",))]
+        self.assertTrue(is_grid_occupied(room, 0, 0, mover=MockMover(("visarial",))))
+        self.assertFalse(is_grid_occupied(room, 0, 0, mover=MockMover(("physical",))))
 
     def test_group_invite(self):
         char1 = MockChar()

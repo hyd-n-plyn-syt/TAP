@@ -3,6 +3,7 @@ from evennia.objects.objects import DefaultObject
 from evennia.utils.utils import iter_to_str
 from .objects import ObjectParent
 from world.data import appearance as appearance_data
+from world.systems.narrative import colored_self, furniture_name
 from combat.grid import is_valid_coord
 from combat.movement import is_grid_occupied
 
@@ -12,6 +13,10 @@ CARDINAL_OFFSETS = {
     "east": (1, 0),
     "west": (-1, 0),
 }
+
+OPPOSITE = {"north": "south", "south": "north", "east": "west", "west": "east"}
+
+PERPENDICULAR = {"north": "east", "south": "west", "east": "north", "west": "south"}
 
 
 class Furniture(ObjectParent, DefaultObject):
@@ -25,7 +30,7 @@ class Furniture(ObjectParent, DefaultObject):
     seats = AttributeProperty(default=1)
     dimension = AttributeProperty(default="1x1")
     allowed_states = AttributeProperty(default=["sit", "rest", "lay", "sleep", "resting", "laying", "sleeping"])
-    color = AttributeProperty(default="|D")
+    color = AttributeProperty(default="D")
     facing = AttributeProperty(default="north")
     extra_coords = AttributeProperty(default=[])
 
@@ -45,6 +50,39 @@ class Furniture(ObjectParent, DefaultObject):
             return plural
         return name, plural
 
+    @property
+    def is_bed(self):
+        """Whether this is a bed: a Bed-typeclass object or a classic
+        dimension-shaped bed (1x2 / 2x2)."""
+        return self.is_typeclass("typeclasses.furniture.Bed") or (self.dimension or "") in ("1x2", "2x2")
+
+    def approach_hint(self, blocker_x=None, blocker_y=None):
+        facing = getattr(self.db, "facing", "north")
+        states = list(getattr(self.db, "allowed_states", []))
+        readable = [s for s in ["sit", "rest", "lay", "sleep"] if s in states]
+        if self.is_bed:
+            side_a = PERPENDICULAR.get(facing, facing)
+            return f"the {side_a} or {OPPOSITE.get(side_a)}", readable
+        return f"the {facing}", readable
+
+    def _strip_offset(self, dim, facing):
+        """Grid offset the footprint strip extends along for a given facing.
+
+        Beds and 1x1 pieces lie along the facing axis (their ends are the
+        front/back). Longer furniture (couches, benches) lies perpendicular,
+        so that ``facing`` names the long front face and the ends are sides.
+        """
+        dx, dy = CARDINAL_OFFSETS.get(facing, (0, 1))
+        if self.is_bed:
+            return dx, dy
+        if "x" in dim:
+            length = int(dim.split("x")[1])
+        else:
+            length = max(1, self.seats)
+        if length <= 1:
+            return dx, dy
+        return CARDINAL_OFFSETS.get(PERPENDICULAR.get(facing, facing), (0, 1))
+
     def at_object_creation(self):
         super().at_object_creation()
         self.db.pos_x = 0
@@ -63,29 +101,66 @@ class Furniture(ObjectParent, DefaultObject):
                 return True
         return False
 
+    def footprint_tiles(self):
+        """The list of (x, y) grid tiles this furniture's footprint covers."""
+        return [(self.db.pos_x, self.db.pos_y)] + list(self.db.extra_coords or [])
+
+    def allows_pose(self, pose):
+        """Whether a pose word (sit, rest, lay, sleep, resting, ...) is one of
+        this furniture's allowed states."""
+        allowed = {s.lower() for s in self.allowed_states}
+        pose = pose.lower()
+        if pose in allowed:
+            return True
+        aliases = {"resting": "rest", "sleeping": "sleep", "sitting": "sit", "laying": "lay"}
+        return aliases.get(pose, pose) in allowed
+
+    def occupied_seats_by_plane(self):
+        """Record which realm(s) currently occupy each seat (footprint tile).
+
+        Returns ``{(x, y): frozenset}`` where the set is a subset of
+        ``{"physical", "visarial"}``. A seat is occupied on a plane when a
+        creature present in that plane is reclining on it (sit / rest / lay /
+        sleep). Cross-realm occupants freely share a seat, so a single seat may
+        be held by the physical plane, the visarial plane, or both at once.
+        """
+        room = self.location
+        if not room:
+            return {}
+        seated = {"sit", "rest", "lay", "sleep"}
+        aliases = {"sitting": "sit", "resting": "rest", "laying": "lay", "sleeping": "sleep"}
+        occupancies = {}
+        for x, y in self.footprint_tiles():
+            planes = set()
+            for obj in room.contents:
+                if obj is self or not getattr(obj, "is_creature", False):
+                    continue
+                if not (getattr(obj.db, "pos_x", None) == x and getattr(obj.db, "pos_y", None) == y):
+                    continue
+                pose = aliases.get((getattr(obj, "pose", None) or "standing").lower(), "standing")
+                if pose not in seated or not self.allows_pose(pose):
+                    continue
+                planes.update(getattr(obj, "planes_occupied", ()) or ())
+            occupancies[(x, y)] = frozenset(planes)
+        return occupancies
+
     def _test_footprint(self, room, px, py, facing, ignore_char=None):
         """Test if footprint is valid. Characters do not block furniture placement; only non-character objects do."""
         dim = self.dimension or f"1x{self.seats}"
-        dx, dy = CARDINAL_OFFSETS.get(facing, (0, 1))
 
         if dim == "2x2":
-            orth_dx, orth_dy = (-dy, dx)
-            tiles = [
-                (px, py),
-                (px + dx, py + dy),
-                (px + orth_dx, py + orth_dy),
-                (px + dx + orth_dx, py + dy + orth_dy),
-            ]
+            tiles = [(px, py), (px + 1, py), (px, py + 1), (px + 1, py + 1)]
             for tx, ty in tiles:
                 if not is_valid_coord(room, tx, ty):
                     return False
-                occupants = is_grid_occupied(room, tx, ty, ignore=(self, ignore_char))
+                occupants = is_grid_occupied(room, tx, ty, ignore=(self, ignore_char), mover=self)
                 for occ in occupants:
                     if not getattr(occ, "is_creature", False):
                         return False
             return True
         else:
             length = int(dim.split("x")[1]) if "x" in dim else max(1, self.seats)
+            dx, dy = self._strip_offset(dim, facing)
             cx, cy = px, py
             for i in range(length):
                 tx, ty = (px, py) if i == 0 else (cx + dx, cy + dy)
@@ -93,7 +168,7 @@ class Furniture(ObjectParent, DefaultObject):
                     cx, cy = tx, ty
                 if not is_valid_coord(room, tx, ty):
                     return False
-                occupants = is_grid_occupied(room, tx, ty, ignore=(self, ignore_char))
+                occupants = is_grid_occupied(room, tx, ty, ignore=(self, ignore_char), mover=self)
                 for occ in occupants:
                     if not getattr(occ, "is_creature", False):
                         return False
@@ -109,16 +184,9 @@ class Furniture(ObjectParent, DefaultObject):
         dim = self.dimension or f"1x{self.seats}"
         px = getattr(self.db, "pos_x", 0)
         py = getattr(self.db, "pos_y", 0)
-        dx, dy = CARDINAL_OFFSETS.get(self.facing, (0, 1))
 
         if dim == "2x2":
-            orth_dx, orth_dy = (-dy, dx)
-            tiles = [
-                (px + dx, py + dy),
-                (px + orth_dx, py + orth_dy),
-                (px + dx + orth_dx, py + dy + orth_dy),
-            ]
-            self.db.extra_coords = tiles
+            self.db.extra_coords = [(px + 1, py), (px, py + 1), (px + 1, py + 1)]
             return True
         else:
             length = int(dim.split("x")[1]) if "x" in dim else max(1, self.seats)
@@ -128,6 +196,7 @@ class Furniture(ObjectParent, DefaultObject):
 
             extras = []
             cx, cy = px, py
+            dx, dy = self._strip_offset(dim, self.facing)
             for _ in range(length - 1):
                 cx += dx
                 cy += dy
@@ -170,7 +239,7 @@ class Furniture(ObjectParent, DefaultObject):
             dropper = source_location
             self.calculate_footprint()
 
-            all_tiles = [(self.db.pos_x, self.db.pos_y)] + list(self.db.extra_coords or [])
+            all_tiles = self.footprint_tiles()
             seated_chars = []
             for tx, ty in all_tiles:
                 occupants = [
@@ -199,11 +268,11 @@ class Furniture(ObjectParent, DefaultObject):
 
             self.db._drop_action = "and sit down on it"
 
-    def rotate(self):
-        """Rotate furniture to the next cardinal direction, if valid and unoccupied."""
+    def rotate(self, viewer=None):
+        """Rotate furniture to the next cardinal direction, if valid and unoccupied.
+        Single-tile pieces may always be rotated (they just change facing)."""
         room = self.location
-        dim = self.dimension or f"1x{self.seats}"
-        if not room or (dim == "1x1" and self.seats <= 1):
+        if not room:
             return False, "This furniture cannot be rotated."
 
         directions = ["north", "east", "south", "west"]
@@ -216,6 +285,19 @@ class Furniture(ObjectParent, DefaultObject):
             if self._test_footprint(room, px, py, new_facing):
                 self.facing = new_facing
                 self.calculate_footprint()
-                return True, f"You rotate {self.get_display_name()} to face {new_facing}."
+                you = colored_self(viewer, True) if viewer is not None else "You"
+                return True, f"{you} rotate {furniture_name(self)} to face {new_facing}."
 
         return False, "There is no clear space to rotate this furniture."
+
+
+class Bed(Furniture):
+    """
+    Beds (single/double). The facing names the *foot* of the bed; the head is
+    the opposite face. Characters get in from either side (perpendicular to
+    facing) and are blocked from the head and foot.
+    """
+
+    @property
+    def is_bed(self):
+        return True

@@ -9,10 +9,7 @@ from combat.grid import (
     grid_quadrant,
     is_valid_coord,
 )
-
-SUB_TICK_RATE = 1
-GLOBAL_ROUND_DURATION = 6
-MAX_GRIDS_PER_ROUND = 6
+from world.systems.time import MAX_GRIDS_PER_ROUND
 
 def get_move_allowance(actions_taken):
     """
@@ -26,8 +23,42 @@ def get_move_allowance(actions_taken):
     return max(0, allowance)
 
 
-def is_grid_occupied(room, x, y, z=None, ignore=None):
-    """Return list of occupants blocking (x, y, z).
+def _planes_overlap(mover, obj):
+    """Whether two entities share at least one occupied realm plane. When
+    either side has no plane data (stock objects), treat as overlapping."""
+    if mover is None:
+        return True
+    m = getattr(mover, "planes_occupied", None)
+    if not m:
+        return True
+    o = getattr(obj, "planes_occupied", None)
+    if not o:
+        return True
+    return bool(set(m) & set(o))
+
+
+def capitalize_display_name(text):
+    """Capitalize the first visible character of a display name, skipping
+    any leading ANSI color codes. Used where a name starts a sentence."""
+    if not text:
+        return text
+    i = 0
+    n = len(text)
+    while i + 1 < n and text[i] == "|":
+        i += 2
+    if i >= n:
+        return text
+    return text[:i] + text[i].upper() + text[i + 1 :]
+
+
+def is_grid_occupied(room, x, y, z=None, ignore=None, mover=None):
+    """Return list of occupants blocking (x, y, z) for the *mover*'s realm.
+
+    Occupancy is realm-aware, with two slots (physical and visarial). A mover
+    only collides with occupants present in the same realm(s) it occupies, so a
+    physical and a manifested creature can freely share a tile while a
+    dual-natured object blocks both realms. Pass *mover* to scope the check to
+    that entity's planes; without it all realm occupants count.
 
     Only objects with ``occupies_space`` True count.  Exits are always
     excluded.  Pass *ignore* to exclude a specific object or collection of objects
@@ -39,6 +70,11 @@ def is_grid_occupied(room, x, y, z=None, ignore=None):
             ignore_list = list(ignore)
         else:
             ignore_list = [ignore]
+
+    mover_planes = None
+    if mover is not None:
+        planes = getattr(mover, "planes_occupied", None)
+        mover_planes = set(planes) if planes else {"physical", "visarial"}
 
     occupants = []
     for obj in room.contents:
@@ -60,6 +96,11 @@ def is_grid_occupied(room, x, y, z=None, ignore=None):
 
         if z is not None and getattr(obj.db, "pos_z", None) != z:
             continue
+        if mover_planes is not None:
+            planes = getattr(obj, "planes_occupied", None)
+            obj_planes = set(planes) if planes else {"physical", "visarial"}
+            if not (mover_planes & obj_planes):
+                continue
         occupants.append(obj)
     return occupants
 
@@ -76,7 +117,7 @@ def move_actor(actor, x, y, z=None):
     if not is_valid_coord(room, x, y):
         return False, "That coordinate is out of bounds."
 
-    if is_grid_occupied(room, x, y, z=z, ignore=actor):
+    if is_grid_occupied(room, x, y, z=z, ignore=actor, mover=actor):
         EvMenu(actor, "combat.menus", startnode="collision_menu_node")
         return False, "That space is occupied."
 
@@ -85,20 +126,6 @@ def move_actor(actor, x, y, z=None):
     if z is not None:
         actor.db.pos_z = z
     return True, f"You move to {x}, {y}."
-
-
-def ensure_combat_loop(room):
-    """Make sure the room has exactly one running CombatLoop script. Returns it."""
-    existing = room.scripts.get(key="combat_loop")
-    kept = None
-    for script in existing:
-        if kept is None and getattr(script, "db_is_active", False):
-            kept = script
-            continue
-        script.delete()
-    if kept is not None:
-        return kept
-    return room.scripts.add("combat.loop.CombatLoop", key="combat_loop")
 
 
 def describe_nav_target(room, nav, mover=None):
@@ -137,6 +164,7 @@ def describe_nav_target(room, nav, mover=None):
         for obj in room.contents
         if obj is not mover
         and not getattr(obj, "destination", None)
+        and _planes_overlap(mover, obj)
         and getattr(obj.db, "pos_x", None) == dest_x
         and getattr(obj.db, "pos_y", None) == dest_y
     ]
@@ -152,12 +180,14 @@ def describe_nav_target(room, nav, mover=None):
 
 def _nav_target_occupant(room, nav, mover=None):
     """The creature or object sitting on the navigation's destination grid,
-    excluding the mover themselves, or None."""
+    present in the mover's realm, excluding the mover themselves, or None."""
     dest_x, dest_y = nav["dest_x"], nav["dest_y"]
     for obj in room.contents:
         if obj is mover:
             continue
         if getattr(obj, "destination", None):
+            continue
+        if not _planes_overlap(mover, obj):
             continue
         if getattr(obj.db, "pos_x", None) == dest_x and getattr(obj.db, "pos_y", None) == dest_y:
             return obj
@@ -273,9 +303,9 @@ def mover_arrival_message(room, nav, mover):
 def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode="walking", delta_x=None, delta_y=None):
     """
     Begin autonomous grid navigation toward a destination coordinate. If an
-    exit object is supplied, reaching the destination traverses it. The
-    CombatLoop moves the actor one grid per sub-tick, capped at the round's
-    movement allowance.
+    exit object is supplied, reaching the destination traverses it. A
+    per-character MovementTimer (cloned from the universal clock) moves the
+    actor one grid per second, capped at the round's movement allowance.
 
     If the actor already has an active navigation, the new one is appended
     to their nav_queue and will start automatically when the current one
@@ -309,16 +339,18 @@ def start_navigation(actor, dest_x, dest_y, z=None, exit_obj=None, movement_mode
         actor.db.navigation = nav
         if room:
             actor.msg(mover_start_message(room, nav, actor))
-            ensure_combat_loop(room)
+            from combat.timers import ensure_movement_timer
+            ensure_movement_timer(actor)
     return True
 
 
-def find_nearest_unoccupied_coord(room, start_x, start_y, z=1, ignore=None):
-    """Find the nearest unoccupied coordinate to (start_x, start_y) in room."""
+def find_nearest_unoccupied_coord(room, start_x, start_y, z=1, ignore=None, mover=None):
+    """Find the nearest coordinate to (start_x, start_y) in room that is free
+    in the mover's realm (see ``is_grid_occupied``)."""
     from combat.grid import get_room_grid_size, is_valid_coord
     w, h = get_room_grid_size(room)
 
-    if is_valid_coord(room, start_x, start_y) and not is_grid_occupied(room, start_x, start_y, z=z, ignore=ignore):
+    if is_valid_coord(room, start_x, start_y) and not is_grid_occupied(room, start_x, start_y, z=z, ignore=ignore, mover=mover):
         return start_x, start_y
 
     max_dist = max(w, h)
@@ -328,7 +360,7 @@ def find_nearest_unoccupied_coord(room, start_x, start_y, z=1, ignore=None):
             for dy in range(-d, d + 1):
                 if max(abs(dx), abs(dy)) == d:
                     nx, ny = start_x + dx, start_y + dy
-                    if is_valid_coord(room, nx, ny) and not is_grid_occupied(room, nx, ny, z=z, ignore=ignore):
+                    if is_valid_coord(room, nx, ny) and not is_grid_occupied(room, nx, ny, z=z, ignore=ignore, mover=mover):
                         candidates.append((nx, ny))
         if candidates:
             candidates.sort(key=lambda t: abs(t[0] - start_x) + abs(t[1] - start_y))
