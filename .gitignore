@@ -1,6 +1,7 @@
 # Scratch DB-query scripts (see AGENTS.md "Scratch scripts")
 scr_*.py
 scr_*_result.txt
+scr_tap_test/
 
 # Python
 __pycache__/

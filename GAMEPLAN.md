@@ -81,6 +81,11 @@ kept current as work happens.
 - [x] Direction fallbacks: dynamic per-room "cannot move" messages for missing exits.
 - [x] Test suite: ~115 world tests + command integration tests across 8 files.
 - [x] File-based help entries: 25 topics (stats, pools, species, appearance, time, planets, prompt).
+- [x] Mudlet client package (`web/static/mudlet/`): Map + Communication windows, bottom prompt bar, tab-click switching, `TAP help/reset/fontsize/font/on|off/update` aliases, settings persistence (`TAP_settings.lua`), window-layout save/restore, auto-update via `installPackage(url)`.
+- [x] Webclient UI plugin (`web/static/webclient/js/plugins/tap_ui.js`): TAP Map pane (text-stream frame capture + `room_map` fallback, clear-and-replace), TAP Comm pane (Local/OOC/MudInfo tabs, per-tab buffers), full ANSI parser (16-color + xterm256 + truecolor), Evennia pipe→ANSI converter, main-window font sync, saved-layout auto-heal.
+- [x] GMCP payload pipeline: `world/systems/gmcp.py` converts every custom payload to ANSI server-side (`_to_ansi`); `send_map` wired into all autowhere paths (movement timers ×2, teleport, room entry, `check_autowhere`) so every client's map updates identically.
+- [x] Comm parity: say/emote/OOC/MudInfo send the exact main-window line to the comm tabs (say lines from `at_say`, channel formatting mirrored in `channels.py line_for` incl. perm-colored sender names); login/logout announcements use permission-colored names.
+- [x] Webclient template override (`web/templates/webclient/base.html`) with versioned script tags for cache-busting.
 
 ---
 
@@ -190,6 +195,52 @@ EvMenu chargen is fully functional. Missing pieces:
 - In-game changelog: 44 entries (`world/data/changes.py`), 2026-07-29 → present.
 - Main-stat rank ladder and all stat thresholds are placeholder numbers marked
   for tuning.
+
+### Client UI Notes (Mudlet package + webclient plugin)
+
+**Architecture**
+- Mudlet package source: `web/static/mudlet/theabyssalplanes/theabyssalplanes.xml`,
+  zipped to `theabyssalplanes.mpackage` next to it. After editing the XML:
+  re-zip (folder → zip, renamed `.mpackage`) AND bump the `client_GUI` version
+  in `world/systems/gmcp.py` so logged-in clients auto-update on next login.
+  One-off `TAP update` alias does `installPackage(url)` + `resetProfile()`.
+- Alias XML schema (from Mudlet's `XMLexport.cpp`): `<AliasPackage><Alias
+  isActive isFolder>` with children in exact order `name, script, command,
+  packageName, regex`. Keep existing ScriptPackage/TriggerPackage untouched.
+- Webclient plugin: `web/static/webclient/js/plugins/tap_ui.js`, loaded in the
+  `base.html` override **before `goldenlayout.js`** (its `postInit()` must
+  register components before GoldenLayout's `postInit` calls `myLayout.init()`)
+  and therefore also before `default_out.js` (so its `onUnknownCmd` claims our
+  OOB commands first). Template override lives at
+  `web/templates/webclient/base.html`.
+- Offline JS testing: run the plugin under Node with stubbed
+  jQuery/GoldenLayout before shipping changes — build the stub harness ad hoc
+  in a gitignored scratch dir and delete it afterwards.
+
+**Gotchas learned the hard way**
+- The `v1.evennia.com` websocket wire format delivers main-window text as
+  **HTML** (`parse_html`: `<div>`, `&nbsp;`, pipes as `&#124;`). Any client-side
+  pattern matching must plainize first; raw `/===\` never appears literally.
+- `parse_html` truecolor bleed: once a `|#hex` span opens, every later span
+  inherits it until a hard reset. **Always close a `|#hex` name with `|n`
+  before any other colored text** (channel lines do this; announcements must
+  too). Mudlet is unaffected — telnet ANSI is stateful-correct.
+- Custom GMCP payloads bypass Evennia's pipe→ANSI conversion. Always wrap
+  payload strings in `_to_ansi()` (`parse_ansi(..., xterm256=True,
+  truecolor=True)`) in `gmcp.py`, or clients get literal pipe codes.
+- New autowhere call sites MUST call `send_map(char, map_text)` alongside
+  `char.msg(map_text)` — Mudlet captures frames from its own stream, but the
+  webclient pane relies on `room_map`/text capture parity.
+- Browsers cache `tap_ui.js` / `goldenlayout_default_config.js` aggressively:
+  bump the `?v=N` query string in `base.html` on every plugin change.
+- GoldenLayout persists layout in localStorage (`evenniaGoldenLayoutSavedState`)
+  and overwrites it on every state change — a broken load can poison it.
+  `tap_ui.init()` auto-heals by deleting saves missing "TAP Map"/"TAP Comm".
+- Channel sender-name colors come from `Account.at_pre_channel_msg` in
+  `typeclasses/accounts.py` (`_perm_color` truecolor hex); `channels.py line_for`
+  mirrors it via `_perm_hex`. Change both together.
+- Multi-client login kicks the older session (Evennia session replacement) —
+  not a bug.
 
 ---
 

@@ -2,7 +2,7 @@
 
 A text-based MUD built with [Evennia](https://www.evennia.com). Currently in development and playable over telnet.
 
-**Live:** telnet `theabyssalplane.duckdns.org:4000` — website/webclient `http://theabyssalplane.duckdns.org` (web on port 80).
+**Live:** telnet `theabyssalplane.duckdns.org:4000` — website/webclient `http://theabyssalplane.duckdns.org` (web on port 80). A custom UI package installs automatically in Mudlet, and the browser webclient ships with matching custom panes.
 **Local:** telnet `localhost:4000` — website/webclient `http://localhost`.
 
 Every soul is born into one of nine species on the planes. Characters have no
@@ -161,6 +161,28 @@ A Discord bridge relays in-game OOC chat to a Discord channel and sends
 server lifecycle announcements (connections, disconnections, reloads) to an
 announcements channel. A bot listens in the background.
 
+### Custom Client UI (Mudlet & Webclient)
+
+Both major clients get a matching custom interface out of the box:
+
+- **Mudlet** auto-installs our package on login (`Client.GUI`). It adds a
+  docked **Map** window fed by `autowhere`, a tabbed **Communication** window
+  (Local / OOC / MudInfo), and a bottom **prompt bar** — all rendering full
+  truecolor. Player-facing commands:
+  - `TAP help` — command reference for the package
+  - `TAP reset` — rebuild all windows after screen resizes
+  - `TAP fontsize map|communication|status <size>` — per-window font size
+  - `TAP font map|communication|status <name>` — per-window font
+  - `TAP map|communication|status on|off` — show/hide windows
+  - `TAP update` — download/install the latest package, then reload
+- **Webclient** (browser) loads a custom plugin adding the same panes: a
+  **TAP Map** that captures every map frame exactly as drawn (full ANSI,
+  xterm-256 and truecolor support), and a **TAP Comm** pane whose Local/OOC/
+  MudInfo tabs mirror the main-window lines — colors included. Font choices,
+  active tabs, and window layouts persist between sessions.
+- Say/emote/OOC/MudInfo lines and permission-colored names look identical in
+  both clients and the main game window.
+
 ---
 
 ## Commands
@@ -181,6 +203,7 @@ announcements channel. A bot listens in the background.
 - **Phase 4 — Items & Equipment:** in progress (furniture/items typeclass, multi-material descriptions; missing worn gear, stat modifiers, containers, shops)
 - **Phase 5 — Custom Character Creation:** in progress (EvMenu chargen done; missing starting skills, sign selection)
 - **Phase 6 — World, NPCs, Content & Polish:** planned
+- **Client UI — Mudlet package + webclient plugin:** done (map/comm windows, truecolor, TAP commands, persistence, auto-update)
 
 See [`GAMEPLAN.md`](GAMEPLAN.md) for the full build plan and [`DEVELOPMENT.md`](DEVELOPMENT.md)
 for the technical reference.

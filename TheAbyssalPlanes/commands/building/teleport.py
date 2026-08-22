@@ -51,7 +51,10 @@ class CmdBuilderTeleport(CmdTeleport):
                 caller.msg(f"You teleport to coordinates ({target_coord[0]}, {target_coord[1]}, {z}).")
                 if caller.db.is_autowhere:
                     from combat.map_renderer import render_map
-                    caller.msg(render_map(caller))
+                    map_text = render_map(caller)
+                    caller.msg(map_text)
+                    from world.systems.gmcp import send_map
+                    send_map(caller, map_text)
                 return
 
         # Case 2: teleport target = x y [z]

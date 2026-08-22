@@ -640,6 +640,20 @@ CHANGES = [
             "APPROACH and SIT/STAND."
         ),
     },
+    {
+        "number": 47,
+        "date": "2026-08-21",
+        "title": "Custom client UI for Mudlet & webclient",
+        "body": (
+            "Mudlet auto-installs an updated package: Map and Communication "
+            "windows, a bottom prompt bar, TAP help/reset/fontsize/font/on|off/"
+            "update commands, saved fonts and layouts, and a self-updater. The "
+            "browser webclient gains matching TAP Map/Comm panes with full "
+            "truecolor rendering. All autowhere paths now push map updates to "
+            "every client, and say/emote/OOC/MudInfo lines - including "
+            "permission-colored names - render identically everywhere."
+        ),
+    },
 ]
 
 

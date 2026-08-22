@@ -11,7 +11,10 @@ class CmdWhere(Command):
     help_category = "General"
 
     def func(self):
-        self.caller.msg(render_map(self.caller))
+        map_text = render_map(self.caller)
+        self.caller.msg(map_text)
+        from world.systems.gmcp import send_map
+        send_map(self.caller, map_text)
 
 class CmdWhereKey(Command):
     """

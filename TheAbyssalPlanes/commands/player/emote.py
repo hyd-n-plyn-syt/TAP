@@ -454,6 +454,8 @@ class CmdEmote(GameMuxCommand):
                 msg = msg.lstrip()
                 msg = f"{actor_name} {msg}"
             listener.msg(text=(msg, {"type": "emote"}), from_obj=caller)
+            from world.systems.gmcp import send_local_comm
+            send_local_comm(listener, caller.key, msg)
 
         self_state = {"me": 0, "my": 0}
         self_msg = build_emote_message(
@@ -464,3 +466,5 @@ class CmdEmote(GameMuxCommand):
             self_msg = self_msg.lstrip()
             self_msg = f"You {self_msg}"
         caller.msg(text=(self_msg, {"type": "emote"}), from_obj=caller)
+        from world.systems.gmcp import send_local_comm
+        send_local_comm(caller, caller.key, self_msg)

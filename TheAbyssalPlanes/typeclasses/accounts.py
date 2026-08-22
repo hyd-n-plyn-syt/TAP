@@ -153,8 +153,10 @@ class Account(DefaultAccount):
     changes_seen = AttributeProperty(default=0)
 
     def at_post_login(self, session=None, **kwargs):
-        """Announce any unread changes on login."""
+        """Announce any unread changes on login and send GMCP package install."""
         super().at_post_login(session=session, **kwargs)
+        from world.systems.gmcp import send_gui_install
+        send_gui_install(self)
         alert = changes.alert_text(self.changes_seen)
         if alert:
             self.msg(alert)
@@ -164,7 +166,7 @@ class Account(DefaultAccount):
             mudinfo = ChannelDB.objects.get_channel("MudInfo") or ChannelDB.objects.get_channel("mudinfo")
             if mudinfo and not mudinfo.has_connection(self):
                 mudinfo.connect(self)
-            send_to_mudinfo(f"|000**|w{self.key} |100has entered |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100!|000**|n")
+            send_to_mudinfo(f"|000**|#{_perm_color(self)}{self.key}|n |100has entered |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100!|000**|n")
         except Exception:
             pass
 
@@ -172,7 +174,7 @@ class Account(DefaultAccount):
         super().at_disconnect(reason=reason, **kwargs)
         try:
             from world.discord_integration import send_to_mudinfo
-            send_to_mudinfo(f"|000**|w{self.key} |100has left |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100.|000**|n")
+            send_to_mudinfo(f"|000**|#{_perm_color(self)}{self.key}|n |100has left |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100.|000**|n")
         except Exception:
             pass
 

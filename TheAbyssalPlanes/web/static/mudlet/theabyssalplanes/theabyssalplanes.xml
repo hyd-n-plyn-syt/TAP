@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.0">
+  <ScriptPackage>
+    <Script isActive="yes" isFolder="no">
+      <name>TAP_Client</name>
+      <packageName>theabyssalplanes</packageName>
+      <script>
+TAP = TAP or {}
+
+local profile = getProfileName()
+TAP.profile = profile
+TAP.where_name = "TAP_Where_" .. profile
+TAP.where_console_name = "TAP_Where_Console_" .. profile
+TAP.comm_name = "TAP_Comm_" .. profile
+TAP.comm_local_name = "TAP_Comm_Local_" .. profile
+TAP.comm_ooc_name = "TAP_Comm_OOC_" .. profile
+TAP.comm_mudinfo_name = "TAP_Comm_MudInfo_" .. profile
+TAP.comm_tab_local_name = "TAP_TabLocal_" .. profile
+TAP.comm_tab_ooc_name = "TAP_TabOOC_" .. profile
+TAP.comm_tab_mudinfo_name = "TAP_TabMudInfo_" .. profile
+TAP.prompt_name = "TAP_Prompt_" .. profile
+TAP.prompt_console_name = "TAP_Prompt_Console_" .. profile
+
+TAP.package_url = "http://theabyssalplane.duckdns.org/static/mudlet/theabyssalplanes.mpackage"
+TAP.settings_file = getMudletHomeDir() .. "/TAP_settings.lua"
+
+TAP.target_keys = { map = "map", comm = "comm", communication = "comm", status = "status" }
+
+TAP.settings = {
+  fonts = {},
+  visible = { map = true, comm = true, status = true }
+}
+
+if not TAP.where_win then
+  TAP.where_win = Geyser.UserWindow:new({
+    name = TAP.where_name,
+    titleText = "Map",
+    docked = true,
+    dockPosition = "right",
+    width = 300,
+    height = 300
+  })
+  TAP.where_console = Geyser.MiniConsole:new({
+    name = TAP.where_console_name,
+    x = 0, y = 0,
+    width = "100%", height = "100%",
+    autoWrap = true,
+    fontSize = 10,
+    color = "black"
+  }, TAP.where_win)
+end
+
+if not TAP.prompt_win then
+  setBorderBottom(20)
+  local w, h = getMainWindowSize()
+  createMiniConsole(TAP.prompt_console_name, 0, h - 20, w, 20)
+  setFont(TAP.prompt_console_name, getFont("main"))
+  setFontSize(TAP.prompt_console_name, getFontSize("main"))
+  setBackgroundColor(TAP.prompt_console_name, 0, 0, 0, 255)
+  setWindowWrap(TAP.prompt_console_name, 200)
+end
+
+if not TAP.comm_win then
+  TAP.comm_win = Geyser.UserWindow:new({
+    name = TAP.comm_name,
+    titleText = "Communication",
+    docked = true,
+    dockPosition = "right",
+    width = 300,
+    height = 400
+  })
+  TAP.comm_tab_local = Geyser.Label:new({
+    name = TAP.comm_tab_local_name,
+    x = 0, y = 0,
+    width = "33%", height = 25,
+    text = " Local ",
+    fontSize = 10,
+    color = "gray"
+  }, TAP.comm_win)
+  TAP.comm_tab_ooc = Geyser.Label:new({
+    name = TAP.comm_tab_ooc_name,
+    x = "33%", y = 0,
+    width = "34%", height = 25,
+    text = " OOC ",
+    fontSize = 10,
+    color = "gray"
+  }, TAP.comm_win)
+  TAP.comm_tab_mudinfo = Geyser.Label:new({
+    name = TAP.comm_tab_mudinfo_name,
+    x = "67%", y = 0,
+    width = "33%", height = 25,
+    text = " MudInfo ",
+    fontSize = 10,
+    color = "gray"
+  }, TAP.comm_win)
+  TAP.comm_local = Geyser.MiniConsole:new({
+    name = TAP.comm_local_name,
+    x = 0, y = 25,
+    width = "100%", height = "100%-25",
+    autoWrap = true,
+    fontSize = 10,
+    color = "black"
+  }, TAP.comm_win)
+  TAP.comm_ooc = Geyser.MiniConsole:new({
+    name = TAP.comm_ooc_name,
+    x = 0, y = 25,
+    width = "100%", height = "100%-25",
+    autoWrap = true,
+    fontSize = 10,
+    color = "black"
+  }, TAP.comm_win)
+  TAP.comm_mudinfo = Geyser.MiniConsole:new({
+    name = TAP.comm_mudinfo_name,
+    x = 0, y = 25,
+    width = "100%", height = "100%-25",
+    autoWrap = true,
+    fontSize = 10,
+    color = "black"
+  }, TAP.comm_win)
+  TAP.comm_ooc:hide()
+  TAP.comm_mudinfo:hide()
+  TAP.comm_tab_ooc:echo(" OOC ")
+  TAP.comm_tab_mudinfo:echo(" MudInfo ")
+  TAP.comm_tab_local:echo(" Local ")
+end
+
+function TAP.showTab(tab)
+  if tab == "local" then
+    TAP.comm_local:show()
+    TAP.comm_ooc:hide()
+    TAP.comm_mudinfo:hide()
+    TAP.comm_tab_local:setColor("gray")
+    TAP.comm_tab_ooc:setColor("dimGray")
+    TAP.comm_tab_mudinfo:setColor("dimGray")
+  elseif tab == "ooc" then
+    TAP.comm_local:hide()
+    TAP.comm_ooc:show()
+    TAP.comm_mudinfo:hide()
+    TAP.comm_tab_local:setColor("dimGray")
+    TAP.comm_tab_ooc:setColor("gray")
+    TAP.comm_tab_mudinfo:setColor("dimGray")
+  elseif tab == "mudinfo" then
+    TAP.comm_local:hide()
+    TAP.comm_ooc:hide()
+    TAP.comm_mudinfo:show()
+    TAP.comm_tab_local:setColor("dimGray")
+    TAP.comm_tab_ooc:setColor("dimGray")
+    TAP.comm_tab_mudinfo:setColor("gray")
+  end
+end
+
+TAP.comm_tab_local:setClickCallback(function() TAP.showTab("local") end)
+TAP.comm_tab_ooc:setClickCallback(function() TAP.showTab("ooc") end)
+TAP.comm_tab_mudinfo:setClickCallback(function() TAP.showTab("mudinfo") end)
+
+function TAP.copyToLocal()
+  selectCaptureGroup(1)
+  copy()
+  appendBuffer(TAP.comm_local_name)
+end
+
+function TAP.copyToOOC()
+  selectCaptureGroup(1)
+  copy()
+  appendBuffer(TAP.comm_ooc_name)
+end
+
+function TAP.copyToMudInfo()
+  selectCaptureGroup(1)
+  copy()
+  appendBuffer(TAP.comm_mudinfo_name)
+end
+
+function TAP.capturePrompt()
+  clearWindow(TAP.prompt_console_name)
+  selectCurrentLine()
+  copy()
+  appendBuffer(TAP.prompt_console_name)
+  deleteLine()
+end
+
+if TAP.trigger_ids then
+  for _, id in ipairs(TAP.trigger_ids) do killTrigger(id) end
+end
+TAP.trigger_ids = {}
+TAP.trigger_ids[#TAP.trigger_ids + 1] = tempRegexTrigger("^\\[OOC\\].*", "TAP.copyToOOC()")
+TAP.trigger_ids[#TAP.trigger_ids + 1] = tempRegexTrigger("^\\[MudInfo\\].*", "TAP.copyToMudInfo()")
+TAP.trigger_ids[#TAP.trigger_ids + 1] = tempRegexTrigger(".*says?,.*", "TAP.copyToLocal()")
+TAP.trigger_ids[#TAP.trigger_ids + 1] = tempRegexTrigger("^\\s*.*\\[(physical|visarial).*\\]\\s*$", "TAP.capturePrompt()")
+
+function TAP.handleTabSwitch(event, hasFocus)
+    if hasFocus then
+        if TAP.where_win and TAP.settings.visible.map then TAP.where_win:show() end
+        if TAP.comm_win and TAP.settings.visible.comm then TAP.comm_win:show() end
+    else
+        if TAP.where_win then TAP.where_win:hide() end
+        if TAP.comm_win then TAP.comm_win:hide() end
+    end
+end
+
+registerAnonymousEventHandler("sysProfileFocusChangeEvent", "TAP.handleTabSwitch")
+
+function TAP.saveSettings()
+  table.save(TAP.settings_file, TAP.settings)
+end
+
+function TAP.loadSettings()
+  if io.exists(TAP.settings_file) then
+    table.load(TAP.settings_file, TAP.settings)
+  end
+  if TAP.settings.visible.map == nil then TAP.settings.visible.map = true end
+  if TAP.settings.visible.comm == nil then TAP.settings.visible.comm = true end
+  if TAP.settings.visible.status == nil then TAP.settings.visible.status = true end
+end
+
+function TAP.consolesFor(target)
+  if target == "map" then
+    return { TAP.where_console }
+  elseif target == "comm" then
+    return { TAP.comm_local, TAP.comm_ooc, TAP.comm_mudinfo }
+  end
+  return nil
+end
+
+function TAP.applyFont(target)
+  local s = TAP.settings.fonts[target]
+  if target == "status" then
+    setFont(TAP.prompt_console_name, (s and s.name) or getFont("main"))
+    setFontSize(TAP.prompt_console_name, (s and s.size) or getFontSize("main"))
+    return
+  end
+  local consoles = TAP.consolesFor(target)
+  if not consoles then return end
+  for _, con in ipairs(consoles) do
+    con:setFont((s and s.name) or getFont("main"))
+    con:setFontSize((s and s.size) or getFontSize("main"))
+  end
+end
+
+function TAP.setVisible(target, onoff)
+  TAP.settings.visible[target] = onoff
+  if target == "status" then
+    if onoff then
+      showWindow(TAP.prompt_console_name)
+      setBorderBottom(20)
+    else
+      hideWindow(TAP.prompt_console_name)
+      setBorderBottom(0)
+    end
+  elseif target == "map" then
+    if onoff then TAP.where_win:show() else TAP.where_win:hide() end
+  elseif target == "comm" then
+    if onoff then TAP.comm_win:show() else TAP.comm_win:hide() end
+  end
+  TAP.saveSettings()
+end
+
+function TAP.applyVisibility()
+  TAP.setVisible("map", TAP.settings.visible.map)
+  TAP.setVisible("comm", TAP.settings.visible.comm)
+  TAP.setVisible("status", TAP.settings.visible.status)
+end
+
+function TAP.syncFont()
+  TAP.applyFont("map")
+  TAP.applyFont("comm")
+  TAP.applyFont("status")
+end
+
+function TAP.help()
+  cecho([[&lt;cyan&gt;TAP: The Abyssal Planes UI package&lt;reset&gt;
+
+&lt;green&gt;TAP help&lt;reset&gt; - show this help
+&lt;green&gt;TAP reset&lt;reset&gt; - rebuild all TAP windows (use after resizing your screen)
+&lt;green&gt;TAP fontsize map|communication|status &lt;size&gt;&lt;reset&gt; - set font size for a console
+&lt;green&gt;TAP font map|communication|status &lt;fontname&gt;&lt;reset&gt; - set font for a console
+&lt;green&gt;TAP map|communication|status on|off&lt;reset&gt; - show or hide a window
+&lt;green&gt;TAP update&lt;reset&gt; - download and install the latest package, then reload
+
+'communication' changes all three chat tabs at once. Your font, size and
+window choices are saved automatically and restored on every load.
+]])
+end
+
+function TAP.resetUI()
+  resetProfile()
+end
+
+function TAP.update()
+  cecho("&lt;cyan&gt;TAP: Downloading latest package...\n")
+  local ok, err = installPackage(TAP.package_url)
+  if ok == false or (ok == nil and err ~= nil) then
+    cecho("&lt;red&gt;TAP: Update failed: " .. tostring(err or "unknown error") .. "\n")
+    return
+  end
+  cecho("&lt;cyan&gt;TAP: Package installed. Resetting profile...\n")
+  tempTimer(0.5, function() resetProfile() end)
+end
+
+function TAP.resolveTarget(word)
+  word = word:lower()
+  local target = TAP.target_keys[word]
+  if not target then
+    cecho("&lt;red&gt;TAP: Unknown window '" .. word .. "'. Use map, communication or status.\n")
+  end
+  return target
+end
+
+function TAP.cmdFontSize(rest)
+  local word, num = rest:match("^(%S+)%s+(%d+)%s*$")
+  if not word then
+    cecho("&lt;red&gt;Usage: TAP fontsize map|communication|status &lt;size&gt;\n")
+    return
+  end
+  local target = TAP.resolveTarget(word)
+  if not target then return end
+  local size = tonumber(num)
+  if size &lt; 4 or size &gt; 40 then
+    cecho("&lt;red&gt;TAP: Size must be between 4 and 40.\n")
+    return
+  end
+  TAP.settings.fonts[target] = TAP.settings.fonts[target] or {}
+  TAP.settings.fonts[target].size = size
+  TAP.applyFont(target)
+  TAP.saveSettings()
+  cecho("&lt;green&gt;TAP: " .. word:lower() .. " font size set to " .. size .. ".\n")
+end
+
+function TAP.cmdFont(rest)
+  local word, name = rest:match("^(%S+)%s+(.+)$")
+  if not word then
+    cecho("&lt;red&gt;Usage: TAP font map|communication|status &lt;fontname&gt;\n")
+    return
+  end
+  local target = TAP.resolveTarget(word)
+  if not target then return end
+  local available = getAvailableFonts()
+  local canonical
+  for _, fname in ipairs(available) do
+    if fname:lower() == name:lower() then canonical = fname break end
+  end
+  if not canonical then
+    cecho("&lt;red&gt;TAP: Font '" .. name .. "' not found on this system.\n")
+    return
+  end
+  TAP.settings.fonts[target] = TAP.settings.fonts[target] or {}
+  TAP.settings.fonts[target].name = canonical
+  TAP.applyFont(target)
+  TAP.saveSettings()
+  cecho("&lt;green&gt;TAP: " .. word:lower() .. " font set to " .. canonical .. ".\n")
+end
+
+function TAP.command()
+  local args = matches[2]
+  if not args or args:trim() == "" then
+    return TAP.help()
+  end
+  local cmd, rest = args:match("^(%S+)%s*(.*)$")
+  cmd = cmd:lower()
+  if cmd == "help" then
+    return TAP.help()
+  elseif cmd == "reset" then
+    return TAP.resetUI()
+  elseif cmd == "update" then
+    return TAP.update()
+  elseif cmd == "fontsize" then
+    return TAP.cmdFontSize(rest)
+  elseif cmd == "font" then
+    return TAP.cmdFont(rest)
+  end
+  local target = TAP.target_keys[cmd]
+  if target then
+    local onoff = rest:trim():lower()
+    if onoff == "on" then
+      TAP.setVisible(target, true)
+      cecho("&lt;green&gt;TAP: " .. cmd:lower() .. " shown.\n")
+      return
+    elseif onoff == "off" then
+      TAP.setVisible(target, false)
+      cecho("&lt;green&gt;TAP: " .. cmd:lower() .. " hidden.\n")
+      return
+    else
+      cecho("&lt;red&gt;Usage: TAP " .. cmd:lower() .. " on|off\n")
+      return
+    end
+  end
+  cecho("&lt;red&gt;TAP: Unknown command '" .. cmd .. "'. Type 'TAP help' for a list.\n")
+end
+
+TAP.loadSettings()
+TAP.syncFont()
+TAP.applyVisibility()
+
+loadWindowLayout()
+
+function TAP.onExit()
+  if hasFocus() ~= false then
+    saveWindowLayout()
+  end
+  TAP.saveSettings()
+end
+
+registerAnonymousEventHandler("sysExitEvent", "TAP.onExit")
+
+cecho("&lt;green&gt;TAP: Loaded. Type 'TAP help' for options.\n")
+</script>
+      <eventHandlerList />
+    </Script>
+  </ScriptPackage>
+  <TriggerPackage>
+    <Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no"
+      isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no"
+      isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+      <name>TAP_Map_Top</name>
+      <script>TAP.mapTopLine = getLineNumber()</script>
+      <triggerType>0</triggerType>
+      <conditonLineDelta>0</conditonLineDelta>
+      <mStayOpen>0</mStayOpen>
+      <mCommand></mCommand>
+      <mFgColor>#ffffff</mFgColor>
+      <mBgColor>#000000</mBgColor>
+      <mSoundFile></mSoundFile>
+      <colorTriggerFgColor>#000000</colorTriggerFgColor>
+      <colorTriggerBgColor>#000000</colorTriggerBgColor>
+      <regexCodeList>
+        <string>^/={3,}\\</string>
+      </regexCodeList>
+      <regexCodePropertyList>
+        <integer>1</integer>
+      </regexCodePropertyList>
+    </Trigger>
+    <Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no"
+      isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no"
+      isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+      <name>TAP_Map_Bottom</name>
+      <script>local topLine = TAP.mapTopLine
+if topLine then
+  local bottomLine = getLineNumber()
+  clearWindow(TAP.where_console_name)
+  for i = topLine, bottomLine do
+    moveCursor("main", 1, i)
+    selectCurrentLine()
+    copy()
+    appendBuffer(TAP.where_console_name)
+  end
+  if TAP.where_win then
+    for i = bottomLine, topLine, -1 do
+      moveCursor("main", 1, i)
+      deleteLine()
+    end
+  end
+  TAP.mapTopLine = nil
+end</script>
+      <triggerType>0</triggerType>
+      <conditonLineDelta>50</conditonLineDelta>
+      <mStayOpen>0</mStayOpen>
+      <mCommand></mCommand>
+      <mFgColor>#ffffff</mFgColor>
+      <mBgColor>#000000</mBgColor>
+      <mSoundFile></mSoundFile>
+      <colorTriggerFgColor>#000000</colorTriggerFgColor>
+      <colorTriggerBgColor>#000000</colorTriggerBgColor>
+      <regexCodeList>
+        <string>^\\={3,}/</string>
+      </regexCodeList>
+      <regexCodePropertyList>
+        <integer>1</integer>
+      </regexCodePropertyList>
+    </Trigger>
+  </TriggerPackage>
+  <AliasPackage>
+    <Alias isActive="yes" isFolder="no">
+      <name>TAP_Commands</name>
+      <script>TAP.command()</script>
+      <command></command>
+      <packageName>theabyssalplanes</packageName>
+      <regex>(?i)^tap(?:\s+(.*))?$</regex>
+    </Alias>
+  </AliasPackage>
+</MudletPackage>

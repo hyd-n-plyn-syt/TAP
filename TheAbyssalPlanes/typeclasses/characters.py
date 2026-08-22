@@ -571,12 +571,18 @@ class Character(ObjectParent, DefaultCharacter):
 
         if getattr(self.db, "is_autowhere", False):
             from combat.map_renderer import render_map
-            self.msg(render_map(self))
+            from world.systems.gmcp import send_map
+            map_text = render_map(self)
+            self.msg(map_text)
+            send_map(self, map_text)
 
     def send_autowhere(self):
         if getattr(self.db, "is_autowhere", False):
             from combat.map_renderer import render_map
-            self.msg(render_map(self))
+            from world.systems.gmcp import send_map
+            map_text = render_map(self)
+            self.msg(map_text)
+            send_map(self, map_text)
 
     def check_autowhere(self, old_location, old_x, old_y, old_z):
         if not getattr(self.db, "is_autowhere", False):
@@ -586,7 +592,10 @@ class Character(ObjectParent, DefaultCharacter):
                 or getattr(self.db, "pos_y", None) != old_y
                 or getattr(self.db, "pos_z", None) != old_z):
             from combat.map_renderer import render_map
-            self.msg(render_map(self))
+            from world.systems.gmcp import send_map
+            map_text = render_map(self)
+            self.msg(map_text)
+            send_map(self, map_text)
 
     def _exit_direction(self, room, target):
         """Compass direction of the exit in `room` leading to `target`, or None."""
@@ -694,13 +703,16 @@ class Character(ObjectParent, DefaultCharacter):
             for obj in self.location.contents
             if obj is not self and getattr(obj, hear_flag, False)
         ]
+        from world.systems.gmcp import send_local_comm
         for receiver in audience:
             receiver.msg(
                 text=(f"{self.get_display_name(receiver)} says, |n\"{message}|n\"", {"type": "say"}),
                 from_obj=self,
             )
+            send_local_comm(receiver, self.key, f"{self.get_display_name(receiver)} says, |n\"{message}|n\"")
         if msg_self:
             self.msg(text=("You say, |n\"{message}|n\"".format(message=message), {"type": "say"}), from_obj=self)
+            send_local_comm(self, self.key, "You say, |n\"{0}|n\"".format(message))
 
     @property
     def trainer_skills(self):

@@ -674,7 +674,10 @@ class MovementTimer(DefaultScript):
                     used = char.db.movement_used or 0
                     char.db.movement_used = used + 1
                     if char.db.is_autowhere:
-                        char.msg(render_map(char))
+                        map_text = render_map(char)
+                        char.msg(map_text)
+                        from world.systems.gmcp import send_map
+                        send_map(char, map_text)
                     return
                 if is_autofly and char.db.can_fly:
                     from combat.grid import get_room_max_z
@@ -707,7 +710,10 @@ class MovementTimer(DefaultScript):
         char.db.navigation = nav
 
         if char.db.is_autowhere:
-            char.msg(render_map(char))
+            map_text = render_map(char)
+            char.msg(map_text)
+            from world.systems.gmcp import send_map
+            send_map(char, map_text)
 
         direction = direction_from_delta(
             nx - (char.db.pos_x or 0) + (1 if dx > 0 else -1 if dx < 0 else 0),

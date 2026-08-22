@@ -42,13 +42,41 @@ class Channel(DefaultChannel):
         super().at_post_msg(message, **kwargs)
         senders = kwargs.get("senders", [])
         relayed = kwargs.get("relayed", False)
+        clean = strip_ansi(message).strip()
         if relayed:
             return
-        clean = strip_ansi(message).strip()
+
+        sender = senders[0] if senders else None
+        sender_name = sender.key if sender else "Server"
+
+        def line_for(char):
+            # mirror DefaultAccount.at_pre_channel_msg (as overridden in
+            # typeclasses/accounts.py) so the comm tab shows exactly what
+            # the receiver's main window shows - including perm-colored
+            # sender names
+            if senders:
+                sender_string = ", ".join(
+                    f"|#{_perm_hex(s)}{s.key}|n" for s in senders
+                )
+                m = message.lstrip()
+                if m.startswith((":", ";")):
+                    spacing = "" if m[1:].startswith((":", "'", ",")) else " "
+                    body = f"{sender_string}{spacing}{m[1:]}"
+                else:
+                    body = f"{sender_string}: {message}"
+            else:
+                body = message
+            return f"{self.channel_prefix()}{body}"
+
+        from world.systems.gmcp import send_ooc_comm, send_system
+        from evennia import search_object
+        all_chars = search_object("", typeclass="typeclasses.characters.Character", exact=False)
         if self.key.lower() == "mudinfo":
             send_announcement(clean)
+            for char in all_chars:
+                send_system(char, line_for(char))
         else:
-            sender = senders[0] if senders else None
-            sender_name = sender.key if sender else "Server"
             hex_color = _perm_hex(sender) if sender else None
             send_to_discord(clean, username=sender_name, hex_color=hex_color)
+            for char in all_chars:
+                send_ooc_comm(char, sender_name, line_for(char))
