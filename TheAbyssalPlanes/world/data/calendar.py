@@ -11,6 +11,17 @@ universal year. The goldilocks world's year matches the universal
 calendar exactly.
 """
 
+import datetime
+
+# Server real time - Eastern where the server is located (handles DST)
+try:
+    from zoneinfo import ZoneInfo
+
+    EASTERN_TZ = ZoneInfo("America/New_York")
+except Exception:
+    EASTERN_TZ = datetime.timezone(datetime.timedelta(hours=-5))
+EASTERN_OFFSET = EASTERN_TZ  # keep name for compat, now DST-aware if ZoneInfo succeeded
+
 # --- Universal cosmic calendar ---
 # A universal day is 23 hours. A universal month is 28 days.
 # A universal year is 13 months (364 days). One sign per month.
@@ -218,3 +229,22 @@ def planet_key_for_location(location):
             if key in PLANETS:
                 return key
     return DEFAULT_PLANET
+
+
+# --- Real/Eastern time (server location, UTC-5) ---
+
+def eastern_now():
+    """Current real time in Eastern (UTC-5) where the server is located."""
+    return datetime.datetime.now(EASTERN_TZ)
+
+
+def eastern_today_str():
+    """UTC-5 date string YYYY-MM-DD for daily log headers."""
+    return eastern_now().strftime("%Y-%m-%d")
+
+
+def format_eastern(dt=None):
+    """Format Eastern time as 'Tuesday, August 26, 2026 (16:42:05)'."""
+    if dt is None:
+        dt = eastern_now()
+    return dt.strftime("%A, %B %d, %Y (%H:%M:%S)")

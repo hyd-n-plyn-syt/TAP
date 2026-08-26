@@ -2,15 +2,21 @@
 Channel
 
 The channel class represents the out-of-character chat-room usable by
-Accounts in-game.  The OOC channel overrides at_post_msg to relay
-outgoing messages to Discord via webhook.  The channel name is always
-shown in white (|w).
+Accounts in-game.  Channels listed in ``world/data/discord.py``
+(CHANNEL_RELAYS) are automatically relayed to their Discord webhook,
+with colors translated into ```ansi code blocks so Discord shows the
+same styling as the game (white brackets, base-ANSI colored channel
+name, perm-colored sender names).
+OOC uses cyan (|c), MudInfo uses red (|r), other channels fall back to
+white (|w).
 """
 
-from evennia.comms.comms import DefaultChannel
-from evennia.utils.ansi import strip_ansi
+import datetime
 
-from world.discord_integration import send_announcement, send_to_discord
+from django.conf import settings
+from evennia.comms.comms import DefaultChannel
+
+from world.data.discord import CHANNEL_RELAYS, RELAY_USERNAME
 
 import evennia
 
@@ -32,22 +38,29 @@ class Channel(DefaultChannel):
     Base channel class.  The OOC channel adds Discord relay.
 
     Overrides:
-      - ``channel_prefix`` — channel name is always |w (white).
+      - ``channel_prefix`` — white brackets (|w) with base-ANSI channel
+        name: red (|r) for MudInfo, cyan (|c) for OOC.
     """
 
     def channel_prefix(self):
-        return f"[|w{self.key}|n] "
+        key_lower = self.key.lower()
+        if key_lower == "mudinfo":
+            col = "|r"
+        elif key_lower == "ooc":
+            col = "|c"
+        else:
+            col = "|w"
+        return f"|w[{col}{self.key}|n|w]|n "
 
     def at_post_msg(self, message, **kwargs):
         super().at_post_msg(message, **kwargs)
         senders = kwargs.get("senders", [])
         relayed = kwargs.get("relayed", False)
-        clean = strip_ansi(message).strip()
         if relayed:
             return
 
         sender = senders[0] if senders else None
-        sender_name = sender.key if sender else "Server"
+        sender_name = sender.key if sender else RELAY_USERNAME
 
         def line_for(char):
             # mirror DefaultAccount.at_pre_channel_msg (as overridden in
@@ -71,12 +84,24 @@ class Channel(DefaultChannel):
         from world.systems.gmcp import send_ooc_comm, send_system
         from evennia import search_object
         all_chars = search_object("", typeclass="typeclasses.characters.Character", exact=False)
+
         if self.key.lower() == "mudinfo":
-            send_announcement(clean)
             for char in all_chars:
-                send_system(char, line_for(char))
+                send_system(char, line_for(None))
         else:
-            hex_color = _perm_hex(sender) if sender else None
-            send_to_discord(clean, username=sender_name, hex_color=hex_color)
             for char in all_chars:
                 send_ooc_comm(char, sender_name, line_for(char))
+
+        relay_setting = CHANNEL_RELAYS.get(self.key.lower())
+        if not (relay_setting and getattr(settings, relay_setting, None)):
+            return
+
+        from world.discord_integration import append_to_discord_log
+        from world.data.calendar import eastern_now
+
+        # Prepend Eastern (UTC-5) timestamp for Discord only (magenta HH/MM, white colon, 24hr 00:00)
+        # Bypasses Discord message timestamp since we edit a single codeblock per day
+        now = eastern_now()
+        ts = f"|m{now.strftime('%H')}|w:|m{now.strftime('%M')}|n"
+        discord_line = f"{ts} {line_for(None)}"
+        append_to_discord_log(discord_line, relay_setting)

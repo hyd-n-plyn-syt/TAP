@@ -166,7 +166,7 @@ class Account(DefaultAccount):
             mudinfo = ChannelDB.objects.get_channel("MudInfo") or ChannelDB.objects.get_channel("mudinfo")
             if mudinfo and not mudinfo.has_connection(self):
                 mudinfo.connect(self)
-            send_to_mudinfo(f"|000**|#{_perm_color(self)}{self.key}|n |100has entered |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100!|000**|n")
+            send_to_mudinfo(f"|#{_perm_color(self)}{self.key}|n |ghas entered |cThe Abyssal Planes|n|g!|n")
         except Exception:
             pass
 
@@ -174,7 +174,7 @@ class Account(DefaultAccount):
         super().at_disconnect(reason=reason, **kwargs)
         try:
             from world.discord_integration import send_to_mudinfo
-            send_to_mudinfo(f"|000**|#{_perm_color(self)}{self.key}|n |100has left |105The A|104b|103y|102s|103s|104a|105l P|104l|103an|104e|105s|100.|000**|n")
+            send_to_mudinfo(f"|#{_perm_color(self)}{self.key}|n |rhas left |cThe Abyssal Planes|n|r.|n")
         except Exception:
             pass
 

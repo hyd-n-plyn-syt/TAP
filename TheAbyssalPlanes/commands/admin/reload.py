@@ -23,6 +23,6 @@ class CmdRestart(Command):
     help_category = "System"
 
     def func(self):
-        send_to_mudinfo("|000**|105The server is r|104e|103l|102o|101a|102d|103i|104n|105g|100!|000**|n")
+        send_to_mudinfo("|yThe server is reloading!|n")
         time.sleep(1.2)
         evennia.SESSION_HANDLER.portal_restart_server()

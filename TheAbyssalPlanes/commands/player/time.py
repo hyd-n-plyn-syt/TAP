@@ -44,4 +44,9 @@ class CmdTime(Command):
             lines.append(f"|wLocal:|n {calendar.format_date(local)}")
             lines.append(f"|wNotes:|n {planet['description']}")
 
+        # Real/Eastern server time (UTC-5) - no sign/notes, similar boxed format
+        lines.append("")
+        lines.append(f"|w=== Server Time (Eastern, UTC-5) ===|n")
+        lines.append(f"|wReal:|n {calendar.format_eastern()}")
+
         caller.msg("\n".join(lines))

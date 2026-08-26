@@ -654,6 +654,30 @@ CHANGES = [
             "permission-colored names - render identically everywhere."
         ),
     },
+    {
+        "number": 48,
+        "date": "2026-08-26",
+        "title": "Eastern server time, Discord daily logs and time display overhaul",
+        "body": (
+            "Real server time is now Eastern (America/New_York, DST-aware) instead of "
+            "fixed UTC-5. Added ZoneInfo handling in world/data/calendar.py "
+            "(eastern_now, eastern_today_str, format_eastern) and a new Server Time "
+            "section in the time command showing Eastern date/time without signs or "
+            "notes, while cosmic and local clocks remain. Discord OOC/MudInfo now share "
+            "per-channel daily ansi code blocks on Eastern date headers (yellow Eastern "
+            "(UTC-5) with cont. part handling), constant blueish-black background, and "
+            "8-color ANSI fallback (bold stripped, 30 gray vs 37 white distinct, 90-97 "
+            "mapped). Channel tags use white brackets with red MudInfo and cyan OOC "
+            "names in-game and on Discord. All game-to-Discord webhook posts use TAP as "
+            "sender with sender name colored inside the block. Discord user OOC "
+            "messages are immediately deleted (Manage Messages) and mirrored into the "
+            "same daily code block with Eastern magenta HH white colon magenta MM "
+            "timestamp and [Discord] tag, text-only. Fixed ServerConfig _SaverDict "
+            "handling that caused new block per message. MudInfo system channel was "
+            "cloned to clear history and webhook recreated; OOC was manually cleared; "
+            "ServerConfig daily log keys reset for a fresh Eastern start."
+        ),
+    },
 ]
 
 

@@ -84,7 +84,7 @@ def at_server_start():
 
     def _delayed_announce():
         try:
-            send_to_mudinfo("|000**|105The server has s|104t|103a|102r|103t|104e|105d|100!|000**|n")
+            send_to_mudinfo("|gThe server has started!|n")
             announce_new()
         except Exception as err:
             evennia.logger.log_trace(f"Error sending startup announcement: {err}")
@@ -103,7 +103,7 @@ def at_server_reload_start():
 def at_server_stop():
     """Called on server shutdown."""
     try:
-        send_to_mudinfo("|000**|105The server is s|104h|103ut|102t|101in|102g d|103o|104w|105n|100.|000**|n")
+        send_to_mudinfo("|rThe server is shutting down.|n")
         import time
         time.sleep(0.3)
     except Exception as err:

@@ -126,8 +126,8 @@ DISCORD_BOT_COLOR = "e74c3c"
 
 DISCORD_ANNOUNCEMENTS_WEBHOOK_URL = (
     "https://discord.com/api/webhooks/"
-    "1534758576348860530/"
-    "SkKaqPr8wiKYL4N9iBwJ62_XtfIf3uJel9OLeMCO_r3T2SbowP-hMNQVu68g-2_y6x4x"
+    "1542230754669367336/"
+    "-P5k7sjBa5MbplADIoFkxhE3yAAVCKDBNpq7tbfMkm58J6GsSrY57SQ4YHVOquMRa529"
 )
 
 # Suppress Evennia's default stock server restart/restarted messages
