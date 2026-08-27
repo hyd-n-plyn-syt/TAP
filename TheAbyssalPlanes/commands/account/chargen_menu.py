@@ -95,7 +95,7 @@ def set_gender(caller, raw_string, **kwargs):
 
 
 def node_species(caller, raw_string, **kwargs):
-    keys = _load(caller, "_species_keys") or list(species_data.species_keys())
+    keys = _load(caller, "_species_keys") or list(species_data.playable_species_keys())
     items = _load(caller, "_species_items")
     if not items:
         items = []
@@ -172,9 +172,13 @@ def set_species(caller, raw_string, **kwargs):
         return "node_species"
 
     species_name = value.split()[0].lower()
-    key_map = {data["name"].lower(): data["key"] for key in species_data.species_keys()
+    key_map = {data["name"].lower(): data["key"] for key in species_data.playable_species_keys()
                if (data := species_data.get_species(key))}
     species_key = key_map.get(species_name)
+    # Also block non-playable species even if typed directly
+    if species_key and not species_data.is_playable(species_key):
+        caller.msg("That species is not available for player characters.")
+        return "node_species"
     if not species_key:
         caller.msg("Invalid species. Try again.")
         return "node_species"
@@ -702,8 +706,13 @@ def node_finalize(caller, raw_string, **kwargs):
         caller.msg("Something went wrong. Try 'charcreate <name>' again.")
         return None
 
-    account = caller.account
-    if not account:
+    # Caller is an Account when launched from main menu (account_caller), or a Character when launched directly.
+    # Handle both: Account has no .account, Character does.
+    account = getattr(caller, "account", None)
+    if not account or not hasattr(account, "create_character"):
+        # Fallback: caller itself is the Account
+        account = caller
+    if not account or not hasattr(account, "create_character"):
         caller.msg("You must be logged in.")
         return None
 
@@ -783,8 +792,8 @@ def node_finalize(caller, raw_string, **kwargs):
             try:
                 from evennia.utils.evmenu import EvMenu
                 from evennia.utils.utils import delay
-                acc = account if 'account' in locals() else caller.account or caller
-                delay(0.5, lambda a=acc, s=sess: EvMenu(a, "commands.account.main_menu", startnode="node_main", session=s, cmd_on_exit=None))
+                acc = account
+                delay(0.5, lambda a=acc, s=sess: EvMenu(a, "commands.account.main_menu", startnode="node_main", session=s, cmd_on_exit=None, auto_quit=False, auto_look=False, auto_help=False))
             except Exception:
                 caller.msg("Return to the main menu when ready (type |wmenu|n).")
     except Exception:

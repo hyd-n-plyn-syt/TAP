@@ -383,7 +383,7 @@ def node_delete_list(caller, raw_string, **kwargs):
     text = "|wDelete which character?|n |r(This cannot be undone!)|n\n\n|xSelect or |wb|n|x to go back.|n"
     opts = []
     for idx, char in enumerate(chars, start=1):
-        opts.append({"key": str(idx), "desc": char.key, "goto": (_confirm_delete, {"char": char})})
+        opts.append({"key": str(idx), "desc": char.key, "goto": ("node_confirm_delete", {"char": char})})
     opts.append({"key": ("b", "back"), "desc": "Back", "goto": "node_main"})
     opts.append({"key": "_default", "goto": (_delete_by_name, {"chars": chars})})
     return text, opts
@@ -398,30 +398,34 @@ def _delete_by_name(caller, raw_string, **kwargs):
         try:
             idx = int(raw) - 1
             if 0 <= idx < len(chars):
-                return _confirm_delete(caller, raw_string, char=chars[idx])
+                return ("node_confirm_delete", {"char": chars[idx]})
         except Exception:
             pass
     for c in chars:
         if c.key.lower() == raw.lower():
-            return _confirm_delete(caller, raw_string, char=c)
+            return ("node_confirm_delete", {"char": c})
     caller.msg("Not a valid choice.")
     return "node_delete_list"
 
 
-def _confirm_delete(caller, raw_string, **kwargs):
+def node_confirm_delete(caller, raw_string, **kwargs):
     char = kwargs.get("char")
     if not char:
-        return "node_delete_list"
+        return "node_delete_list", ()
     # Block wisp deletion explicitly
     if _is_wisp(char):
         caller.msg("|rYou cannot delete your wisp.|n")
-        return "node_delete_list"
+        return "node_delete_list", ()
     if char.key.lower() == caller.key.lower():
         caller.msg("|rYou cannot delete your wisp.|n")
-        return "node_delete_list"
+        return "node_delete_list", ()
     caller.ndb._char_to_delete = char
     text = f"|rPermanently delete |w{char.key}|n|r? This cannot be undone. Type |wyes|n to confirm, anything else to cancel.|n"
     return text, {"key": "_default", "goto": _do_delete}
+
+
+# Back-compat alias for direct calls (should not be used as goto)
+_confirm_delete = node_confirm_delete
 
 
 def _do_delete(caller, raw_string, **kwargs):

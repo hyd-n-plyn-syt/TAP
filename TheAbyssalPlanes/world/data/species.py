@@ -43,6 +43,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Terra-born, versatile, and balanced. They are the standard, "
             "adaptable middle-ground species of the material world. Classic, "
@@ -63,6 +64,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Lithe, flawless humanoids with an ethereal elegance. They are "
             "distinct from the crystalline Visarii because they are entirely "
@@ -86,6 +88,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "An ancient branch of humanoids that evolved to live, travel, and "
             "survive in the vacuum of space. Exceptionally tall, graceful "
@@ -112,6 +115,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Massive, broad-shouldered, and stocky creatures with dense, "
             "warty hide that ranges from deep marsh-green to muddy brown. "
@@ -136,6 +140,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Slender, highly agile amphibian humanoids who represent the "
             "swift, toxic, and predatory side of the waterways. Sleek, "
@@ -162,6 +167,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Elegant and predatory, resembling falcons or eagles. They live "
             "on high, wind-swept spires where the physical atmosphere thins "
@@ -182,6 +188,7 @@ SPECIES = {
         "zeroed_pools": (),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Darker, stealthier, and more nocturnal than the Volucres. "
             "Instead of pure flapping flight, they excel at high-speed diving "
@@ -204,6 +211,7 @@ SPECIES = {
         "zeroed_pools": ("vigor",),
         "can_perceive": True,
         "can_manifest": True,
+        "playable": True,
         "description": (
             "Sleek, sharp, and geometric humanoids made of a translucent, "
             "violet-tinged crystalline form. In the physical world they exist "
@@ -228,6 +236,7 @@ SPECIES = {
         "zeroed_pools": ("vim",),
         "can_perceive": False,
         "can_manifest": False,
+        "playable": True,
         "description": (
             "Somewhat large humanoids with rough, chiseled, matte-black stone "
             "flesh. When they clash in battle, their rocky skin literally "
@@ -250,6 +259,7 @@ SPECIES = {
         "zeroed_pools": ("vigor", "vim", "mens"),
         "can_perceive": False,
         "can_manifest": False,
+        "playable": False,
         "description": (
             "A mote of light bound to an account — the OOC self. Wisps exist "
             "only in the OOC lounge (Limbo #2), share the account's name, and "
@@ -265,6 +275,21 @@ _ORDER = tuple(SPECIES)
 def species_keys():
     """Return all species keys in definition order."""
     return _ORDER
+
+
+def playable_species_keys():
+    """Return only species marked playable (for chargen). Wisp and future non-playable species are excluded."""
+    return tuple(k for k in _ORDER if SPECIES[k].get("playable", True))
+
+
+# Alias for clarity — pickable == playable for chargen
+pickable_species_keys = playable_species_keys
+
+
+def is_playable(key):
+    """Return True if the species is playable (selectable in chargen)."""
+    data = get_species(key)
+    return bool(data and data.get("playable", True))
 
 
 def get_species(key):
