@@ -46,6 +46,8 @@ def add_stat_xp(char, main, sub, amount):
         number of +1 raises, and new_value is the resulting base (or None
         if locked).
     """
+    if getattr(char, "is_wisp", False):
+        return False, 0, None
     if sub_stat_is_locked(char, main):
         return False, 0, None
 

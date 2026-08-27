@@ -28,10 +28,11 @@ def _broadcast_newest():
     if announced >= latest:
         return
     entry = changes.get_change(latest)
-    send_to_mudinfo(
-        f"|y*** New change: #{entry['number']} |w{entry['title']}|n|n\n"
-        f"Type |wchanges|n to read what's new."
-    )
+    # MudInfo is relayed to Discord — keep it to the title only. The
+    # "Type changes to read what's new." hint is an in-game-only echo
+    # (sent via changes.alert_text on login and via the in-game MudInfo
+    # channel display); Discord users cannot run the command.
+    send_to_mudinfo(f"|y*** New change: #{entry['number']} |w{entry['title']}|n")
     ServerConfig.objects.conf("changes_announced", latest)
 
 

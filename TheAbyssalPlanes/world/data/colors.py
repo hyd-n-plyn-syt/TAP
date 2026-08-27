@@ -59,7 +59,23 @@ COLORS = {
     "cobalt": {"name": "cobalt", "hex": "#0047ab"},
     "ruby": {"name": "ruby", "hex": "#e0115f"},
     "amethyst": {"name": "amethyst", "hex": "#9966cc"},
+
+    # Light (wisp palette)
+    "white-light": {"name": "white-light", "hex": "#f8f8ff"},
+    "gold-light": {"name": "gold-light", "hex": "#ffd700"},
+    "azure-light": {"name": "azure-light", "hex": "#87ceeb"},
+    "violet-light": {"name": "violet-light", "hex": "#b19cd9"},
+    "ember-light": {"name": "ember-light", "hex": "#ff6a33"},
+    "cyan-light": {"name": "cyan-light", "hex": "#7ff0da"},
+    "rose-light": {"name": "rose-light", "hex": "#ffb6d9"},
+    "silver-light": {"name": "silver-light", "hex": "#d8dde6"},
+    "ice-light": {"name": "ice-light", "hex": "#c9f0ff"},
+    "clear-light": {"name": "clear-light", "hex": "#eaffff"},
+    "amber-light": {"name": "amber-light", "hex": "#ffbf6b"},
+    "crimson-light": {"name": "crimson-light", "hex": "#ff6b6b"},
 }
+
+WISP_LIGHTS = tuple(k for k in COLORS if k.endswith("-light"))
 
 
 def get_color(key):

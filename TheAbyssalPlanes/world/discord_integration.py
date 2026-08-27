@@ -231,7 +231,14 @@ def append_to_discord_log(raw_line, relay_setting):
                         _dlog("fenced is None, abort")
                         return
                     # Overflow → start new block for same day, leave old
-                    if len(fenced) > 2000:
+                    # wrap_ansi_block truncates to 2000, so len(fenced)>2000 never happens;
+                    # check raw length against budget (2000 - wrapper)
+                    from world.systems.discord_format import DISCORD_MAX_LEN
+                    _wrapper_len = len("```ansi\n\n```")
+                    _budget = DISCORD_MAX_LEN - _wrapper_len - 1
+                    # If candidate was truncated, fenced will be exactly DISCORD_MAX_LEN and
+                    # candidate_raw was longer than budget — treat as overflow
+                    if len(fenced) > 2000 or len(candidate_raw) > _budget or (len(fenced) == 2000 and len(candidate_raw) > len(old_raw)):
                         _dlog(f"overflow len {len(fenced)} >2000, creating new part")
                         cont_header = ansi_body(f"|y--- {today} Eastern (UTC-5) (cont. part {part + 1}) ---|n").rstrip()
                         candidate_raw2 = f"{cont_header}\n{new_body_raw}" if cont_header else new_body_raw

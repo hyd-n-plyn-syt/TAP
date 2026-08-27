@@ -97,6 +97,21 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         # The default 'pose' only whispered a line to the room and never set
         # a position; replace it with the whitelisted builder 'setpose'.
         self.remove("pose")
+        # Route quit/ooc through the main menu instead of disconnecting
+        try:
+            self.remove("quit")
+        except Exception:
+            pass
+        try:
+            self.remove("ooc")
+        except Exception:
+            pass
+        try:
+            from commands.account.menu_commands import CmdQuitToMenu, CmdOOCToMenu
+            self.add(CmdQuitToMenu)
+            self.add(CmdOOCToMenu)
+        except Exception:
+            pass
         self.add(GridDig)  # This replaces the default engine @dig globally
         self.add(CmdDigMenu)  # Interactive build menu for rooms and exits
         self.add(CmdCreateFurniture)
@@ -180,11 +195,31 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         """
         super().at_cmdset_creation()
         self.remove("ooc")
+        try:
+            self.remove("ic")
+        except Exception:
+            pass
+        try:
+            self.remove("quit")
+        except Exception:
+            pass
         from commands.account.chargen import CmdCharCreate
         from commands.account.mychars import CmdMyChars
+        from commands.account.chardelete import CmdCharDelete
+        from commands.account.menu_commands import CmdQuitToMenu, CmdOOCToMenu
         self.add(CmdCharCreate)
+        self.add(CmdCharDelete)
         self.add(CmdMyChars)
         self.add(CmdMapSize)
+        self.add(CmdQuitToMenu)
+        self.add(CmdOOCToMenu)
+        # Alias to reopen main menu explicitly
+        try:
+            from commands.account.menu_commands import CmdQuitToMenu as _QM
+            _QM2 = type("CmdMenu", (_QM,), {"key": "menu", "aliases": ["mainmenu", "main"]})
+            self.add(_QM2)
+        except Exception:
+            pass
 
 
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):

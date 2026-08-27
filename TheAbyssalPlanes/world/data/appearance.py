@@ -38,6 +38,33 @@ HEIGHT_PHRASE = {
 DEFAULT_HEIGHT = "middling"
 DEFAULT_BUILD = "average"
 
+# ── Wisp size (single combined height/build for ball-of-light) ──────
+# Same relative scale as a person — not tiny. 5 options, matching HEIGHTS count.
+WISP_SIZES = ("small", "modest", "middling", "large", "immense")
+WISP_SIZE_LABELS = {
+    "small": "Small",
+    "modest": "Modest",
+    "middling": "Middling",
+    "large": "Large",
+    "immense": "Immense",
+}
+WISP_SIZE_DESCRIPTIONS = {
+    "small": "Compact and close, a tight mote of light.",
+    "modest": "Modest in breadth, steady and contained.",
+    "middling": "Balanced and even, neither faint nor overwhelming.",
+    "large": "Broad and generous, filling the space around it.",
+    "immense": "Immense and encompassing, a vast bloom of light.",
+}
+DEFAULT_WISP_SIZE = "middling"
+
+
+def wisp_size_label(size):
+    return WISP_SIZE_LABELS.get(size, str(size).title())
+
+
+def valid_wisp_size(size):
+    return size in WISP_SIZES
+
 
 def height_phrase(height=""):
     """Return the phrase word for a height key, defaulting to the
@@ -357,6 +384,11 @@ SPECIES_ADJECTIVES = {
         "flinty", "dark", "honed", "jagged", "unyielding", "rock-rough",
         "hard", "edged", "black", "forged",
     ],
+    "wisp": [
+        "flickering", "pulsing", "steady", "wavering", "brilliant",
+        "dim", "humming", "cold", "warm", "prismatic",
+        "soft", "sharp", "echoing", "hazy", "lambent",
+    ],
 }
 
 SPECIES_ADJECTIVE_DESCRIPTIONS = {
@@ -513,6 +545,23 @@ SPECIES_ADJECTIVE_DESCRIPTIONS = {
         "black": "Deep, absolute black — the color of the deepest stone.",
         "forged": "They look as if forged in fire, not born.",
     },
+    "wisp": {
+        "flickering": "Their light flickers gently, waxing and waning like a candle in wind.",
+        "pulsing": "A slow pulse travels through their glow, brightening and dimming in rhythm.",
+        "steady": "Their light holds steady and even, unwavering and calm.",
+        "wavering": "Their glow wavers softly at the edges, never quite still.",
+        "brilliant": "They blaze with a brilliant, almost piercing intensity.",
+        "dim": "A dim, muted glow clings to their form, subdued and gentle.",
+        "humming": "A faint hum seems to resonate from within their light.",
+        "cold": "Their light carries a crisp, cool cast, like moon on snow.",
+        "warm": "A warm, amber-tinged glow radiates from their center.",
+        "prismatic": "Prismatic flecks dance through their light, scattering color.",
+        "soft": "Their glow is soft and diffused, gentle on the eyes.",
+        "sharp": "A sharp, focused brilliance cuts clearly through the air.",
+        "echoing": "Their light seems to echo faintly, as if reflecting off unseen surfaces.",
+        "hazy": "A hazy nimbus softens their edges, blurring into the air.",
+        "lambent": "A lambent sheen plays across their surface, smooth and quiet.",
+    },
 }
 
 # ── Skin ──────────────────────────────────────────────────────────────
@@ -567,6 +616,19 @@ SKIN_TONES = {
     "basalt": "#676772",
     "granite": "#9696a1",
     "stone-grey": "#8a8d93",
+    # Wisp light palette (also in world/data/colors.py)
+    "white-light": "#f8f8ff",
+    "gold-light": "#ffd700",
+    "azure-light": "#87ceeb",
+    "violet-light": "#b19cd9",
+    "ember-light": "#ff6a33",
+    "cyan-light": "#7ff0da",
+    "rose-light": "#ffb6d9",
+    "silver-light": "#d8dde6",
+    "ice-light": "#c9f0ff",
+    "clear-light": "#eaffff",
+    "amber-light": "#ffbf6b",
+    "crimson-light": "#ff6b6b",
 }
 
 SPECIES_SKIN_TONES = {
@@ -586,6 +648,11 @@ SPECIES_SKIN_TONES = {
     "pterati": ["alabaster", "ash", "pale-grey", "charcoal", "slate"],
     "visarii": ["violet", "amethyst", "orchid", "lilac", "purple-haze", "ghost-violet"],
     "silex": ["obsidian", "flint", "basalt", "slate", "granite", "ash"],
+    "wisp": [
+        "white-light", "gold-light", "azure-light", "violet-light",
+        "ember-light", "cyan-light", "rose-light", "silver-light",
+        "ice-light", "clear-light", "amber-light", "crimson-light",
+    ],
 }
 
 
@@ -1051,6 +1118,7 @@ SPECIES_SKIN_SENTENCES = {
     "pterati": "Their fur carries a {color} sheen.",
     "visarii": "Their crystalline surface catches {color} light.",
     "silex": "Their stone flesh carries {color} undertones.",
+    "wisp": "Their light glows with a {color} radiance.",
 }
 
 # ── Pose ──────────────────────────────────────────────────────────────
@@ -1059,7 +1127,7 @@ POSES = (
     "standing", "sitting", "resting", "laying", "sleeping",
     "kneeling", "crouching", "leaning", "lounging", "reclining",
     "squatting", "hiding", "meditating", "pacing", "observing",
-    "guarding", "praying", "dreaming",
+    "guarding", "praying", "dreaming", "hovering",
 )
 
 POSE_OPENINGS = {
@@ -1081,6 +1149,7 @@ POSE_OPENINGS = {
     "guarding": "Before you stands, ever vigilant",
     "praying": "Before you kneels in quiet prayer",
     "dreaming": "Before you lies, adrift in dreams",
+    "hovering": "Before you hovers",
 }
 
 

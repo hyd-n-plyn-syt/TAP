@@ -238,6 +238,25 @@ SPECIES = {
             "anti-magic shock troops and master earth-workers."
         ),
     },
+    "wisp": {
+        "key": "wisp",
+        "name": "Wisp",
+        "archetype": "ball of light",
+        "aliases": ["light", "orb", "mote"],
+        "visarial_nature": "dual_natured",
+        "default_visarial_state": "normal",
+        "stat_bonuses": {},
+        "locked_main_stats": ("corpus", "genius", "animus"),
+        "zeroed_pools": ("vigor", "vim", "mens"),
+        "can_perceive": False,
+        "can_manifest": False,
+        "description": (
+            "A mote of light bound to an account — the OOC self. Wisps exist "
+            "only in the OOC lounge (Limbo #2), share the account's name, and "
+            "have all stats and pools zeroed. They are customized with a light "
+            "color, a size, and a light-like adjective."
+        ),
+    },
 }
 
 _ORDER = tuple(SPECIES)

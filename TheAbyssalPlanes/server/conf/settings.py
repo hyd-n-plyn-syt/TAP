@@ -51,6 +51,11 @@ SERVER_HOSTNAME = "theabyssalplane.duckdns.org"
 # first skills. Must be a dbref (Evennia parses it numerically on delete).
 DEFAULT_HOME = "#3"
 
+# Account flow: no auto-create/auto-puppet — login lands in the account
+# main menu (typeclasses/accounts.py:at_post_login → commands/account/main_menu).
+AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
+AUTO_PUPPET_ON_LOGIN = False
+
 # Run our server start/reload hooks so new changelog entries announce
 # themselves to connected players (see world/server_hooks.py).
 AT_SERVER_STARTSTOP_MODULE = "world.server_hooks"

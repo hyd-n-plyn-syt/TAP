@@ -758,7 +758,35 @@ def node_finalize(caller, raw_string, **kwargs):
     new_char.reset_pools()
 
     caller.msg(
-        f"\n|gYour character |w{name}|g is ready!|n\n"
-        f"Type |wic {name}|n to enter the game."
+        f"\n|gYour character |w{name}|g is ready!|n"
     )
+    # Return to main menu if this chargen was launched from it
+    try:
+        if getattr(caller.ndb, "_return_to_main", False):
+            caller.ndb._return_to_main = False
+            # need session for EvMenu
+            sess = None
+            try:
+                if hasattr(caller, "sessions") and caller.sessions.all():
+                    sess = caller.sessions.all()[0]
+            except Exception:
+                pass
+            # Try to get session from caller history
+            if not sess:
+                try:
+                    sess = getattr(caller.ndb, "_evmenu", None)
+                    if sess:
+                        sess = getattr(sess, "session", None) or getattr(sess, "_session", None)
+                except Exception:
+                    pass
+            # Delay launching main menu so caller sees success message first
+            try:
+                from evennia.utils.evmenu import EvMenu
+                from evennia.utils.utils import delay
+                acc = account if 'account' in locals() else caller.account or caller
+                delay(0.5, lambda a=acc, s=sess: EvMenu(a, "commands.account.main_menu", startnode="node_main", session=s, cmd_on_exit=None))
+            except Exception:
+                caller.msg("Return to the main menu when ready (type |wmenu|n).")
+    except Exception:
+        pass
     return None

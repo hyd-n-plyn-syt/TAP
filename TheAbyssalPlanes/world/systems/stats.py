@@ -41,6 +41,8 @@ def sub_stat_is_locked(char, main):
 def effective_sub_stat(char, main, sub):
     """Return the effective sub-stat: stored base + species bonus, or 0 if the
     main-stat column is locked."""
+    if getattr(char, "is_wisp", False):
+        return 0
     if sub_stat_is_locked(char, main):
         return 0
     return getattr(char, f"{main}_{sub}") + species_bonus(char, main, sub)
@@ -56,6 +58,8 @@ def main_stat(char, main):
 def derived_pools(char):
     """Compute all six derived pools for a character and return them as a dict.
     Pools pinned to 0 by the character's species are returned as 0."""
+    if getattr(char, "is_wisp", False):
+        return {k: 0 for k in ("vigor", "vigor_regen", "vim", "vim_regen", "mens", "mens_regen")}
     corpus = main_stat(char, "corpus")
     genius = main_stat(char, "genius")
     animus = main_stat(char, "animus")

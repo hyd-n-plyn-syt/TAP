@@ -89,6 +89,194 @@ kept current as work happens.
 
 ---
 
+## Account / OOC Lounge / Wisp — Full Design (2026-08-26)
+
+> Source: user plan clarifications 2026-08-26. This section is the canonical
+> spec for the account main menu, OOC lounge, and wisp account-character.
+> Login → new main menu; Exit → main menu → 0. No `ic` routing — menu is the
+> only way to swap characters or exit.
+
+### Overview
+
+- **Account-level menu, first and last screen.** `Account.at_post_login`
+  (`typeclasses/accounts.py:155`) is the entry point. No auto-create /
+  auto-puppet on login. `server/conf/settings.py:52` sets
+  `AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False` and
+  `AUTO_PUPPET_ON_LOGIN = False`; the `else` branch in
+  `evenv/.../accounts.py:1743` is replaced by
+  `EvMenu(account, "commands.account.main_menu", startnode="node_main",
+  session=session)`.
+- **Single puppet rule.** `MULTISESSION_MODE = 0`,
+  `MAX_NR_SIMULTANEOUS_PUPPETS = 1`. The account puppets **either** one IC
+  character **or** the wisp (OOC). Lounge = wisp puppet; IC = menu → choose
+  character → puppet; swapping always goes `unpuppet → menu → puppet`.
+- **Wisp is the account character.** Pseudo-species `wisp` (`world/data/species.py:33`
+  `SPECIES["wisp"]`) with `locked_main_stats = ("corpus","genius","animus")`,
+  `zeroed_pools = ("vigor","vim","mens")`, `can_perceive/can_manifest = False`.
+  All 9 sub-stats read `0` via `world/systems/stats.py:42` `effective_sub_stat`
+  + `derived_pools:80` hide; `growth.py` refuses XP if `is_wisp`. Wisp name
+  **equals `account.key`** — this is what shows on the `OOC` channel
+  (`typeclasses/accounts.py:30` `_perm_color` / `typeclasses/channels.py:49`
+  `ooc` prefix). Wisp is **not deletable** (`chardelete` filters it out;
+  lock `delete:false()` on `typeclasses/wisp.py`).
+- **OOC lounge is Limbo `#2`.** No new room. Flag `#2` as `OOC_Room`:
+  `db.is_ooc_room = True` + tag `ooc_room` (`category="room_flag"`) plus the
+  existing `planetary_body` tags. All future OOC branches parent to `#2` via
+  `home`. Helper `world/systems/wisp.py:is_ooc_room(room)` centralizes the
+  check. `typeclasses/rooms.py:16` lounge header tweaked; no exits required —
+  you arrive only via menu option 4 puppeting the wisp.
+- **Wisp sees/hears/touches everything in the lounge.** Because the wisp
+  **never exists in the real game** (only `#2`), it is exempt from plane
+  gating there: `can_phys_see/can_vis_see/can_phys_touch/can_vis_touch`
+  force-`True` when `is_wisp and is_ooc_room(location)`, and `at_say` is not
+  realm-gated in that room. Outside `#2` (should never happen) normal
+  `ObjectParent` rules apply.
+- **Lifecycle:** `Login → Main Menu` → `4 → puppet wisp in #2 (look)` →
+  `quit → unpuppet → Main Menu` → `1 → puppet IC char` → `quit → Main Menu`
+  → `0 → disconnect`. `OOC` is already a channel; `ic` is removed from
+  `AccountCmdSet` (`commands/default_cmdsets.py:182` `remove("ic")`) so there
+  is no bypass. `quit`/`ooc`/`exit` on a puppeted char/wisp do
+  `account.unpuppet_object(session)` → re-launch menu instead of disconnect;
+  only menu `0` calls `disconnect_session_from_account`. Both
+  `AccountCmdSet` and `CharacterCmdSet` (`commands/default_cmdsets.py:80`)
+  override `quit` via `commands/account/menu_commands.py:CmdQuitToMenu`.
+- **Migration for legacy same-name character.** On `at_post_login` before
+  menu, if `ObjectDB.objects.filter(db_account=account,
+  db_key__iexact=account.key).first()` exists and is not already a wisp
+  (`not getattr(obj,"is_wisp",False)`), treat it as the wisp: `swap_typeclass`
+  to `typeclasses.wisp.Wisp`, set `species_key="wisp"`, `move_to(limbo,
+  quiet=True)`, and mark for wisp customization on next lounge entry. If
+  multiple matches, keep the first. `db._last_puppet` is cleared if it pointed
+  at the converted object.
+
+### Main menu spec (account-level EvMenu `commands/account/main_menu.py`)
+
+```
+0) Exit the game.           → disconnect_session_from_account(session, "quit")
+1) Choose a character (N)   → node_choose_list; if N==0 → msg
+                              “You have no characters yet — choose 2 to create one.”
+                              else numbered list of non-wisp chars (mychars style
+                              commands/account/mychars.py:40 + evenv/.../accounts.py:1939
+                              “(played by someone else)” handling)
+2) Create a character (U/T slots used) → node_create_name → inline name prompt,
+                              validate non-empty, not colliding case-insensitively
+                              with existing chars, not equal to wisp name,
+                              check Available via account.get_character_slots()
+                              (typeclasses/accounts.py:181 3/4); if full → msg
+                              “You have used all X character slots.” and stay.
+                              On valid name store caller.ndb._chargen_name and
+                              delegate to commands.account.chargen_menu
+                              (startnode="node_welcome") with cmd_on_exit back to
+                              node_main; chargen finalize no longer hints “ic <name>”.
+3) Delete a character        → node_delete_list (wisp excluded) → yes/[no] confirm
+                              (evenv/.../account.py:205 pattern) → characters.remove
+                              + delete(); clear db._last_puppet if needed
+4) Go to the lounge.         → get_or_create_wisp(account) (world/systems/wisp.py)
+                              → puppet_object(session, wisp) → close menu → look in #2;
+                              if wisp unconfigured (no size/color/adjective) auto-launch
+                              wisp_menu (see below)
+   also accept: quit/exit/q as alias for 0 when already in menu
+```
+
+- Presentation: disabled states still callable but error (“no characters yet” /
+  “slots full”) and return to `node_main`; no true greyed EvMenu disable.
+- Slot line on option 2 is `f"({used}/{total} slots used)"` where
+  `total = account.get_character_slots()` and
+  `used = len([c for c in account.characters.all() if not is_wisp(c)])`.
+
+### Wisp data & appearance
+
+- **Species entry:** `world/data/species.py:33` `SPECIES["wisp"]` as above.
+- **Color palette:** new block `Light` in `world/data/colors.py:5`
+  (`COLORS` dict: `white-light`, `gold-light`, `azure-light`, `violet-light`,
+  `ember-light`, `cyan-light`, `rose-light`, `silver-light`, `ice-light`,
+  `clear-light`, etc., each with Truecolor hex). Helper
+  `WISP_LIGHTS = tuple(k for k in COLORS if k.endswith("-light"))` and existing
+  `hex_for_color`/`colored_name` reused. Wisp uses this list for its color step;
+  `appearance.py` `hex_for_name` also resolves it. Closes `|n` required to avoid
+  bleed (`GAMEPLAN Client UI Notes`).
+- **Appearance entries:** `world/data/appearance.py`
+  - `SPECIES_ADJECTIVES["wisp"]` = 12–15 light-appropriate adjectives
+    (e.g., `flickering, pulsing, steady, wavering, brilliant, dim, humming,
+    cold, warm, prismatic, soft, sharp, echoing, hazy`). Descriptions in
+    `SPECIES_ADJECTIVE_DESCRIPTIONS["wisp"]` (e.g., “Their light flickers like
+    a candle in wind.”).
+  - No height/build split. Wisp has a single trait **`size`** (5 options, same
+    count as `HEIGHTS` `appearance.py:20` but wisp-named, **not tiny** — same
+    relative scale as a person). Proposed:
+    `WISP_SIZES = ("small","modest","middling","large","immense")` or
+    `("faint","soft","middling","radiant","blazing")` — final names to be set
+    in `appearance.py`; menu shows one `size` step with that list.
+  - `SPECIES_SKIN_TONES["wisp"]` (or `WISP_LIGHTS` alias) = the Light palette
+    above; `SKIN_TONES` gets matching hex entries so `hex_for_skin("wisp",
+    tone)` works.
+  - No eyes/hair sub-menus for wisp (those tables get `["none"]` or are skipped).
+- **Typeclass:** `typeclasses/wisp.py:Wisp(Character)` (`is_wisp=True`),
+  `at_object_creation` defaults `species_key="wisp"`, `appearance_size`,
+  `appearance_adjective`, `appearance_light_color` (stored as `appearance_skin`
+  alias), `gender` (`male`/`female`/`neuter`), location `#2`, locks
+  `puppet:id(account.id)`, `delete:false()`. `is_injured`/`reset_pools` no-ops;
+  `appearance_paragraph`/`appearance_bits` emit e.g.,
+  “A radiant white-light wisp, pulsing softly, hovering here.” with light
+  hex coloring the species name (mirrors `species_display_name`).
+- **Helper:** `world/systems/wisp.py:get_or_create_wisp(account)` —
+  finds `ObjectDB` wisp by `db_account=account` + `db_key__iexact=account.key`
+  + `typeclass_path` contains `wisp`; creates via
+  `evennia.create.create_object("typeclasses.wisp.Wisp", key=account.key,
+  location=limbo, home=limbo, account=account)` if missing.
+
+### Wisp customization menu (`commands/account/wisp_menu.py`)
+
+- First lounge puppet only: if `not wisp.appearance_skin or not
+  appearance_adjective or not appearance_size/gender`, auto-launch
+  `EvMenu(account, "commands.account.wisp_menu", …, session=session)`.
+- Nodes: `welcome → gender (male/female/neuter, chargen parity
+  chargen_menu.py:69) → color (Light palette via colors.py with
+  hex display) → adjective (SPECIES_ADJECTIVES["wisp"]) → size (WISP_SIZES 5)
+  → review → finalize` writes directly to wisp attrs, then `look` in `#2`.
+- Stores on the wisp object itself; no stat/species steps (wisp species is fixed).
+
+### File changes (authoritative list)
+
+- `server/conf/settings.py:52` — add `AUTO_CREATE_CHARACTER_WITH_ACCOUNT=False`,
+  `AUTO_PUPPET_ON_LOGIN=False`.
+- `typeclasses/accounts.py:155` — `at_post_login` migration + launch main menu;
+  keep `send_gui_install` + MudInfo announce.
+- `commands/account/main_menu.py` — new (see spec above).
+- `commands/account/wisp_menu.py` — new (gender/color/adjective/size).
+- `commands/account/chardelete.py` — new `CmdCharDelete` filtering out wisp.
+- `commands/account/menu_commands.py` — new `CmdQuitToMenu`/`CmdOOCToMenu`
+  (unpuppet → menu).
+- `typeclasses/wisp.py` — new `Wisp`.
+- `world/systems/wisp.py` — new helpers `get_or_create_wisp`, `is_wisp`,
+  `is_ooc_room`.
+- `world/data/species.py:33` — add `SPECIES["wisp"]`.
+- `world/data/colors.py:5` — add `Light` block + `WISP_LIGHTS`.
+- `world/data/appearance.py` — add `SPECIES_ADJECTIVES["wisp"]`,
+  `..._DESCRIPTIONS`, `SPECIES_SKIN_TONES["wisp"]`, `WISP_SIZES` + paragraph
+  branch for `is_wisp`; single `size` replaces height/build for wisp.
+- `world/systems/stats.py:42` + `growth.py` — guard `is_wisp`.
+- `typeclasses/characters.py:51` — `appearance_paragraph` wisp branch, `is_wisp`.
+- `typeclasses/rooms.py:16` — OOC lounge header / `is_ooc_room`.
+- `commands/default_cmdsets.py:167` — `AccountCmdSet: remove("ic")` (plus existing
+  `remove("ooc")`), register `CmdCharDelete`/`CmdQuitToMenu`/`CmdMainMenu`;
+  `CharacterCmdSet:80` override `quit`/`ooc` to go to menu.
+- `commands/account/chargen_menu.py:702` — finalize returns to `main_menu`.
+
+### Verification
+
+- Login as fresh account → menu shows `1) … (no characters yet…)` / `2) … (0/3)`.
+- `2` with full slots (3/3 or 4/4) blocks.
+- `chardelete` cannot target wisp.
+- `4` creates wisp named after account, runs wisp menu first time, lands in `#2`.
+- `quit` from wisp or IC char returns to menu; no `ic` bypass.
+- Legacy same-name char migrated to wisp on next login (swap_typeclass +
+  `species_key="wisp"` + moved to `#2`).
+- Tests: `evennia test --settings settings.py .` plus scratch `evennia shell`
+  `ObjectDB` checks for wisp/typeclass/species/locks.
+
+---
+
 ## Remaining
 
 <!-- Active design direction. Full detail lives here for reference. -->

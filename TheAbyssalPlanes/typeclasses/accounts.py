@@ -152,14 +152,128 @@ class Account(DefaultAccount):
 
     changes_seen = AttributeProperty(default=0)
 
+    # Override Evennia's default OOC screen — we use the EvMenu main menu instead.
+    # This prevents the old "ic / ooc / charcreate" template from showing.
+    ooc_appearance_template = (
+        "|wYou are out-of-character.|n\n"
+        "The main menu should be visible above. If not, type |wmenu|n to reopen it.\n"
+        "Use |w0|n to exit, |w1|n to choose a character, |w2|n to create, |w4|n for the lounge."
+    )
+
+    def _ensure_ooc_room(self):
+        try:
+            from evennia.objects.models import ObjectDB
+            limbo = ObjectDB.objects.get_id(2)
+            if limbo:
+                if not getattr(limbo.db, "is_ooc_room", False):
+                    limbo.db.is_ooc_room = True
+                if not limbo.tags.get("ooc_room", category="room_flag"):
+                    limbo.tags.add("ooc_room", category="room_flag")
+        except Exception:
+            pass
+
+    def _migrate_legacy_wisp(self):
+        # If there is a character with the same name as the account that is not already a wisp,
+        # convert it to the wisp (swap typeclass, move to #2).
+        try:
+            from evennia.objects.models import ObjectDB
+            from world.systems.wisp import is_wisp
+            # Use characters handler — db_account is often None for legacy chars
+            candidates = [c for c in list(self.characters.all()) if c.db_key.lower() == self.key.lower()]
+            for obj in candidates:
+                if is_wisp(obj):
+                    return  # already has wisp
+            if not candidates:
+                return
+            obj = candidates[0]
+            # Swap typeclass to Wisp
+            try:
+                obj.swap_typeclass("typeclasses.wisp.Wisp", clean_attributes=False)
+            except Exception:
+                pass
+            try:
+                obj.species_key = "wisp"
+            except Exception:
+                try:
+                    obj.attributes.add("species_key", "wisp")
+                except Exception:
+                    pass
+            try:
+                obj.tags.add("wisp", category="account")
+                obj.tags.add("ooc_wisp", category="account")
+            except Exception:
+                pass
+            # Move to limbo
+            try:
+                from evennia.objects.models import ObjectDB as ODB2
+                limbo = ODB2.objects.get_id(2)
+                if limbo and obj.location != limbo:
+                    obj.location = limbo
+                    obj.home = limbo
+            except Exception:
+                pass
+            # Clear _last_puppet if it pointed at this object (it was IC before)
+            try:
+                if getattr(self.db, "_last_puppet", None) and getattr(self.db._last_puppet, "id", None) == obj.id:
+                    self.db._last_puppet = None
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def show_main_menu(self, session=None):
+        """Launch the account main menu."""
+        if not session:
+            try:
+                sess_list = self.sessions.all()
+                if sess_list:
+                    session = sess_list[0]
+            except Exception:
+                pass
+        if not session:
+            return
+        # If already puppeting, don't show menu (quit should unpuppet first)
+        try:
+            if self.get_puppet(session):
+                return
+        except Exception:
+            pass
+        try:
+            from evennia.utils.evmenu import EvMenu
+            EvMenu(self, "commands.account.main_menu", startnode="node_main", session=session, cmd_on_exit=None, auto_quit=False, auto_look=False, auto_help=False)
+        except Exception as e:
+            try:
+                self.msg(f"|rCould not open main menu: {e}|n", session=session)
+            except Exception:
+                pass
+
     def at_post_login(self, session=None, **kwargs):
-        """Announce any unread changes on login and send GMCP package install."""
-        super().at_post_login(session=session, **kwargs)
-        from world.systems.gmcp import send_gui_install
-        send_gui_install(self)
+        """Announce changes, ensure OOC room/wisp, then show main menu."""
+        # Evennia's default at_post_login would try to auto-puppet; with
+        # AUTO_PUPPET_ON_LOGIN=False it just does at_look — we skip super's
+        # puppet logic and do our own flow. Still need its protocol-flag
+        # replay; replicate minimal part without puppeting.
+        try:
+            # Replicate DefaultAccount.at_post_login protocol flag handling without puppet
+            protocol_flags = self.attributes.get("_saved_protocol_flags", default={})
+            if session and protocol_flags:
+                session.update_flags(**protocol_flags)
+            if session:
+                session.msg(logged_in={})
+        except Exception:
+            pass
+        # Send GUI install + alerts + MudInfo
+        try:
+            from world.systems.gmcp import send_gui_install
+            send_gui_install(self)
+        except Exception:
+            pass
         alert = changes.alert_text(self.changes_seen)
         if alert:
-            self.msg(alert)
+            try:
+                self.msg(alert, session=session)
+            except Exception:
+                self.msg(alert)
         try:
             from evennia import ChannelDB
             from world.discord_integration import send_to_mudinfo
@@ -169,6 +283,24 @@ class Account(DefaultAccount):
             send_to_mudinfo(f"|#{_perm_color(self)}{self.key}|n |ghas entered |cThe Abyssal Planes|n|g!|n")
         except Exception:
             pass
+
+        # Ensure OOC room flagged and migrate legacy same-name char → wisp
+        self._ensure_ooc_room()
+        self._migrate_legacy_wisp()
+
+        # If already puppeting (e.g., after reload), don't override — just return
+        try:
+            if session and self.get_puppet(session):
+                return
+        except Exception:
+            pass
+
+        # Show main menu (delay slightly to beat any connection screen)
+        try:
+            from evennia.utils.utils import delay
+            delay(0.4, lambda sess=session: self.show_main_menu(session=sess))
+        except Exception:
+            self.show_main_menu(session=session)
 
     def at_disconnect(self, reason=None, **kwargs):
         super().at_disconnect(reason=reason, **kwargs)

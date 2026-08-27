@@ -81,7 +81,7 @@ class SkillCatalogTest(SimpleTestCase):
 
 class SpeciesCatalogTest(SimpleTestCase):
     def test_species_count(self):
-        self.assertEqual(len(species.species_keys()), 9)
+        self.assertEqual(len(species.species_keys()), 10)
 
     def test_every_species_is_well_formed(self):
         for spec in species.SPECIES.values():
@@ -89,7 +89,10 @@ class SpeciesCatalogTest(SimpleTestCase):
             self.assertIn(spec["visarial_nature"], {"dual_natured", "visarial", "physical"})
             self.assertEqual(spec["default_visarial_state"], "normal")
             self.assertIsInstance(spec["locked_main_stats"], tuple)
-            self.assertLessEqual(set(spec["locked_main_stats"]), {"corpus", "animus"})
+            if spec["key"] == "wisp":
+                self.assertEqual(set(spec["locked_main_stats"]), {"corpus", "genius", "animus"})
+            else:
+                self.assertLessEqual(set(spec["locked_main_stats"]), {"corpus", "animus"})
 
     def test_locked_alternates_match_locked_mains(self):
         for spec in species.SPECIES.values():

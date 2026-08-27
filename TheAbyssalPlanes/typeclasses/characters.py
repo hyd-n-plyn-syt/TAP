@@ -70,6 +70,8 @@ class Character(ObjectParent, DefaultCharacter):
 
     species_key = AttributeProperty(default=None)
 
+    is_wisp = False
+
     appearance_height = AttributeProperty(default=None)
     appearance_build = AttributeProperty(default=None)
     appearance_adjective = AttributeProperty(default=None)
@@ -674,6 +676,8 @@ class Character(ObjectParent, DefaultCharacter):
         statistics. The character must already know the skill. Returns the
         result dict from the growth system, or None if the skill is unknown.
         """
+        if getattr(self, "is_wisp", False):
+            return None
         return skill_systems.use_skill(self, key, difficulty=difficulty, times=times)
 
     def at_say(self, message, msg_self=None, msg_location=None, receivers=None,

@@ -678,6 +678,52 @@ CHANGES = [
             "ServerConfig daily log keys reset for a fresh Eastern start."
         ),
     },
+    {
+        "number": 49,
+        "date": "2026-08-26",
+        "title": "Account main menu, OOC lounge and wisp system",
+        "body": (
+            "Login now lands in an account-level main menu - the first and last screen "
+            "you see. Options: 0 Exit (disconnect), 1 Choose character (shows count, "
+            "handles 0), 2 Create character (shows used/total slots from "
+            "get_character_slots, blocks when full), 3 Delete character (wisp excluded, "
+            "confirm yes), 4 Go to the lounge (OOC as wisp). "
+            "AUTO_CREATE_CHARACTER_WITH_ACCOUNT and AUTO_PUPPET_ON_LOGIN are disabled; "
+            "the menu is shown via Account.at_post_login with a short delay and "
+            "auto_quit disabled. Wisp is a pseudo-species wisp (locked "
+            "corpus/genius/animus, zeroed vigor/vim/mens) sharing the account name, "
+            "living only in Limbo #2 flagged OOC_Room (is_ooc_room + ooc_room tag), not "
+            "deletable (delete:false) and not counted toward slots. A new Light block "
+            "in world/data/colors.py (white-light, gold-light, azure-light, "
+            "violet-light, ember-light, cyan-light, rose-light, silver-light, "
+            "ice-light, clear-light, amber-light, crimson-light) backs it, and "
+            "world/data/appearance.py gains WISP_SIZES "
+            "small/modest/middling/large/immense (person-relative, not tiny), 15 wisp "
+            "adjectives (flickering, pulsing, steady, wavering, brilliant, dim, "
+            "humming, cold, warm, prismatic, soft, sharp, echoing, hazy, lambent) with "
+            "descriptions and Light skin tones, plus hovering pose. typeclasses/wisp.py "
+            "(Wisp) overrides plane visibility to see/hear/touch everything in the OOC "
+            "lounge and hides pools/prompt. world/systems/wisp.py provides get_wisp, "
+            "get_or_create_wisp, non_wisp_characters, is_ooc_room and wisp_needs_setup "
+            "(now strict valid_skin/valid_adjective/valid_wisp_size) so converted "
+            "legacy characters correctly prompt for wisp setup. Legacy same-named "
+            "characters are migrated on login via Account._migrate_legacy_wisp "
+            "(swap_typeclass to Wisp, move to #2) and stale int refs like 102 are "
+            "cleaned. Single-puppet rule enforced (MULTISESSION_MODE 0); quit/ooc/exit "
+            "while puppeted now unpuppet to the main menu via "
+            "commands/account/menu_commands.py (only menu 0 disconnects), ic removed "
+            "from AccountCmdSet and CharacterCmdSet, OOC remains a channel. Puppeting "
+            "via the menu now fires prompt (get_prompt) and is_autowhere map "
+            "(send_autowhere) once at menu exit, and DefaultCharacter.at_post_puppet "
+            "already does You become + look so no double look. Choose/delete lists now "
+            "show a single b/back Back and no quit/exit/q grid entries. Discord MudInfo "
+            "daily ansi codeblock overflow now correctly creates cont. part 2 when the "
+            "2000-char block is full (was truncating), and the live new-change "
+            "broadcast no longer includes Type changes to read whats new in the MudInfo "
+            "codeblock - that hint stays in-game via changes.alert_text and the MudInfo "
+            "channel display only, since Discord users cannot run the command."
+        ),
+    },
 ]
 
 

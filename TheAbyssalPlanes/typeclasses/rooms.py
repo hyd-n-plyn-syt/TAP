@@ -37,6 +37,14 @@ class Room(ObjectParent, DefaultRoom):
         self.tags.add("None", category="site_y")
         self.tags.add("None", category="site_z")
 
+        # Flag id 2 (Limbo) as the OOC lounge #2 is always OOC_Room
+        try:
+            if getattr(self, "id", None) == 2 or str(getattr(self, "dbref", "")) == "#2":
+                self.db.is_ooc_room = True
+                self.tags.add("ooc_room", category="room_flag")
+        except Exception:
+            pass
+
     def return_appearance(self, looker, **kwargs):
         """
         Main callback used by 'look'. Intercepts layout generation to title-case 
